@@ -1,10 +1,10 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowUpRight, BookOpen, DoorOpen, Film, Info, Scroll, X } from 'lucide-react';
-import { MOODS, MOOD_BY_KEY, MOOD_BY_LETTER, withMoodAlpha } from '../../lib/moods';
+import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
 import { fetchPersonaWorld, worldState, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
 import { PAPER, MIST, PIXEL, VELVET, INK, NIGHT, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
@@ -15,7 +15,6 @@ import { PersonaCode, PersonaCard } from '../PersonaBits';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
 import MovieDetailsModal from '../MovieDetailsModal';
 import { MothCloseUp, PersonaScene } from '../personaWorld/PersonaScene';
-import type { SceneHit } from '../personaWorld/draw';
 import { useStudioDoors } from '../personaWorld/useStudioDoors';
 import KeywordCloud from './KeywordCloud';
 import { ModuleTitle, formatOne } from './observatoryKit';
@@ -29,11 +28,13 @@ import { ModuleTitle, formatOne } from './observatoryKit';
 // (um por humor, de 13/10/2026) e, desde 13/11, uma cabine em miniatura no
 // lugar da carta do personagem. Agora:
 //   • à esquerda, o estúdio inteiro, vivo, do mesmo jeito da home e da gaveta
-//     (2× no celular, 3× no computador). Os objetos funcionam: o livro abre a
-//     história da mariposa; no seu perfil, a máquina, a mesa e o aquário levam
-//     aos jogos e à Watchlist; a caixa de papelão leva ao Clube do Terror.
-//     Tocar numa prateleira da estante escolhe aquele humor; tocar num pôster
-//     da parede abre o título; qualquer outro ponto abre a gaveta do estúdio;
+//     (2× no celular, 3× no computador). Desde a correção da noite de 14/11
+//     ("vamos deixar brilhando tudo que é possível ser clicado") só se toca no
+//     que brilha: a tela e a mariposa abrem a gaveta do estúdio, o livro abre
+//     o guia do estúdio e a caixa de papelão leva ao Clube do Terror; no seu
+//     perfil, também a máquina, os quadros (a coleção de pôsteres) e a mesa; a
+//     estante das latas, sem brilho, leva à Biblioteca. Os humores se escolhem
+//     nas plaquinhas de baixo;
 //   • embaixo dele, as nove prateleiras numa fileira de plaquinhas (a letra,
 //     a parte dos títulos e o nível): o que os frascos mostravam, agora na
 //     língua do estúdio, e o caminho de quem usa teclado;
@@ -62,9 +63,9 @@ interface EssenceRingProps {
   shareName?: string | null;
 }
 
-// A gaveta e o livro só são baixados na primeira abertura.
+// A gaveta e o guia do estúdio só são baixados na primeira abertura.
 const PersonaWorldSheet = lazy(() => import('../personaWorld/PersonaWorldSheet'));
-const EvolutionBook = lazy(() => import('../personaWorld/EvolutionBook'));
+const StudioGuide = lazy(() => import('../personaWorld/StudioGuide'));
 
 // Celular estreito: frascos mais baixos e menos palavras por vez.
 function useCompact() {
@@ -82,7 +83,6 @@ function useCompact() {
 
 const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, personaLoading = false, topKeywords, isOwn, ownerName, ownerId, shareName = null }) => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const compact = useCompact();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -127,12 +127,12 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     };
   }, [ownerId, personaCode, personaCounted]);
   const worldSt = useMemo(() => (world ? worldState(world) : null), [world]);
-  const openWorld = () => {
+  const openWorld = useCallback(() => {
     setWorldMounted(true);
     setShowWorld(true);
-  };
+  }, []);
   const openBook = useCallback(() => setBookOpen(true), []);
-  const doors = useStudioDoors({ world, isOwn, ownerUsername: isOwn ? shareName : username, onOpenBook: openBook });
+  const doors = useStudioDoors({ world, isOwn, ownerUsername: isOwn ? shareName : username, onOpenBook: openBook, onOpenPersona: ownerId ? openWorld : undefined });
 
   // No celular o painel fica embaixo da grade: ao escolher um humor, traz o
   // painel para a tela se ele estiver escondido.
@@ -159,15 +159,6 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     } catch {
       toast.error(t('common.error'));
     }
-  };
-  // Um toque na cena: a prateleira escolhe o humor, o pôster abre o título e o
-  // resto abre a gaveta do estúdio.
-  const pickScene = (hit: SceneHit) => {
-    if (hit.kind === 'shelf') {
-      const mood = MOOD_BY_LETTER[hit.letter];
-      if (mood) toggle(mood.key);
-    } else if (hit.kind === 'poster') openTitle(hit.title);
-    else openWorld();
   };
 
   if (counted === 0 && !hasPersona && !personaLoading && !world) {
@@ -221,7 +212,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       {world && (
         <button type="button" onClick={openBook} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#7DD3FC' }}>
           <BookOpen className="w-4 h-4" aria-hidden />
-          {t('personaWorld.book.title')}
+          {t('personaWorld.guide.title')}
         </button>
       )}
       {hasPersona && (
@@ -522,7 +513,6 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
                 world={world}
                 state={worldSt}
                 maxScale={3}
-                onPick={pickScene}
                 extras={doors.extras}
                 hotspots={doors.hotspots}
                 label={worldSt.hasTrio ? t('personaWorld.sceneLabel', { code: worldSt.code }) : t('personaWorld.sceneLabelEmpty')}
@@ -554,7 +544,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
       {bookOpen && world && (
         <Suspense fallback={null}>
-          <EvolutionBook world={world} isOwn={isOwn} ownerName={ownerName ?? null} extras={doors.extras} onClose={() => setBookOpen(false)} />
+          <StudioGuide world={world} isOwn={isOwn} ownerName={ownerName ?? null} extras={doors.extras} onClose={() => setBookOpen(false)} />
         </Suspense>
       )}
       {worldMounted && ownerId && (
@@ -567,9 +557,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
             ownerName={ownerName}
             persona={persona}
             initialWorld={world}
-            viewerId={isOwn ? ownerId : undefined}
             username={shareName}
-            onUserClick={isOwn ? (name) => navigate(`/profile/${name}`) : undefined}
           />
         </Suspense>
       )}

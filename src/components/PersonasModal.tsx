@@ -14,6 +14,14 @@ import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleThem
 // seu personagem e quantas pessoas vivem nela. Dá pra filtrar por
 // prateleira. Tocar numa abre a ficha, com quem (entre amigos e perfis
 // públicos) tem a mesma personalidade.
+//
+// 14/11/2026 (noite): as personalidades saíram do botão do modal "Sua
+// Persona" e passaram a ser páginas do guia do estúdio (pedido do Bruno:
+// "isso das personalidades vai sair de um botão […] e vai fazer parte do
+// conteúdo do livro"). A grade agora são as páginas do livro; este modal ficou
+// sendo a ficha de cada uma. Por isso o `initialCode`: o livro abre o modal já
+// na ficha da personalidade tocada, sem grade e sem seta de voltar (fechar
+// devolve ao livro). O `zIndexClass` deixa a ficha por cima do livro.
 
 type CatalogEntry = PersonaEntry & { userCount: number };
 
@@ -32,6 +40,9 @@ interface Props {
   viewerId: string;
   viewerPersonaCode?: string | null;
   onUserClick?: (username: string) => void;
+  // abre direto na ficha desta personalidade (sem a grade)
+  initialCode?: string | null;
+  zIndexClass?: string;
 }
 
 const PersonaGrid: React.FC<{
@@ -270,7 +281,7 @@ const PersonaDetail: React.FC<{
   );
 };
 
-const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPersonaCode = null, onUserClick }) => {
+const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPersonaCode = null, onUserClick, initialCode = null, zIndexClass }) => {
   const { t, i18n } = useTranslation();
 
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
@@ -334,6 +345,15 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
     setLastViewed(p.code);
   };
 
+  // aberto pelo guia do estúdio: assim que o catálogo chega, vai direto à ficha
+  useEffect(() => {
+    if (!isOpen || !initialCode || catalog.length === 0) return;
+    const entry = catalog.find((p) => p.code === initialCode);
+    if (entry) setSelected(entry);
+  }, [isOpen, initialCode, catalog]);
+  // a ficha pedida ainda não apareceu (o catálogo está chegando): nada de grade no meio
+  const waiting = Boolean(initialCode) && !selected && catalog.some((p) => p.code === initialCode);
+
   const selectedText = selected ? personaText(selected, i18n.language) : null;
 
   return (
@@ -341,9 +361,10 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
       open={isOpen}
       onClose={onClose}
       size="full"
+      zIndexClass={zIndexClass}
       bodyClassName="px-5 sm:px-7 py-6"
       leading={
-        selected ? (
+        selected && !initialCode ? (
           <button onClick={() => setSelected(null)} aria-label={t('common.back')} className={`shrink-0 -ml-2 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`} style={{ color: PAPER }}>
             <ArrowLeft className="w-5 h-5" aria-hidden />
           </button>
@@ -358,7 +379,7 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
             : undefined
       }
     >
-      {loading ? (
+      {loading || waiting ? (
         <div className="flex items-center justify-center py-24" role="status">
           <Loader2 className="w-6 h-6 animate-spin text-violet-300" aria-hidden />
           <span className="sr-only">{t('common.loading')}</span>

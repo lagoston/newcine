@@ -1,10 +1,10 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { posterUrl } from '../../lib/persona';
 import type { PersonaWorld, WorldState, WorldTitle } from '../../lib/personaWorld';
 import { FOCUS_RING, NIGHT, PAPER } from '../../lib/oracleTheme';
-import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, sceneHit, shrinkCover, studioSpots, NO_IMAGES, POSTER_SIZE, RH, RW, SCREEN_SIZE, type EyeHit, type Pt, type SceneHit, type SceneImages } from './draw';
+import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, studioSpots, NO_IMAGES, RH, RW, type EyeHit, type SceneImages } from './draw';
+import { loadSceneImages, sceneImagesKey } from './sceneImages';
 import { NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
 
 // As duas telas da Persona viva (13/11/2026): a cabine inteira (PersonaScene) e
@@ -16,55 +16,19 @@ import { NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
 
 const FRAME_MS = 125;
 
-const loadImage = (src: string): Promise<HTMLImageElement | null> =>
-  new Promise((resolve) => {
-    const img = new Image();
-    // sem isto o canvas fica "sujo" e não poderia virar imagem de compartilhar
-    img.crossOrigin = 'anonymous';
-    img.decoding = 'async';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-
-// A capa do filme da Persona (na tela) e os pôsteres das notas 10 (na parede),
-// reduzidos a pixel. Enquanto não chegam (ou se o TMDB não responder), a cena
-// usa os desenhos de reserva.
-//
-// 14/11/2026 (pedido do Bruno): a tela projeta a CAPA DO FILME, para todo
-// mundo. Antes era a "foto do personagem", que para 70 das 84 Personas é uma
-// cena larga do filme e para 14 é um pôster: uns estúdios mostravam a capa e
-// outros, um recorte de cena. No dele (Contato) o recorte, feito para o
-// cartão em pé, pegava mais da metade da cena e mostrava "um homem em pixels"
-// ao lado da personagem. O personagem continua no cartão, embaixo da cena.
+// As imagens de verdade da cena (sceneImages.ts): a capa na tela e os pôsteres do Jackpot na parede.
 function useSceneImages(world: PersonaWorld, stage: number): SceneImages {
   const [images, setImages] = useState<SceneImages>(NO_IMAGES);
-  const entry = world.persona?.code ? (world.persona.persona ?? null) : null;
-  const cover = useMemo(() => (entry ? posterUrl(entry.posterPath, 'w342') : null), [entry]);
-  const posterPaths = world.tens
-    .slice(0, 4)
-    .map((title) => title.poster ?? '')
-    .join('|');
-  const size = SCREEN_SIZE(stage);
+  const key = sceneImagesKey(world, stage);
+  const latest = useRef({ world, stage });
+  latest.current = { world, stage };
   useEffect(() => {
     let alive = true;
-    const posters = posterPaths.split('|').map((path) => posterUrl(path || null, 'w185'));
-    Promise.all([cover ? loadImage(cover) : Promise.resolve(null), ...posters.map((src) => (src ? loadImage(src) : Promise.resolve(null)))]).then(([face, ...rest]) => {
-      if (!alive) return;
-      try {
-        setImages({
-          // a capa é em pé e a tela é deitada: entra a faixa de cima do pôster, de ponta a ponta
-          portrait: face ? shrinkCover(face, size.w, size.h, 0.5, 0.14, 1) : null,
-          posters: rest.map((img) => (img ? shrinkCover(img, POSTER_SIZE.w, POSTER_SIZE.h) : null)),
-        });
-      } catch {
-        setImages(NO_IMAGES);
-      }
-    });
+    loadSceneImages(latest.current.world, latest.current.stage).then((value) => alive && setImages(value));
     return () => {
       alive = false;
     };
-  }, [cover, posterPaths, size.w, size.h]);
+  }, [key]);
   return images;
 }
 
@@ -120,21 +84,27 @@ function useIntegerScale(ref: React.RefObject<HTMLElement>, width: number, scale
 // A cabine
 // ---------------------------------------------------------------------------
 
-// O que um objeto da sala de estar faz quando é tocado (a máquina do Jackpot,
-// a mesa de pôquer, o aquário, o livro, a caixa do Clube do Terror).
+// O que uma coisa da cena faz quando é tocada (a máquina do Jackpot, a mesa de
+// pôquer, o guia, a caixa do Clube do Terror, os quadros, a tela, a mariposa,
+// a estante das latas).
+//
+// 14/11/2026 (noite), correção do Bruno: tocar em qualquer ponto não abre mais
+// nada. Só o que está aqui é tocável, e o que é tocável brilha (glow.ts).
 export interface Hotspot {
-  // o nome do objeto (aparece ao passar o mouse ou chegar pelo teclado, e é o que o leitor de tela lê)
+  // o nome (aparece ao passar o mouse ou chegar pelo teclado, e é o que o leitor de tela lê)
   label: string;
   onClick?: () => void;
-  // em vez de onClick: o objeto é um link
+  // em vez de onClick: é um link
   to?: string;
   // um número no canto (o que está esperando a pessoa no Jackpot)
   badge?: number;
-  // algo preso em cima do objeto (o balão da ficha do dia)
+  // algo preso em cima (o balão da ficha do dia)
   above?: React.ReactNode;
+  // false = tocável, mas sem brilho (a estante das latas)
+  glow?: boolean;
 }
 
-const HOTSPOT_CLASS = `group/spot absolute block min-w-0 min-h-0 rounded-md transition-shadow duration-150 hover:shadow-[inset_0_0_0_2px_rgba(243,234,211,0.75)] focus-visible:shadow-[inset_0_0_0_2px_rgba(243,234,211,0.9)] ${FOCUS_RING}`;
+const HOTSPOT_CLASS = `group/spot absolute block min-w-0 min-h-0 cursor-pointer rounded-md ${FOCUS_RING}`;
 
 export const PersonaScene: React.FC<{
   world: PersonaWorld;
@@ -142,27 +112,30 @@ export const PersonaScene: React.FC<{
   // 'fit' = o maior múltiplo inteiro que cabe na largura (até maxScale)
   scale?: number | 'fit';
   maxScale?: number;
-  // false = um quadro parado (miniatura do perfil)
+  // false = um quadro parado
   animated?: boolean;
-  // toque na cena (atalho: tudo o que ela abre também existe em botões)
-  onPick?: (hit: SceneHit) => void;
   label: string;
   className?: string;
   // a sala de estar: a máquina do Jackpot e a mesa de pôquer aparecem?
   extras?: StudioExtras;
-  // os objetos que levam a algum lugar (sem isto, são só desenho)
+  // o que pode ser tocado (sem isto, a cena é só desenho)
   hotspots?: Partial<Record<SpotKind, Hotspot>>;
-}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, onPick, label, className = '', extras = NO_EXTRAS, hotspots }) => {
+}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, label, className = '', extras = NO_EXTRAS, hotspots }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roomRef = useRef<HTMLCanvasElement | null>(null);
-  const creatureRef = useRef<Pt | null>(null);
   const tickRef = useRef(0);
   const reduceMotion = useReducedMotion();
   const k = useIntegerScale(wrapRef, RW, scale, maxScale);
   const images = useSceneImages(world, state.stage);
   const spec = useMemo(() => mothSpec(state, world), [state, world]);
   const { jackpot, poker } = extras;
+  // o que brilha: tudo o que é tocável, menos o que pediu para não brilhar
+  const glowKey = Object.entries(hotspots ?? {})
+    .filter(([, hotspot]) => hotspot && hotspot.glow !== false)
+    .map(([kind]) => kind)
+    .sort()
+    .join(',');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -177,26 +150,25 @@ export const PersonaScene: React.FC<{
     const lounge: StudioExtras = { jackpot, poker };
     drawRoom(roomCtx, state, world, images, lounge);
     const still = !animated || Boolean(reduceMotion);
+    const glow = new Set(glowKey ? (glowKey.split(',') as SpotKind[]) : []);
     const paint = () => {
-      creatureRef.current = paintFrame(ctx, room, state, world, spec, tickRef.current, still, lounge);
+      paintFrame(ctx, room, state, world, spec, tickRef.current, still, lounge, glow);
     };
     paint();
     if (still) return;
     return runFrames(canvas, tickRef, paint);
-  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker]);
-
-  const pick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!onPick) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    onPick(sceneHit(((event.clientX - rect.left) / rect.width) * RW, ((event.clientY - rect.top) / rect.height) * RH, state, world, creatureRef.current));
-  };
+  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker, glowKey]);
 
   // os objetos tocáveis: um botão (ou link) de verdade por cima de cada um,
   // para o teclado e o leitor de tela também chegarem neles
-  const spots = useMemo(() => (hotspots ? studioSpots(world, { jackpot, poker }).filter((spot) => hotspots[spot.kind]) : []), [hotspots, world, jackpot, poker]);
+  const spots = useMemo(() => (hotspots ? studioSpots(world, state, { jackpot, poker }).filter((spot) => hotspots[spot.kind]) : []), [hotspots, world, state, jackpot, poker]);
 
   return (
-    <div ref={wrapRef} className={`grid place-items-center overflow-hidden ${className}`}>
+    // place-content-center: quando a cena é mais larga que a tela (celular
+    // estreito, 2×), o que sobra é cortado por igual dos dois lados. Só com
+    // place-items a cena ficava encostada à esquerda e o corte ia todo para a
+    // direita, em cima da máquina e do guia.
+    <div ref={wrapRef} className={`grid place-content-center place-items-center overflow-hidden ${className}`}>
       <div className="relative shrink-0" style={{ width: RW * k, height: RH * k }}>
         <canvas
           ref={canvasRef}
@@ -204,9 +176,8 @@ export const PersonaScene: React.FC<{
           height={RH}
           role="img"
           aria-label={label}
-          onClick={onPick ? pick : undefined}
           className="block"
-          style={{ width: RW * k, height: RH * k, imageRendering: 'pixelated', cursor: onPick ? 'pointer' : undefined }}
+          style={{ width: RW * k, height: RH * k, imageRendering: 'pixelated' }}
         />
         {spots.map((spot) => {
           const hotspot = hotspots?.[spot.kind];
@@ -222,7 +193,8 @@ export const PersonaScene: React.FC<{
                 {hotspot.label}
               </span>
               {hotspot.badge ? (
-                <span className="pointer-events-none absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-fuchsia-500 px-1 text-[11px] font-bold leading-none text-white shadow" aria-hidden>
+                // no ombro do objeto (o canto de cima da caixa do toque fica no ar, longe do desenho)
+                <span className="pointer-events-none absolute -right-1 top-[12%] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-fuchsia-500 px-1 text-[11px] font-bold leading-none text-white shadow" aria-hidden>
                   {hotspot.badge}
                 </span>
               ) : null}

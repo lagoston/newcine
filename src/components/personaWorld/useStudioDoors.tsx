@@ -8,23 +8,32 @@ import { TERROR_CLUB, roomPath } from '../../lib/secretRooms';
 import { usePokerDoor } from '../poker/game/usePokerDoor';
 import { BLEFE_ROUTES } from '../poker/jackpot/pokerMeta';
 import type { Hotspot } from './PersonaScene';
-import type { SpotKind, StudioExtras } from './studio';
+import { hasTerrorBox, type SpotKind, type StudioExtras } from './studio';
 
-// O que cada objeto do estúdio abre (14/11/2026).
+// O que cada coisa do estúdio abre (14/11/2026).
 //
 // Pedido do Bruno: a máquina e a mesa "devem ser clicáveis para acessar os
 // jogos"; "uma prateleira com um livro clicável"; o portal do Halloween vira
-// um objeto "liberado pela tag".
+// um objeto "liberado pela tag". E, depois de ver no ar (20h32): "ao invés de
+// qualquer lugar clicado abrir o 'sua persona', vamos deixar brilhando tudo
+// que é possível ser clicado, como a máquina do jackpot, pôsteres, a tela e a
+// borboleta para acessarem o 'sua persona', mesa de poker, a caixa do clube
+// do terror pra quem tiver. As prateleiras não precisam brilhar, mas ao clicar
+// nelas o usuário vai para a biblioteca."
 //
-//   • a máquina  → o Poster Jackpot (a gaveta, na home);
-//   • a mesa     → o Pôster Poker (só aparece para quem tem o pôquer liberado);
-//   • o aquário  → a Watchlist (cada peixe é um título esperando para ser visto);
-//   • o livro    → o livro da mariposa (a história da evolução);
-//   • a caixa    → o Clube do Terror (para quem tem a Deadly Sleeping).
+//   • a máquina       → o Poster Jackpot (a gaveta, na home);
+//   • a mesa          → o Pôster Poker (só aparece para quem tem o pôquer liberado);
+//   • o livro         → o guia do estúdio;
+//   • a caixa         → o Clube do Terror (para quem tem a Deadly Sleeping);
+//   • os quadros      → a coleção de pôsteres do Jackpot;
+//   • a tela e a mariposa → "Sua Persona" (quem monta a cena diz o que isso é:
+//     abrir a gaveta, ou, dentro dela, descer até a Persona e a mariposa);
+//   • a estante das latas → a Biblioteca (sem brilho).
 //
-// No estúdio de outra pessoa os jogos são só enfeite (os jogos são de quem
-// está olhando) e o aquário também; o livro conta a história dela; a caixa
-// leva ao Clube do Terror como convidado dela.
+// No estúdio de outra pessoa os jogos, os quadros e a estante são só desenho
+// (os jogos e a coleção são de quem está olhando); o livro é o guia com os
+// dados dela; a caixa leva ao Clube do Terror como convidado dela; a tela e a
+// mariposa abrem a gaveta dela.
 
 // A roleta está liberada? (fora da home, onde não há a gaveta: uma consulta por visita)
 let jackpotEnabledOnce: Promise<boolean> | null = null;
@@ -46,7 +55,8 @@ export interface StudioJackpot {
   waiting: number;
   // há algo para pegar agora (a ficha do dia ou algo esperando): a luz da máquina pisca
   alert: boolean;
-  onOpen: () => void;
+  // abre a gaveta do Jackpot (na roleta, ou direto na coleção)
+  onOpen: (tab?: 'machine' | 'collection') => void;
   // o balão da ficha do dia, preso em cima da máquina
   above?: React.ReactNode;
 }
@@ -62,12 +72,14 @@ export function useStudioDoors(options: {
   // o nome de usuário do dono, sem "@" (para entrar no Clube do Terror como convidado)
   ownerUsername?: string | null;
   onOpenBook: () => void;
+  // a tela e a mariposa: abrir "Sua Persona" (sem isto, não são tocáveis)
+  onOpenPersona?: () => void;
   // na home: a máquina com tudo o que a porta do Jackpot fazia
   jackpot?: StudioJackpot;
   // chamado antes de sair da tela (fechar a gaveta)
   onLeave?: () => void;
 }): StudioDoors {
-  const { world, isOwn, ownerUsername, onOpenBook, jackpot, onLeave } = options;
+  const { world, isOwn, ownerUsername, onOpenBook, onOpenPersona, jackpot, onLeave } = options;
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -91,30 +103,40 @@ export function useStudioDoors(options: {
   const alert = jackpot?.alert ?? false;
   const openJackpot = jackpot?.onOpen;
   const above = jackpot?.above;
-  const watchCount = world?.watch.count ?? 0;
-  const hasTerror = Boolean(world?.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id)));
+  const posterCount = world?.posters.length ?? 0;
+  const hasTerror = Boolean(world && hasTerrorBox(world));
+  const personaLabel = isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerUsername ? `@${ownerUsername}` : '' });
 
   return useMemo(() => {
     const extras: StudioExtras = { jackpot: !machine ? 'off' : alert ? 'alert' : 'on', poker: poker.open };
     const hotspots: Partial<Record<SpotKind, Hotspot>> = {
       book: { label: t('studio.spots.book'), onClick: onOpenBook },
     };
+    // a gaveta do Jackpot: na home ela está ali mesmo; fora dela, a home abre com a gaveta
+    const toJackpot = (tab: 'machine' | 'collection') => () => {
+      if (openJackpot) {
+        openJackpot(tab);
+        return;
+      }
+      onLeave?.();
+      navigate('/', { state: { openJackpot: tab } });
+    };
+    if (onOpenPersona) {
+      hotspots.screen = { label: personaLabel, onClick: onOpenPersona };
+      hotspots.moth = { label: personaLabel, onClick: onOpenPersona };
+    }
     if (isOwn) {
       if (machine) {
         hotspots.jackpot = {
           label: waiting > 0 ? t('studio.spots.jackpotWaiting', { count: waiting }) : t('studio.spots.jackpot'),
           badge: waiting || undefined,
           above,
-          onClick:
-            openJackpot ??
-            (() => {
-              onLeave?.();
-              navigate('/', { state: { openJackpot: 'machine' } });
-            }),
+          onClick: toJackpot('machine'),
         };
+        if (posterCount > 0) hotspots.posters = { label: t('studio.spots.posters'), onClick: toJackpot('collection') };
       }
       if (poker.open) hotspots.poker = { label: t('studio.spots.poker'), to: BLEFE_ROUTES.title, onClick: onLeave };
-      hotspots.aquarium = { label: watchCount > 0 ? t('studio.spots.aquarium', { count: watchCount }) : t('studio.spots.aquariumEmpty'), to: '/library', onClick: onLeave };
+      hotspots.shelves = { label: t('studio.spots.shelves'), to: '/library', onClick: onLeave, glow: false };
     }
     if (hasTerror && viewerId) {
       hotspots.terror = isOwn
@@ -122,5 +144,5 @@ export function useStudioDoors(options: {
         : { label: t('studio.spots.terrorVia', { name: ownerUsername ?? '' }), to: roomPath(TERROR_CLUB, ownerUsername ?? null), onClick: onLeave };
     }
     return { extras, hotspots };
-  }, [machine, alert, poker.open, t, onOpenBook, isOwn, waiting, above, openJackpot, onLeave, navigate, watchCount, hasTerror, viewerId, ownerUsername]);
+  }, [machine, alert, poker.open, t, onOpenBook, onOpenPersona, personaLabel, isOwn, waiting, above, openJackpot, onLeave, navigate, posterCount, hasTerror, viewerId, ownerUsername]);
 }

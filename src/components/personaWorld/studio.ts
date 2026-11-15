@@ -1,35 +1,38 @@
 import type { PersonaWorld } from '../../lib/personaWorld';
+import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow } from './glow';
 
-// O estúdio (14/11/2026): a sala de estar da cabine.
+// O estúdio (14/11/2026): a sala de estar, ao lado do cinema.
 //
 // Pedido do Bruno (14/11, 17h08): o estúdio toma, na home, o lugar das portas
 // do Jackpot e do Pôquer, "que agora se tornarão objetos dentro do estúdio do
-// usuário: uma máquina caça-níquel e uma mesa". E mais: "dentro do estúdio
-// devem haver espaços para colocar variados objetos conquistados pelo usuário,
-// como uma árvore de Natal em futuros eventos, fora o espaço que já devem ter
-// sempre reservados para os itens padrão, como a máquina de jackpot, a mesa de
-// poker e o aquário"; "uma prateleira com um livro clicável". Às 17h23: "o
-// portal de Halloween não é mais um item de banner, agora ele é um item de
-// estúdio liberado pela tag, [...] dentro de uma caixa velha de papelão".
+// usuário: uma máquina caça-níquel e uma mesa"; "uma prateleira com um livro
+// clicável". Às 17h23: "o portal de Halloween não é mais um item de banner,
+// agora ele é um item de estúdio liberado pela tag, [...] dentro de uma caixa
+// velha de papelão".
 //
-// A cabine ficou mais comprida para a direita (de 6 × 6 para 9 × 6 ladrilhos).
-// A parte do cinema (a tela, a estante das latas, a poltrona, o projetor) não
-// mudou de lugar. Na parte nova:
-//   • encostados na parede: a máquina do Jackpot, a estante do livro e o
-//     lugar alto (a árvore de Natal);
-//   • no meio: a mesa de pôquer;
-//   • na frente: o aquário (a Watchlist: um peixe por título que espera);
-//   • os lugares de conquista, marcados no chão com fita, como as marcas de
-//     um set de filmagem: a abóbora do Halloween, a caixa do Clube do Terror,
-//     o amuleto do beta. Os que sobram ficam esperando os próximos eventos.
+// Correções das 20h32, depois de ver a primeira versão no ar: "acho que ficou
+// muita informação e dificultou encontrar o que é prioritário, o jackpot".
+//   • saíram o aquário, a abóbora, o amuleto do beta ("o olho"), a árvore de
+//     Natal e as marcas de fita no chão: "por enquanto temos apenas o item a
+//     caixa com portal";
+//   • a caixa perdeu o "TERROR" escrito em fita;
+//   • a máquina do Jackpot cresceu, ganhou letreiro de lâmpadas e um brilho em
+//     volta, mais forte que o dos outros objetos;
+//   • tudo o que pode ser tocado brilha (glow.ts).
 //
-// Aqui só mora o desenho e a posição de cada coisa. O que cada objeto abre é
-// assunto de quem monta a cena (StudioScene).
+// O cinema (a tela, a estante das latas, a poltrona, o projetor) fica nos seis
+// ladrilhos da esquerda. Nos três da direita:
+//   • encostadas na parede: a máquina do Jackpot e a estante do guia;
+//   • no meio: a mesa de pôquer (para quem tem o pôquer liberado);
+//   • na frente: a caixa do Clube do Terror (para quem tem a Deadly Sleeping).
+//
+// Aqui só mora o desenho, a posição e o retângulo clicável de cada coisa. O
+// que cada uma abre é assunto de useStudioDoors.
 
 type Ctx = CanvasRenderingContext2D;
 type Pt = [number, number];
 
-// As ferramentas de desenho da cabine (draw.ts), passadas de lá para cá.
+// As ferramentas de desenho do estúdio (draw.ts), passadas de lá para cá.
 export interface Kit {
   iso: (x: number, y: number, z?: number) => Pt;
   box: (ctx: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, c: string) => void;
@@ -39,16 +42,29 @@ export interface Kit {
   dark: (c: string, t: number) => string;
   light: (c: string, t: number) => string;
   moodColor: (letter: string | null | undefined) => string;
+  // o tamanho do canvas da cena
+  size: [number, number];
 }
 
 export interface StudioExtras {
   // a máquina do Jackpot: 'off' = não aparece (roleta desligada); 'on' =
-  // parada; 'alert' = há algo esperando a pessoa (as luzes piscam)
+  // parada; 'alert' = há algo esperando a pessoa (a sirene pisca)
   jackpot: 'off' | 'on' | 'alert';
   // a mesa de pôquer aparece (quem está olhando tem o Pôquer liberado)
   poker: boolean;
 }
 export const NO_EXTRAS: StudioExtras = { jackpot: 'on', poker: false };
+
+// Tudo o que pode ser tocado na cena. As quatro primeiras são objetos da sala
+// de estar (aqui); as outras são do cinema (draw.ts).
+export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves';
+export interface Spot {
+  kind: SpotKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 const GOLD = '#F4C454';
 const PAPER = '#F3EAD3';
@@ -56,49 +72,18 @@ const EDGE = '#150E26';
 
 // Onde fica cada coisa, em ladrilhos (x ao longo da parede da direita, y ao
 // longo da parede da esquerda; o canto do fundo é 0, 0).
-const SLOT = { x: 6.12, y: 0.12, w: 0.8, d: 0.72, h: 26 };
-const BOOKCASE = { x: 7.16, y: 0.1, w: 0.74, d: 0.44, h: 19 };
-const TALL = { x: 8.18, y: 0.18, w: 0.66, d: 0.66 };
-const TABLE = { x: 7.15, y: 2.85, r: 0.92, h: 7 };
-const TANK = { x: 6.15, y: 4.7, w: 1.5, d: 0.7, h: 17 };
-// os lugares de conquista no chão (marcados com fita)
-const PLACES: { x: number; y: number }[] = [
-  { x: 8.15, y: 1.35 },
-  { x: 8.15, y: 3.45 },
-  { x: 8.15, y: 5.05 },
-  { x: 2.95, y: 5.1 },
-  { x: 1.45, y: 5.1 },
-];
-const PLACE_SIZE = 0.72;
+//
+// A máquina e a estante do guia ficam um pouco para dentro do canto da direita:
+// num celular de 320 px a cena de 2× perde 10 pixels de cada lado, e a estante
+// do guia encostada no canto ficava de fora (a ponta dela vai até o pixel 169
+// de 180; o corte começa no 170).
+const SLOT = { x: 6.1, y: 0.15, w: 1.1, d: 0.9, h: 36 };
+const BOOKCASE = { x: 7.45, y: 0.1, w: 0.74, d: 0.44, h: 19 };
+const TABLE = { x: 7.55, y: 3.05, r: 0.92, h: 7 };
+const TERROR_BOX = { x: 6.4, y: 4.4, w: 1, d: 1, h: 11 };
 
-// ---------- as conquistas ----------
-export type TrophyKind = 'tree' | 'terror' | 'pumpkin' | 'amulet';
-export interface Trophy {
-  kind: TrophyKind;
-  // a árvore e a abóbora crescem com os passos do evento
-  level: number;
-  // 'tall' = o lugar alto, encostado na parede; número = o lugar do chão
-  place: 'tall' | number;
-}
-
-// As tags viram objetos. Cada objeto tem o seu lugar fixo (o mesmo estúdio
-// para a mesma coleção de tags, sempre).
-export function trophiesOf(world: PersonaWorld): Trophy[] {
-  const has = (base: string) => world.tags.some((tag) => tag.id === base || new RegExp(`^${base}-[0-9]+$`).test(tag.id));
-  const list: Trophy[] = [];
-  // Natal: a árvore acende com o 1º filme; ganha os presentes com o sussurro e a estrela com a noite completa
-  const lights = has('spark-of-grace');
-  const gifts = has('secret-friend');
-  const star = has('ho-ho-ho');
-  if (lights || gifts || star) list.push({ kind: 'tree', level: (lights ? 1 : 0) | (gifts ? 2 : 0) | (star ? 4 : 0), place: 'tall' });
-  // Halloween: a abóbora (1 filme), a vela dentro dela (2), a careta acesa (3)
-  const pumpkin = has('pumpkin-head') ? 3 : has('deadly-sleeping') ? 2 : has('scary-clown') ? 1 : 0;
-  if (pumpkin) list.push({ kind: 'pumpkin', level: pumpkin, place: 0 });
-  // a Deadly Sleeping libera o portal do Clube do Terror, dentro da caixa de papelão
-  if (has('deadly-sleeping')) list.push({ kind: 'terror', level: 1, place: 1 });
-  if (has('beta-tester')) list.push({ kind: 'amulet', level: 1, place: 2 });
-  return list;
-}
+// A caixa do Clube do Terror aparece para quem tem a Deadly Sleeping (qualquer edição).
+export const hasTerrorBox = (world: PersonaWorld): boolean => world.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id));
 
 // ---------- desenho ----------
 // retângulo numa face que corre ao longo de x (a face +y de uma caixa). o =
@@ -122,51 +107,42 @@ const disc = (ctx: Ctx, cx: number, cy: number, a: number, b: number, c: string)
   }
 };
 
-// as marcas de fita no chão de um lugar de conquista vazio
-const tapeMarks = (k: Kit, ctx: Ctx, x: number, y: number) => {
-  const c = 'rgba(243,234,211,0.32)';
-  const s = PLACE_SIZE;
-  const corner = (ax: number, ay: number, dx: number, dy: number) => {
-    const a = k.iso(ax, ay);
-    const b = k.iso(ax + dx * 0.22, ay);
-    const d = k.iso(ax, ay + dy * 0.22);
-    k.poly(ctx, [a, b, [b[0], b[1] + 1], [a[0], a[1] + 1]], c);
-    k.poly(ctx, [a, d, [d[0], d[1] + 1], [a[0], a[1] + 1]], c);
-  };
-  corner(x, y, 1, 1);
-  corner(x + s, y, -1, 1);
-  corner(x, y + s, 1, -1);
-  corner(x + s, y + s, -1, -1);
-};
-
-// a máquina do Jackpot
+// A máquina do Jackpot: a base, o corpo com a janela das três bobinas, o
+// letreiro dourado com lâmpadas, a sirene no alto e a alavanca do lado.
+const SLOT_FRONT = (k: Kit): Pt => k.iso(SLOT.x + 0.04, SLOT.y + SLOT.d - 0.04, 11);
+const SLOT_SIGN = (k: Kit): Pt => k.iso(SLOT.x, SLOT.y + SLOT.d, 26);
 const drawSlot = (k: Kit, ctx: Ctx) => {
   const { x, y, w, d } = SLOT;
-  const blue = '#2B3A9A';
-  k.box(ctx, x, y, 0, w, d, 9, '#1F2A72');
-  k.box(ctx, x + 0.03, y + 0.03, 9, w - 0.06, d - 0.06, 13, blue);
-  k.box(ctx, x + 0.08, y + 0.08, 22, w - 0.16, d - 0.16, 3, GOLD);
-  // a frente (a face virada para a sala): a janela das três bobinas e a bandeja
-  const front = k.iso(x + 0.03, y + d - 0.03, 9);
-  faceY(ctx, front, 1, 4, 7, 6, EDGE);
-  faceY(ctx, front, 1, 5, 2, 4, PAPER);
-  faceY(ctx, front, 4, 5, 2, 4, PAPER);
-  faceY(ctx, front, 7, 5, 1, 4, PAPER);
-  faceY(ctx, front, 1, 6, 2, 2, '#E5484D');
-  faceY(ctx, front, 4, 6, 2, 2, GOLD);
-  faceY(ctx, front, 7, 6, 1, 2, '#4ADE80');
-  faceY(ctx, front, 0, 11, 9, 1, GOLD);
+  k.box(ctx, x, y, 0, w, d, 11, '#1F2A72');
+  k.box(ctx, x + 0.04, y + 0.04, 11, w - 0.08, d - 0.08, 15, '#2B3A9A');
+  k.box(ctx, x, y, 26, w, d, 6, GOLD);
+  k.box(ctx, x + 0.34, y + 0.26, 32, w - 0.68, d - 0.52, 4, '#C2333A');
+  // a frente do corpo: a janela, as três bobinas e o friso
+  const front = SLOT_FRONT(k);
+  const width = Math.round((w - 0.08) * 12);
+  faceY(ctx, front, 1, 4, width - 2, 9, EDGE);
+  ['#E5484D', GOLD, '#4ADE80'].forEach((color, i) => {
+    faceY(ctx, front, 2 + i * 3, 5, 2, 7, PAPER);
+    faceY(ctx, front, 2 + i * 3, 7, 2, 3, color);
+  });
+  faceY(ctx, front, 0, 14, width, 1, GOLD);
+  faceY(ctx, front, 0, 0, width, 2, GOLD);
+  // a base: a bandeja com as fichas
   const base = k.iso(x, y + d, 0);
-  faceY(ctx, base, 2, 3, 6, 2, EDGE);
-  faceY(ctx, base, 3, 3, 4, 1, GOLD);
+  faceY(ctx, base, 2, 4, 9, 4, EDGE);
+  faceY(ctx, base, 3, 4, 7, 1, GOLD);
+  faceY(ctx, base, 5, 5, 3, 1, GOLD);
+  // o letreiro: uma fileira de lâmpadas (acendem em paintLounge)
+  const sign = SLOT_SIGN(k);
+  for (let i = 1; i < 13; i += 2) faceY(ctx, sign, i, 2, 1, 2, '#B8862B');
   // a alavanca, do lado
-  const side = k.iso(x + w, y + 0.3, 12);
-  k.px(ctx, side[0] + 1, side[1] - 7, '#BDB4D6', 1, 8);
-  k.px(ctx, side[0], side[1] - 9, '#E5484D', 3, 3);
-  k.px(ctx, side[0], side[1] - 9, '#FF9DA0', 1, 1);
+  const side = k.iso(x + w, y + 0.36, 15);
+  k.px(ctx, side[0] + 1, side[1] - 10, '#BDB4D6', 1, 11);
+  k.px(ctx, side[0], side[1] - 13, '#E5484D', 3, 3);
+  k.px(ctx, side[0], side[1] - 13, '#FF9DA0', 1, 1);
 };
 
-// a estante do livro: uma estante baixa de madeira e, em cima, o livro grande
+// a estante do guia: uma estante baixa de madeira e, em cima, o livro grande
 const drawBookcase = (k: Kit, ctx: Ctx) => {
   const { x, y, w, d, h } = BOOKCASE;
   const wood = '#6A4630';
@@ -208,218 +184,78 @@ const drawTable = (k: Kit, ctx: Ctx) => {
   k.px(ctx, c[0] - 9, c[1] + 1, '#E5484D', 2, 2);
 };
 
-// o aquário: o móvel, o vidro, a areia e as plantas (os peixes entram a cada quadro)
-const tankFront = (k: Kit): Pt => k.iso(TANK.x + 0.02, TANK.y + TANK.d - 0.02, 7);
-const drawTank = (k: Kit, ctx: Ctx) => {
-  const { x, y, w, d } = TANK;
-  k.box(ctx, x, y, 0, w, d, 7, '#4A3324');
-  k.box(ctx, x + 0.02, y + 0.02, 7, w - 0.04, d - 0.04, 10, '#2F86BE');
-  const front = tankFront(k);
-  const width = Math.round((w - 0.04) * 12);
-  faceY(ctx, front, 0, 0, width, 10, '#16598C');
-  faceY(ctx, front, 0, 9, width, 1, '#8FD8F8');
-  faceY(ctx, front, 0, 0, width, 1, '#D9C79A');
-  faceY(ctx, front, 2, 1, 1, 4, '#2FA36B');
-  faceY(ctx, front, 3, 1, 1, 2, '#2FA36B');
-  faceY(ctx, front, width - 4, 1, 1, 5, '#3DBB7C');
-  faceY(ctx, front, width - 3, 1, 1, 3, '#2FA36B');
-  const side = k.iso(x + w - 0.02, y + 0.02, 7);
-  const depth = Math.round((d - 0.04) * 12);
-  faceX(ctx, side, 0, 0, depth, 10, '#124B78');
-  faceX(ctx, side, 0, 9, depth, 1, '#7CC8EC');
-  faceX(ctx, side, 0, 0, depth, 1, '#BFAE85');
-};
-
-// ----- os objetos de conquista -----
-const drawPumpkin = (k: Kit, ctx: Ctx, at: Pt, level: number) => {
-  const [x, y] = at;
-  const body = '#F08A24';
-  if (level >= 3) {
-    ctx.fillStyle = 'rgba(255,181,71,0.16)';
-    ctx.fillRect(x - 7, y - 10, 15, 13);
-  }
-  disc(ctx, x, y - 3, 5, 3.6, k.dark(body, 0.28));
-  disc(ctx, x, y - 4, 5, 3.6, body);
-  k.px(ctx, x - 2, y - 7, k.dark(body, 0.2), 1, 6);
-  k.px(ctx, x + 1, y - 7, k.dark(body, 0.2), 1, 6);
-  k.px(ctx, x - 1, y - 9, '#3F7A3A', 2, 2);
-  if (level >= 2) {
-    // a vela acesa por dentro: os olhos
-    k.px(ctx, x - 3, y - 5, GOLD, 1, 1);
-    k.px(ctx, x + 2, y - 5, GOLD, 1, 1);
-  }
-  if (level >= 3) {
-    k.px(ctx, x - 3, y - 6, GOLD, 2, 1);
-    k.px(ctx, x + 1, y - 6, GOLD, 2, 1);
-    k.px(ctx, x - 3, y - 3, GOLD, 6, 1);
-    k.px(ctx, x - 2, y - 2, GOLD, 1, 1);
-    k.px(ctx, x + 1, y - 2, GOLD, 1, 1);
-  }
-};
-
-const drawAmulet = (k: Kit, ctx: Ctx, at: Pt) => {
-  const [x, y] = at;
-  k.px(ctx, x - 2, y - 1, '#3A2E5E', 4, 1);
-  k.px(ctx, x - 1, y - 4, '#BDB4D6', 1, 3);
-  disc(ctx, x, y - 8, 3.4, 3.4, '#1E4FD8');
-  disc(ctx, x, y - 8, 2.2, 2.2, PAPER);
-  disc(ctx, x, y - 8, 1.2, 1.2, '#38BDF8');
-  k.px(ctx, x - 1, y - 9, EDGE, 1, 1);
-};
-
-// A caixa velha de papelão do Clube do Terror.
-//
-// Pedido do Bruno (14/11/2026): "o mesmo portal agora dentro de uma caixa
-// velha de papelão escrito com fita adesiva o nome do modal". O nome vai
-// escrito com pedaços de fita (letras retas, de 3 × 5 pixels), dando a volta
-// na quina da caixa: "TER" numa face e "ROR" na outra. A caixa tem um ladrilho
-// de lado (12 pixels por face): é o que cabe de nome sem ela ficar maior que a
-// mesa de pôquer. O nome inteiro, "Clube do Terror", aparece na etiqueta ao
-// passar o mouse ou o foco, e no livro.
-const TERROR_BOX = { w: 1, d: 1, h: 11 };
-const terrorBoxAt = (place: { x: number; y: number }) => ({ x: place.x - 0.18, y: place.y - 0.04 });
-const TAPE_GLYPHS: Record<string, string[]> = {
-  T: ['111', '010', '010', '010', '010'],
-  E: ['111', '100', '110', '100', '111'],
-  R: ['110', '101', '110', '101', '101'],
-  O: ['111', '101', '101', '101', '111'],
-};
-const drawTerrorBox = (k: Kit, ctx: Ctx, place: { x: number; y: number }) => {
-  const { w, d, h } = TERROR_BOX;
-  const { x, y } = terrorBoxAt(place);
+// A caixa velha de papelão do Clube do Terror: abas abertas, amassada, com
+// uma tira de fita adesiva fechando a quina (sem nada escrito: o nome aparece
+// na etiqueta, ao passar o mouse ou o foco). O portal gira dentro dela.
+const drawTerrorBox = (k: Kit, ctx: Ctx) => {
+  const { x, y, w, d, h } = TERROR_BOX;
   const card = '#94704A';
   k.box(ctx, x, y, 0, w, d, h, card);
   // por dentro, escuro (a boca da caixa)
   k.poly(ctx, [k.iso(x + 0.08, y + 0.08, h), k.iso(x + w - 0.08, y + 0.08, h), k.iso(x + w - 0.08, y + d - 0.08, h), k.iso(x + 0.08, y + d - 0.08, h)], '#1A0D14');
   // as abas abertas
-  const flap = k.dark(card, 0.12);
-  k.poly(ctx, [k.iso(x, y + d, h), k.iso(x + w, y + d, h), k.iso(x + w + 0.05, y + d + 0.3, h + 2), k.iso(x + 0.05, y + d + 0.3, h + 2)], flap);
+  k.poly(ctx, [k.iso(x, y + d, h), k.iso(x + w, y + d, h), k.iso(x + w + 0.05, y + d + 0.3, h + 2), k.iso(x + 0.05, y + d + 0.3, h + 2)], k.dark(card, 0.12));
   k.poly(ctx, [k.iso(x + w, y, h), k.iso(x + w, y + d, h), k.iso(x + w + 0.3, y + d + 0.05, h + 2), k.iso(x + w + 0.3, y + 0.05, h + 2)], k.dark(card, 0.05));
-  // amassados e uma mancha (antes das letras, para não cortar a fita)
-  const left = k.iso(x, y + d, 0); // a face da esquerda: da ponta esquerda até a quina
-  const right = k.iso(x + w, y, 0); // a face da direita: a ponta direita dela (a quina fica à esquerda)
+  const left = k.iso(x, y + d, 0);
+  const right = k.iso(x + w, y, 0);
+  // a fita adesiva: uma tira clara que dá a volta na quina, mais gasta de um lado
+  faceY(ctx, left, 5, 4, 7, 3, '#D9C9A0');
+  faceX(ctx, right, 6, 4, 6, 3, '#CDBD94');
+  faceY(ctx, left, 5, 4, 1, 3, k.dark(card, 0.08));
+  // amassados e uma mancha
   faceY(ctx, left, 1, 0, 1, 2, k.dark(card, 0.25));
+  faceY(ctx, left, 2, 8, 2, 1, k.dark(card, 0.2));
   faceX(ctx, right, 1, 9, 2, 1, k.dark(card, 0.25));
-  // o nome em fita: cada letra tem 3 colunas e 5 linhas, com 1 coluna de vão.
-  // put(c, v) pinta um pedaço de fita na coluna c (da esquerda para a direita) e na altura v.
-  const tape = '#F3EAD3';
-  const write = (word: string, put: (c: number, v: number) => void) => {
-    word.split('').forEach((letter, index) => {
-      TAPE_GLYPHS[letter].forEach((row, r) => {
-        row.split('').forEach((bit, c) => {
-          if (bit === '1') put(index * 4 + c, 7 - r);
-        });
-      });
-    });
-  };
-  write('TER', (c, v) => faceY(ctx, left, c, v, 1, 1, tape));
-  write('ROR', (c, v) => faceX(ctx, right, 10 - c, v, 1, 1, tape));
+  faceX(ctx, right, 3, 1, 1, 2, k.dark(card, 0.22));
 };
-const terrorMouth = (k: Kit, place: { x: number; y: number }): Pt => {
-  const { x, y } = terrorBoxAt(place);
-  return k.iso(x + TERROR_BOX.w / 2, y + TERROR_BOX.d / 2, TERROR_BOX.h);
-};
+const terrorMouth = (k: Kit): Pt => k.iso(TERROR_BOX.x + TERROR_BOX.w / 2, TERROR_BOX.y + TERROR_BOX.d / 2, TERROR_BOX.h);
 
-// a árvore de Natal: três andares, as luzes (1), os presentes (2) e a estrela (4)
-const drawTree = (k: Kit, ctx: Ctx, at: Pt, level: number) => {
-  const [x, y] = at;
-  k.px(ctx, x - 1, y - 4, '#5A3A24', 2, 4);
-  const green = '#1F7A4D';
-  [
-    [9, 4, 10],
-    [7, 10, 9],
-    [5, 16, 8],
-  ].forEach(([half, up, tall]) => {
-    for (let row = 0; row < tall; row += 1) {
-      const width = Math.max(1, Math.round(half * (1 - row / tall)));
-      k.px(ctx, x - width, y - up - row, row % 3 === 2 ? k.dark(green, 0.18) : green, width * 2, 1);
-    }
-  });
-  if (level & 1) {
-    const bulbs = ['#E5484D', GOLD, '#38BDF8', '#F472B6', GOLD, '#E5484D', '#38BDF8'];
-    [
-      [-5, 6],
-      [3, 8],
-      [-2, 11],
-      [4, 13],
-      [-3, 16],
-      [1, 19],
-      [-1, 22],
-    ].forEach(([dx, up], i) => k.px(ctx, x + dx, y - up, bulbs[i], 1, 1));
-  }
-  if (level & 2) {
-    k.px(ctx, x - 9, y - 3, '#E5484D', 4, 3);
-    k.px(ctx, x - 8, y - 3, GOLD, 1, 3);
-    k.px(ctx, x + 5, y - 2, '#38BDF8', 3, 2);
-    k.px(ctx, x + 6, y - 2, PAPER, 1, 2);
-  }
-  if (level & 4) {
-    k.px(ctx, x - 1, y - 27, GOLD, 2, 3);
-    k.px(ctx, x - 2, y - 26, GOLD, 4, 1);
-  }
-};
-
-// o centro do chão de um lugar de conquista (onde o objeto pisa)
-const placeFoot = (k: Kit, place: 'tall' | number): Pt =>
-  place === 'tall' ? k.iso(TALL.x + TALL.w / 2, TALL.y + TALL.d / 2, 0) : k.iso(PLACES[place].x + PLACE_SIZE / 2, PLACES[place].y + PLACE_SIZE / 2, 0);
-
-// A parte parada da sala de estar (vai junto com a cabine, em drawRoom).
+// A parte parada da sala de estar (vai junto com o cinema, em drawRoom). Do fundo para a frente.
 export function drawLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: StudioExtras) {
-  const trophies = trophiesOf(world);
-  const taken = new Set(trophies.map((trophy) => trophy.place));
-  // primeiro o chão: as marcas de fita dos lugares ainda vazios
-  if (!taken.has('tall')) tapeMarks(k, ctx, TALL.x - 0.03, TALL.y - 0.03);
-  PLACES.forEach((place, index) => {
-    if (!taken.has(index)) tapeMarks(k, ctx, place.x, place.y);
-  });
-  // do fundo para a frente
   if (extras.jackpot !== 'off') drawSlot(k, ctx);
   drawBookcase(k, ctx);
-  const tree = trophies.find((trophy) => trophy.kind === 'tree');
-  if (tree) drawTree(k, ctx, placeFoot(k, 'tall'), tree.level);
-  const byPlace = (index: number) => trophies.find((trophy) => trophy.place === index);
-  const paintPlace = (index: number) => {
-    const trophy = byPlace(index);
-    if (!trophy) return;
-    if (trophy.kind === 'pumpkin') drawPumpkin(k, ctx, placeFoot(k, index), trophy.level);
-    else if (trophy.kind === 'amulet') drawAmulet(k, ctx, placeFoot(k, index));
-    else if (trophy.kind === 'terror') drawTerrorBox(k, ctx, PLACES[index]);
-  };
-  paintPlace(0);
   if (extras.poker) drawTable(k, ctx);
-  paintPlace(1);
-  paintPlace(3);
-  paintPlace(4);
-  drawTank(k, ctx);
-  paintPlace(2);
+  if (hasTerrorBox(world)) drawTerrorBox(k, ctx);
 }
 
-// O que se mexe na sala de estar, a cada quadro: os peixes, as luzes da
-// máquina, o brilho do livro e o portal dentro da caixa. still = parado.
-export function paintLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: StudioExtras, tick: number, still: boolean) {
-  // os peixes: um por título da Watchlist (até 6 na frente do vidro)
-  const front = tankFront(k);
-  const width = Math.round((TANK.w - 0.04) * 12);
-  world.watch.fish.slice(0, 6).forEach((letter, i) => {
-    const color = letter ? k.moodColor(letter) : PAPER;
-    const lane = 2 + ((i * 3) % 6);
-    const span = width - 6;
-    const phase = still ? i * 2.1 : tick / (11 + i * 2) + i * 2.1;
-    const u = 2 + Math.round((span / 2) * (1 + Math.sin(phase)));
-    const right = Math.cos(phase) >= 0;
-    faceY(ctx, front, u, lane, 2, 1, color);
-    faceY(ctx, front, right ? u - 1 : u + 2, lane, 1, 1, k.dark(color, 0.35));
-  });
-  // a luz do alto da máquina: acesa; piscando quando há algo esperando
+// O que se mexe na sala de estar, a cada quadro: o brilho do que pode ser
+// tocado, as lâmpadas e a sirene da máquina, o brilho do livro e o portal
+// dentro da caixa. glow = o que pode ser tocado agora; still = parado.
+export function paintLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: StudioExtras, tick: number, still: boolean, glow: ReadonlySet<SpotKind>) {
+  const [w, h] = k.size;
+  const soft = glowAlphas(tick, still, false);
+  if (glow.has('book')) paintGlow(ctx, glowOf('book', w, h, (c) => drawBookcase(k, c)), 0, 0, GLOW_SOFT, soft);
+  if (glow.has('poker') && extras.poker) paintGlow(ctx, glowOf('poker', w, h, (c) => drawTable(k, c)), 0, 0, GLOW_SOFT, soft);
+  const terror = hasTerrorBox(world);
+  if (glow.has('terror') && terror) paintGlow(ctx, glowOf('terror', w, h, (c) => drawTerrorBox(k, c)), 0, 0, GLOW_SOFT, soft);
+
   if (extras.jackpot !== 'off') {
+    // a máquina: o brilho mais forte da sala, em ouro
+    if (glow.has('jackpot')) paintGlow(ctx, glowOf('jackpot', w, h, (c) => drawSlot(k, c)), 0, 0, GLOW_GOLD, glowAlphas(tick, still, true));
+    // as lâmpadas do letreiro correm (paradas: todas acesas)
+    const sign = SLOT_SIGN(k);
+    for (let i = 1, n = 0; i < 13; i += 2, n += 1) {
+      const lit = still || (n + (tick >> 1)) % 3 !== 0;
+      faceY(ctx, sign, i, 2, 1, 2, lit ? '#FFF3C4' : '#B8862B');
+    }
+    // a sirene do alto: acesa; piscando quando há algo esperando
     const top = k.iso(SLOT.x + SLOT.w / 2, SLOT.y + SLOT.d / 2, SLOT.h);
-    const lit = extras.jackpot === 'alert' && !still ? (tick >> 2) % 2 === 0 : true;
-    k.px(ctx, top[0] - 1, top[1] - 2, lit ? '#FFF3C4' : '#B8862B', 3, 2);
-    if (extras.jackpot === 'alert' && lit) {
-      ctx.fillStyle = 'rgba(244,196,84,0.22)';
-      ctx.fillRect(top[0] - 3, top[1] - 4, 7, 6);
+    const alert = extras.jackpot === 'alert';
+    const lit = alert && !still ? (tick >> 2) % 2 === 0 : alert;
+    if (lit) {
+      k.px(ctx, top[0] - 2, top[1] - 1, '#FF8A8F', 4, 2);
+      k.px(ctx, top[0] - 1, top[1] - 2, '#FFE3E4', 2, 1);
+      ctx.fillStyle = 'rgba(255,90,96,0.24)';
+      ctx.fillRect(top[0] - 5, top[1] - 5, 10, 8);
+    }
+    // uma bobina troca de cor de vez em quando, como máquina ligada
+    if (!still) {
+      const front = SLOT_FRONT(k);
+      const reel = (tick >> 3) % 3;
+      faceY(ctx, front, 2 + reel * 3, 7, 2, 3, ['#38BDF8', '#F472B6', GOLD][(tick >> 3) % 3]);
     }
   }
+
   // o livro pisca de leve, chamando
   if (!still && tick % 24 < 3) {
     const book = k.iso(BOOKCASE.x + 0.08, BOOKCASE.y + BOOKCASE.d - 0.1, BOOKCASE.h);
@@ -429,10 +265,10 @@ export function paintLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: Studi
       k.px(ctx, Math.round(book[0]) + 6, Math.round(book[1]) - 10, '#FFF3C4', 1, 3);
     }
   }
+
   // o portal do Clube do Terror, dentro da caixa: uma espiral à luz de vela
-  const terror = trophiesOf(world).find((trophy) => trophy.kind === 'terror');
-  if (terror && typeof terror.place === 'number') {
-    const mouth = terrorMouth(k, PLACES[terror.place]);
+  if (terror) {
+    const mouth = terrorMouth(k);
     const turn = still ? 0 : tick >> 1;
     ctx.fillStyle = 'rgba(255,181,71,0.2)';
     ctx.fillRect(mouth[0] - 5, mouth[1] - 8, 11, 9);
@@ -450,23 +286,13 @@ export function paintLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: Studi
     // as brasas que sobem
     if (!still) {
       const rise = tick % 8;
-      k.px(ctx, mouth[0] - 2 + (rise % 3), mouth[1] - 3 - rise, 'rgba(255,181,71,0.8)', 1, 1);
-      k.px(ctx, mouth[0] + 2 - (rise % 2), mouth[1] - 2 - ((rise + 4) % 8), 'rgba(255,214,140,0.7)', 1, 1);
+      k.px(ctx, mouth[0] - 2 + (tick % 3), mouth[1] - 4 - rise, 'rgba(255,181,71,0.85)', 1, 1);
+      k.px(ctx, mouth[0] + 2 - (tick % 2), mouth[1] - 3 - ((rise + 4) % 8), 'rgba(255,243,196,0.7)', 1, 1);
     }
   }
 }
 
-// ---------- onde tocar ----------
-export type SpotKind = 'jackpot' | 'poker' | 'aquarium' | 'book' | 'terror';
-export interface Spot {
-  kind: SpotKind;
-  // o retângulo do objeto na cena, em pixels do desenho
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
+// ---------- os retângulos clicáveis ----------
 const rectOf = (k: Kit, x: number, y: number, w: number, d: number, h: number, pad = 1): Omit<Spot, 'kind'> => {
   const left = k.iso(x, y + d)[0];
   const right = k.iso(x + w, y)[0];
@@ -475,18 +301,12 @@ const rectOf = (k: Kit, x: number, y: number, w: number, d: number, h: number, p
   return { x: Math.floor(left) - pad, y: Math.floor(top) - pad, w: Math.ceil(right - left) + pad * 2, h: Math.ceil(bottom - top) + pad * 2 };
 };
 
-// Os objetos que levam a algum lugar, com o retângulo de cada um.
+// Os objetos da sala de estar que levam a algum lugar, com o retângulo de cada um.
 export function loungeSpots(k: Kit, world: PersonaWorld, extras: StudioExtras): Spot[] {
   const spots: Spot[] = [];
-  if (extras.jackpot !== 'off') spots.push({ kind: 'jackpot', ...rectOf(k, SLOT.x, SLOT.y, SLOT.w, SLOT.d, SLOT.h + 2) });
+  if (extras.jackpot !== 'off') spots.push({ kind: 'jackpot', ...rectOf(k, SLOT.x, SLOT.y, SLOT.w, SLOT.d, SLOT.h + 1, 2) });
   spots.push({ kind: 'book', ...rectOf(k, BOOKCASE.x, BOOKCASE.y, BOOKCASE.w, BOOKCASE.d, BOOKCASE.h + 9) });
   if (extras.poker) spots.push({ kind: 'poker', ...rectOf(k, TABLE.x - TABLE.r, TABLE.y - TABLE.r, TABLE.r * 2, TABLE.r * 2, TABLE.h + 2, 0) });
-  spots.push({ kind: 'aquarium', ...rectOf(k, TANK.x, TANK.y, TANK.w, TANK.d, TANK.h) });
-  const terror = trophiesOf(world).find((trophy) => trophy.kind === 'terror');
-  if (terror && typeof terror.place === 'number') {
-    const place = PLACES[terror.place];
-    const at = terrorBoxAt(place);
-    spots.push({ kind: 'terror', ...rectOf(k, at.x, at.y, TERROR_BOX.w + 0.3, TERROR_BOX.d + 0.3, TERROR_BOX.h + 8) });
-  }
+  if (hasTerrorBox(world)) spots.push({ kind: 'terror', ...rectOf(k, TERROR_BOX.x, TERROR_BOX.y, TERROR_BOX.w + 0.3, TERROR_BOX.d + 0.3, TERROR_BOX.h + 8) });
   return spots;
 }

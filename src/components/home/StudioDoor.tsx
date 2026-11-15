@@ -27,14 +27,24 @@ import { DailyChipBalloon } from '../posterJackpot/DailyChip';
 //
 // Antes eram três portas e um ingresso lado a lado (a do Jackpot, a da Persona
 // e o ingresso do Pôquer). Agora é uma coisa só: o estúdio da pessoa, vivo, do
-// tamanho das três juntas. Nele:
-//   • a máquina caça-níquel abre o Poster Jackpot (a luz pisca e um número
-//     aparece quando há algo esperando; o balão da ficha do dia sai dela);
+// tamanho das três juntas.
+//
+// 14/11/2026 (noite), correção do Bruno depois de ver no ar: "ficou muita
+// informação e dificultou encontrar o que é prioritário, o jackpot, e acessar
+// a própria 'sua persona'. […] ao invés de qualquer lugar clicado abrir o 'sua
+// persona', vamos deixar brilhando tudo que é possível ser clicado". Então só
+// se toca no que brilha (e na estante das latas, que não brilha):
+//   • a máquina caça-níquel, a que mais brilha, abre o Poster Jackpot (a luz
+//     pisca e um número aparece quando há algo esperando; o balão da ficha do
+//     dia sai dela);
+//   • os quadros da parede (os últimos quatro pôsteres ganhos) abrem a coleção;
+//   • a tela e a mariposa abrem a gaveta "Sua Persona";
 //   • a mesa leva ao Pôster Poker (só para quem tem o pôquer liberado);
-//   • o aquário leva à Watchlist, o livro abre a história da mariposa e a
-//     caixa de papelão (para quem tem a tag) leva ao Clube do Terror;
-//   • tocar em qualquer outro ponto abre a gaveta "Sua Persona".
-// A porta da Biblioteca dos Oráculos continua ao lado, como estava.
+//   • o livro abre o guia do estúdio e a caixa de papelão (para quem tem a
+//     tag) leva ao Clube do Terror;
+//   • a estante das latas leva à Biblioteca.
+// O nome em cima do cartão (e o botão "Abrir", no computador) continua abrindo
+// a gaveta. A porta da Biblioteca dos Oráculos continua ao lado, como estava.
 //
 // O desenho:
 //   • celular e tablet: o nome em cima (um botão, com a seta), a cena e a dica
@@ -51,9 +61,9 @@ import { DailyChipBalloon } from '../posterJackpot/DailyChip';
 
 const DEFAULT_TINTS = ['#A78BFA', '#F0ABFC', '#38BDF8'];
 
-// A gaveta e o livro só são baixados quando alguém abre.
+// A gaveta e o guia do estúdio só são baixados quando alguém abre.
 const PersonaWorldSheet = lazy(() => import('../personaWorld/PersonaWorldSheet'));
-const EvolutionBook = lazy(() => import('../personaWorld/EvolutionBook'));
+const StudioGuide = lazy(() => import('../personaWorld/StudioGuide'));
 
 // A escala da cena e o desenho do cartão (lado a lado no computador).
 function useDoorLayout(ref: React.RefObject<HTMLDivElement>): { side: boolean; k: number } {
@@ -150,23 +160,24 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
       enabled,
       waiting,
       alert: waiting > 0 || dailyChip,
-      onOpen: () => openJackpot('machine'),
+      onOpen: (tab) => openJackpot(tab ?? 'machine'),
       // o balão da ficha do dia sai de cima da máquina e cresce para a esquerda (o rabicho aponta para ela)
       above: <DailyChipBalloon show={dailyChip && !sheetOpen} claiming={claimingDaily} onClaim={claimDaily} className="pj-daily-left bottom-[10px] -right-[29px]" />,
     }),
     [enabled, waiting, dailyChip, sheetOpen, claimingDaily, claimDaily, openJackpot],
   );
   const openBook = useCallback(() => setBookOpen(true), []);
-  const doors = useStudioDoors({ world, isOwn: true, ownerUsername: username, onOpenBook: openBook, jackpot: studioJackpot });
+  const openSheet = useCallback(() => setOpen(true), []);
+  const doors = useStudioDoors({ world, isOwn: true, ownerUsername: username, onOpenBook: openBook, onOpenPersona: openSheet, jackpot: studioJackpot });
   // dentro da gaveta a máquina fecha a gaveta antes de abrir o Jackpot, e o balão fica só aqui na home
   const sheetJackpot: StudioJackpot = useMemo(
     () => ({
       enabled,
       waiting,
       alert: waiting > 0 || dailyChip,
-      onOpen: () => {
+      onOpen: (tab) => {
         setOpen(false);
-        openJackpot('machine');
+        openJackpot(tab ?? 'machine');
       },
     }),
     [enabled, waiting, dailyChip, openJackpot],
@@ -193,7 +204,6 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
     boxShadow: `inset 0 0 0 1px ${withAlpha(tints[0], 0.3)}, 0 18px 40px -26px ${withAlpha(tints[1], 0.6)}`,
   };
   const sceneHeight = RH * k;
-  const openSheet = () => setOpen(true);
   const doorAria = hasPersona && persona?.code && text ? t('home.persona.doorAria', { code: persona.code, title: text.title }) : t('home.persona.doorAriaEmpty');
 
   // O título em degradê das três cores (o mesmo da porta antiga).
@@ -239,7 +249,6 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
         world={world}
         state={st}
         scale={k}
-        onPick={openSheet}
         extras={doors.extras}
         hotspots={doors.hotspots}
         label={st.code ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')}
@@ -357,9 +366,7 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
             isOwn
             persona={persona}
             initialWorld={world}
-            viewerId={userId}
             username={username}
-            onUserClick={(name) => navigate(`/profile/${name}`)}
             jackpot={sheetJackpot}
           />
         </Suspense>
@@ -367,7 +374,7 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
 
       {bookOpen && world && (
         <Suspense fallback={null}>
-          <EvolutionBook world={world} isOwn ownerName={null} extras={doors.extras} onClose={() => setBookOpen(false)} />
+          <StudioGuide world={world} isOwn ownerName={null} extras={doors.extras} onClose={() => setBookOpen(false)} />
         </Suspense>
       )}
 

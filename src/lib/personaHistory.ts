@@ -16,9 +16,13 @@ import { LETTERS, MARGIN, type PersonaWorld, type WorldTitle } from './personaWo
 //   • depois, a prateleira de fora só entra no trio quando abre 10 pontos
 //     sobre a mais fraca dele (a regra dos 10 pontos).
 // Com a lista e essa conta dá para montar o estúdio como ele estava depois de
-// qualquer nota (worldAt): as latas, as asas, os olhos, os pôsteres da
-// parede, a bitola, as mudas e os objetos de evento já conquistados naquele
-// dia. A Watchlist do aquário não tem história guardada: fica a de hoje.
+// qualquer nota (worldAt): as latas, as asas, os olhos, a bitola, as mudas e
+// os objetos de tag já conquistados naquele
+// dia. Os quadros da parede (os pôsteres do Jackpot) não têm história
+// guardada: ficam os de hoje.
+//
+// 14/11/2026 (noite): a barra deixou de ter botão e de passar sozinha. É a
+// terceira barra do modal (EvolutionBar), e quem move é a pessoa.
 
 export interface HistoryRow {
   // o dia em que o título entrou (Brasília), "2026-03-14"
@@ -187,19 +191,14 @@ export function worldAt(history: PersonaHistory, k: number, today: PersonaWorld,
       .slice(-6)
       .reverse()
       .map(titleOf),
-    tens: rows
-      .filter((row) => row.rating >= 10)
-      .slice(-4)
-      .reverse()
-      .map(titleOf),
     last: rows.slice(-6).reverse().map(titleOf),
     best,
     molts: history.molts
       .filter((molt) => molt.index < rows.length)
       .slice(-24)
       .map((molt) => ({ at: history.rows[molt.index].day, from: molt.from, to: molt.to, no: molt.index + 1 })),
-    // os objetos de evento que a pessoa já tinha naquele dia
+    // os objetos de tag que a pessoa já tinha naquele dia (a caixa do Clube do Terror)
     tags: day ? today.tags.filter((tag) => tag.at.slice(0, 10) <= day) : [],
-    watch: today.watch,
+    posters: today.posters,
   };
 }

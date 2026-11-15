@@ -3,17 +3,22 @@ import { Download, Share2, Loader2, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import OracleSheet from './OracleSheet';
-import { MOOD_BY_KEY, MOOD_BY_LETTER } from '../lib/moods';
-import { personaPortrait, personaText, topMoodKeys, type UserPersona } from '../lib/persona';
-import { drawPersonaCard } from '../lib/personaCard';
-import { NIGHT, PAPER, MIST, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
-import { canvasToBlob } from '../lib/storyCanvas';
+import { personaText, type UserPersona } from '../lib/persona';
+import { worldState, type PersonaWorld } from '../lib/personaWorld';
+import { renderStudioStory } from '../lib/studioCard';
+import { NIGHT, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
 import { shareImageFile, downloadImageFile } from '../lib/shareImage';
+import { NO_EXTRAS, type StudioExtras } from './personaWorld/studio';
 
-// Compartilhar personalidade: uma imagem 9:16 (pros stories) com o pôster
-// do personagem, o código de 3 letras, o título, as três prateleiras e o @.
-// A arte é desenhada num canvas (lib/personaCard) e a prévia mostra
-// exatamente a imagem que vai ser baixada/compartilhada.
+// Compartilhar a Persona: uma imagem 9:16 (pros stories). A arte é desenhada
+// num canvas e a prévia mostra exatamente a imagem que vai ser
+// baixada/compartilhada.
+//
+// 14/11/2026 (noite), pedido do Bruno: "adapte o que é compartilhado, o
+// conteúdo do stories, com base nas novas implementações". O story deixou de
+// ser a foto do personagem com as três prateleiras (lib/personaCard, apagado)
+// e passou a ser o estúdio da pessoa com a mariposa dela (lib/studioCard): o
+// que ela vê quando abre a gaveta.
 //
 // Compartilhar/baixar passam por lib/shareImage (13/10/2026): no app
 // Android abre a folha de compartilhar do sistema (antes nada acontecia);
@@ -23,10 +28,13 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   persona: UserPersona;
+  // o estúdio que vai no story (e a sala de estar como a pessoa vê)
+  world: PersonaWorld;
+  extras?: StudioExtras;
   username?: string | null;
 }
 
-const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username }) => {
+const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, world, extras = NO_EXTRAS, username }) => {
   const { t, i18n } = useTranslation();
   // A imagem pronta (JPEG, resolução cheia) e a prévia (blob URL).
   const blobRef = useRef<Blob | null>(null);
@@ -36,6 +44,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
 
   const code = persona.code;
   const entry = persona.persona;
+  const { jackpot, poker } = extras;
 
   // Desenha a arte sempre que a gaveta abre (ou muda idioma/personalidade).
   useEffect(() => {
@@ -45,39 +54,31 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
     setPreview(null);
     blobRef.current = null;
     const text = personaText(entry, i18n.language);
-    const shelves = topMoodKeys(persona)
-      .map((key) => MOOD_BY_KEY[key])
-      .filter(Boolean)
-      .map((mood) => ({ letter: mood.letter, label: t(mood.labelKey), color: mood.color }));
-    drawPersonaCard({
-      code,
-      codeColors: code.split('').map((l) => MOOD_BY_LETTER[l]?.color ?? PAPER),
-      label: t('oracle.share.cardMyPersona'),
+    const st = worldState(world);
+    renderStudioStory({
+      world,
+      extras: { jackpot, poker },
       title: text.title,
-      subtitle: text.sameAsFilm ? text.filmWithYear : `${text.character} · ${text.filmWithYear}`,
-      shelves,
+      subtitle: text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear }),
+      gauge: t(`personaWorld.gauges.${st.gaugeKey}`),
+      rated: t('oracle.share.cardRated', { count: world.rated }),
       username,
       cta: t('oracle.share.cardCta'),
-      posterUrl: personaPortrait(entry, true).src,
-      posterFocus: personaPortrait(entry, true).focus,
-      glow: MOOD_BY_LETTER[code.charAt(0)]?.color ?? '#8B5CF6',
-      oracles: ORACLES.map((o) => ({ avatar: o.avatar, color: o.color })),
     })
-      .then((canvas) => canvasToBlob(canvas, 'image/jpeg', 0.92))
       .then((blob) => {
         if (cancelled) return;
         blobRef.current = blob;
         setPreview(URL.createObjectURL(blob));
       })
       .catch((err) => {
-        console.error('Error drawing persona card:', err);
+        console.error('Error drawing studio story:', err);
         if (!cancelled) toast.error(t('oracle.share.error'));
       });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, code, entry, i18n.language, username]);
+  }, [isOpen, code, entry, world, jackpot, poker, i18n.language, username]);
 
   // Libera a prévia anterior quando troca ou a gaveta some.
   useEffect(

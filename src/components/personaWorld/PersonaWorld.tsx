@@ -1,32 +1,40 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, Film, Scroll } from 'lucide-react';
+import { Film, Share2 } from 'lucide-react';
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { personaText } from '../../lib/persona';
-import { fetchPersonaNames, worldState, FURNITURE, PHASE_MIN, PHASE_WINDOW, type PersonaName, type PersonaWorld as World, type WorldState, type WorldTitle } from '../../lib/personaWorld';
-import { FOCUS_RING, INK, MIST, PAPER, PIXEL, VELVET, ratingTone, withAlpha } from '../../lib/oracleTheme';
+import { worldState, type PersonaWorld as World, type WorldState, type WorldTitle } from '../../lib/personaWorld';
+import { FOCUS_RING, INK, MIST, PAPER, PIXEL, VELVET, ratingTone } from '../../lib/oracleTheme';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
-import { MothCloseUp, PersonaScene } from './PersonaScene';
+import { MothCloseUp, PersonaScene, type Hotspot } from './PersonaScene';
 import type { StudioDoors } from './useStudioDoors';
-import { GOLD, type SceneHit } from './draw';
+import type { SpotKind } from './studio';
+import EvolutionBar, { type EvolutionBarProps } from './EvolutionBar';
+import { GOLD } from './draw';
 
-// O corpo do modal "Sua Persona" (13/11/2026): a Persona viva.
+// O corpo do modal "Sua Persona": o estúdio, a Persona e a mariposa.
 //
-// De cima para baixo: a cena (a cabine com a mariposa), a placa (quem é), a
-// bitola (o quanto cresceu) e três botões que explicam a cena:
-//   • Sempre — a cabine: tudo o que foi avaliado (o texto da Persona, as nove
-//     prateleiras, os pôsteres da parede, as mudas);
-//   • Agora — a mariposa: o que a pessoa anda vendo (as asas, os olhos, os
-//     últimos títulos);
-//   • Por vir — a envergadura que vem e a forma vizinha.
-// Pouco texto, e todo título que aparece abre o título (pedido do Bruno: o
-// refúgio dos filmes sempre em evidência). Nada aqui é meta nem cobrança: o
-// "Por vir" descreve o que está perto, não manda assistir nada.
+// 14/11/2026 (noite), correção do Bruno: "Dentro do modal 'Sua Persona' não
+// deve haver uma separação 'sempre, agora e por vir'." Saíram as três abas. O
+// modal agora é uma página só, nesta ordem:
+//   1. o estúdio (a cena, com tudo o que brilha tocável);
+//   2. a Persona: a carta, o código, o título, o personagem e o texto dela; no
+//      canto, o botão de compartilhar (só no seu);
+//   3. a mariposa de perto (os olhos da asa abrem os títulos de nota 9 e 10),
+//      com a bitola embaixo;
+//   4. as barras: "Sempre" (tudo o que foi avaliado), "Agora" (os últimos 30
+//      títulos) e "Evolução", a barra que volta no tempo (EvolutionBar);
+//   5. os títulos dos olhos e os últimos títulos.
+// Saíram daqui: a frase "As estantes dizem MAC. As asas, hoje, puxam para…",
+// os botões Revelação e Como funciona, as nove prateleiras com o gráfico, a
+// legenda das latas e a forma vizinha (foram para o guia do estúdio, o livro
+// da estante, junto com as personalidades) e os títulos de nota 10 (os quadros
+// da parede agora são os pôsteres do Jackpot).
+//
+// Quando a barra da Evolução sai da ponta direita, `world` é o estúdio como
+// ele estava naquela nota: tudo aqui mostra aquele momento.
 
-type Tab = 'always' | 'now' | 'next';
-const TABS: Tab[] = ['always', 'now', 'next'];
 const STAGE_BG = '#0D0919';
 
 const fmtRating = (rating: number): string => (Number.isInteger(rating) ? String(rating) : rating.toFixed(1));
@@ -35,11 +43,6 @@ const Heading: React.FC<{ children: React.ReactNode; className?: string }> = ({ 
   <h3 style={{ ...PIXEL, color: PAPER }} className={`text-lg leading-tight ${className}`}>
     {children}
   </h3>
-);
-const Lead: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[15px] leading-relaxed" style={{ color: MIST }}>
-    {children}
-  </p>
 );
 const Note: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="text-[13px] leading-relaxed" style={{ color: MIST }}>
@@ -77,30 +80,23 @@ const Bar: React.FC<{ value: number; color?: string; tall?: boolean; label?: str
 
 interface PersonaWorldProps {
   world: World;
-  isOwn: boolean;
   onOpenTitle: (title: WorldTitle) => void;
   // o título que está abrindo (o pôster dele pisca)
   openingKey?: string | null;
-  onOpenRevelation: () => void;
-  // ao seguir um link para outra página (fecha a gaveta)
-  onNavigate?: () => void;
-  // 14/11/2026 (o estúdio): a máquina, a mesa, o aquário, o livro e a caixa,
-  // com o que cada um abre (useStudioDoors)
+  // o que pode ser tocado na cena (useStudioDoors): a máquina, a mesa, o guia, a caixa, os quadros, a estante
   doors?: StudioDoors;
-  // a barra "Reviver desde o início", logo abaixo da cena (só no seu estúdio)
-  replay?: React.ReactNode;
-  // a história está passando: saem as três abas e os painéis (ficam a cena, a placa e a bitola)
-  replaying?: boolean;
+  // a barra da Evolução (só no seu estúdio)
+  evolution?: Omit<EvolutionBarProps, 'label'> | null;
+  // compartilhar a Persona (só no seu, com Persona)
+  onShare?: () => void;
 }
 
-const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTitle, openingKey = null, onOpenRevelation, onNavigate, doors, replay, replaying = false }) => {
+const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, onOpenTitle, openingKey = null, doors, evolution = null, onShare }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const st: WorldState = useMemo(() => worldState(world), [world]);
-  const [tab, setTab] = useState<Tab>(st.hasTrio ? 'always' : 'next');
-  const [openShelf, setOpenShelf] = useState<string | null>(null);
-  const [names, setNames] = useState<Record<string, PersonaName>>({});
-  const tabsRef = useRef<HTMLDivElement>(null);
+  const personaRef = useRef<HTMLElement>(null);
+  const mothRef = useRef<HTMLElement>(null);
   const pt = i18n.language.startsWith('pt');
 
   const entry = st.hasTrio ? (world.persona?.persona ?? null) : null;
@@ -108,46 +104,17 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
   const moodName = (letter: string | null) => (letter && MOOD_BY_LETTER[letter] ? t(MOOD_BY_LETTER[letter].labelKey) : '');
   const titleName = (title: WorldTitle) => (pt ? title.titlePt || title.titleEn : title.titleEn || title.titlePt) || t('personaWorld.untitled');
   const gaugeName = (key: string | null) => (key ? t(`personaWorld.gauges.${key}`) : '');
-  const codeName = (code: string | null) => {
-    const hit = code ? names[code] : undefined;
-    return hit ? (pt ? hit.titlePt || hit.titleEn : hit.titleEn || hit.titlePt) : '';
-  };
 
-  // os nomes das outras formas (as mudas e a vizinha)
-  const codesKey = [st.nextCode ?? '', ...world.molts.map((m) => m.to)].join(',');
-  useEffect(() => {
-    let alive = true;
-    fetchPersonaNames(codesKey.split(','))
-      .then((value) => alive && setNames(value))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
+  // Na cena daqui, a tela e a mariposa descem até a Persona e a mariposa de perto.
+  const hotspots = useMemo(() => {
+    const go = (ref: React.RefObject<HTMLElement>) => () => ref.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    const mine: Partial<Record<SpotKind, Hotspot>> = {
+      ...(doors?.hotspots ?? {}),
+      screen: { label: t('personaWorld.spots.persona'), onClick: go(personaRef) },
+      moth: { label: st.hasTrio ? t('personaWorld.spots.moth') : world.rated === 0 ? t('personaWorld.spots.egg') : t('personaWorld.spots.larva'), onClick: go(mothRef) },
     };
-  }, [codesKey]);
-
-  const showTab = (next: Tab, fromScene = false) => {
-    setTab(next);
-    // tocou na cena: traz os botões (e o painel) para a tela
-    if (fromScene) window.requestAnimationFrame(() => tabsRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }));
-  };
-  const pickScene = (hit: SceneHit) => {
-    if (hit.kind === 'poster') onOpenTitle(hit.title);
-    else if (hit.kind === 'screen') onOpenRevelation();
-    else if (hit.kind === 'creature') showTab('now', true);
-    else if (hit.kind === 'cocoon') showTab('next', true);
-    else if (hit.kind === 'shelf') {
-      setOpenShelf(hit.letter);
-      showTab('always', true);
-    }
-  };
-  const onTabKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    const index = TABS.indexOf(tab);
-    const next = event.key === 'ArrowRight' ? TABS[(index + 1) % 3] : event.key === 'ArrowLeft' ? TABS[(index + 2) % 3] : null;
-    if (!next) return;
-    event.preventDefault();
-    setTab(next);
-    document.getElementById(`persona-tab-${next}`)?.focus();
-  };
+    return mine;
+  }, [doors?.hotspots, reduceMotion, t, st.hasTrio, world.rated]);
 
   // um pôster pequeno que abre o título, com a nota no canto
   const thumb = (title: WorldTitle) => {
@@ -179,128 +146,7 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
       </button>
     );
   };
-  const thumbRow = (titles: WorldTitle[], columns: 4 | 6) => (
-    <ul className={`grid gap-2 ${columns === 6 ? 'grid-cols-6 max-w-[440px]' : 'grid-cols-4 max-w-[300px]'}`}>
-      {titles.map((title) => (
-        <li key={`${title.type}:${title.id}`} className="min-w-0">
-          {thumb(title)}
-        </li>
-      ))}
-    </ul>
-  );
 
-  // ---------- Sempre: a cabine ----------
-  const always = () => {
-    const strongest = Math.max(1, ...st.rank.map((l) => st.score[l]));
-    return (
-      <>
-        {text?.blurb && (
-          <div>
-            <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
-              {text.blurb}
-            </p>
-            <button type="button" onClick={onOpenRevelation} className={`mt-1 inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#F9A8D4' }}>
-              <Scroll className="w-4 h-4" aria-hidden />
-              {t('profile.observatory.readRevelation')}
-            </button>
-          </div>
-        )}
-        <Lead>{t('personaWorld.always.lead', { count: st.rated })}</Lead>
-        <ul className="grid gap-1.5">
-          {st.rank.map((letter) => {
-            const mood = MOOD_BY_LETTER[letter];
-            const position = st.trio.indexOf(letter);
-            const open = openShelf === letter;
-            const best = world.best[letter] ?? [];
-            return (
-              <li key={letter}>
-                <button
-                  type="button"
-                  onClick={() => setOpenShelf(open ? null : letter)}
-                  aria-expanded={open}
-                  className={`w-full grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1 text-left px-2.5 py-2 rounded-[10px] transition hover:bg-white/[0.05] ${FOCUS_RING}`}
-                  style={position >= 0 ? { background: withAlpha(mood.color, 0.09), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.5)}` } : { background: 'rgba(243,234,211,0.03)' }}
-                >
-                  <span className="row-span-2">
-                    <Tile letter={letter} />
-                  </span>
-                  <span className="min-w-0 font-semibold leading-snug" style={{ color: PAPER }}>
-                    {t(mood.labelKey)}
-                    {position >= 0 && (
-                      <span className="ml-2 text-[12px] font-normal" style={{ color: MIST }}>
-                        {t('personaWorld.always.trioRank', { rank: position + 1 })}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[13px] tabular-nums" style={{ color: MIST }}>
-                    {t('oracle.persona.films', { count: st.films[letter] })}
-                  </span>
-                  <span className="col-span-2 flex">
-                    <Bar value={st.score[letter] / strongest} color={mood.color} />
-                  </span>
-                </button>
-                {open && (
-                  <div className="pl-[38px] pr-1 pt-2 pb-3 space-y-2">
-                    {best.length > 0 ? thumbRow(best, 4) : <Note>{t('personaWorld.always.emptyShelf')}</Note>}
-                    {isOwn && (
-                      <Link to={`/oracle/acervo?mood=${mood.key}`} onClick={onNavigate} className={`inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: mood.color }}>
-                        {t('personaWorld.always.openShelf')}
-                        <ArrowUpRight className="w-4 h-4" aria-hidden />
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-        {st.out > 0 && (
-          <p className="flex items-center gap-2.5 text-sm" style={{ color: MIST }}>
-            <Tile letter={null} />
-            <span>{t('personaWorld.always.archive', { count: st.out })}</span>
-          </p>
-        )}
-        <Note>{t('personaWorld.always.legend')}</Note>
-        {world.tens.length > 0 && (
-          <section className="space-y-2 pt-2">
-            <Heading>{t('personaWorld.always.wall')}</Heading>
-            <Note>{t('personaWorld.always.wallHint')}</Note>
-            {thumbRow(world.tens, 4)}
-          </section>
-        )}
-        {world.molts.length > 1 && (
-          <section className="space-y-2 pt-2">
-            <Heading>{t('personaWorld.always.molts')}</Heading>
-            <Note>{t('personaWorld.always.moltsHint')}</Note>
-            <ol className="grid gap-1.5">
-              {world.molts.map((molt, index) => {
-                const date = molt.at ? new Date(molt.at) : null;
-                const when = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString(i18n.language, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-                const what = molt.no ? t(molt.from ? 'personaWorld.always.changed' : 'personaWorld.always.born', { no: molt.no }) : t(molt.from ? 'personaWorld.always.changedPlain' : 'personaWorld.always.bornPlain');
-                return (
-                  <li
-                    key={`${molt.at}-${molt.to}-${index}`}
-                    className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 px-2.5 py-2 rounded-[10px]"
-                    style={{ background: 'rgba(243,234,211,0.03)', boxShadow: index === world.molts.length - 1 ? 'inset 0 0 0 1px rgba(243,234,211,0.14)' : undefined }}
-                  >
-                    <PersonaCode code={molt.to} className="row-span-2 text-xl leading-none tracking-[0.04em]" />
-                    <span className="min-w-0 font-semibold leading-snug" style={{ color: PAPER }}>
-                      {codeName(molt.to) || molt.to}
-                    </span>
-                    <span className="text-[12.5px]" style={{ color: MIST }}>
-                      {when ? `${what}, ${when}` : what}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        )}
-      </>
-    );
-  };
-
-  // ---------- Agora: a mariposa ----------
   // as duas faixas (sempre × agora) na mesma ordem, a de força das prateleiras
   const strip = (dist: Record<string, number>, label: string) => {
     const list = st.rank.filter((l) => dist[l] > 0.005);
@@ -311,7 +157,7 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
       .map((l) => `${moodName(l)} ${Math.round(dist[l] * 100)}%`)
       .join(', ');
     return (
-      <div className="grid grid-cols-[56px_minmax(0,1fr)] items-center gap-2.5">
+      <div className="grid grid-cols-[68px_minmax(0,1fr)] items-center gap-2.5">
         <span style={{ ...PIXEL, color: MIST }} className="text-[13px] leading-none">
           {label}
         </span>
@@ -330,249 +176,148 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
       </div>
     );
   };
-  const now = () => {
-    const creatureLabel = st.hasTrio ? t('personaWorld.mothLabel') : world.rated === 0 ? t('personaWorld.eggLabel') : t('personaWorld.larvaLabel');
-    return (
-      <>
+
+  const threshold = world.persona?.threshold || 10;
+  const creatureLabel = st.hasTrio ? t('personaWorld.mothLabel') : world.rated === 0 ? t('personaWorld.eggLabel') : t('personaWorld.larvaLabel');
+  return (
+    <div className="space-y-6">
+      {/* 1. O estúdio. No celular a cena vai de borda a borda da gaveta (o -mx-5
+          desfaz o px-5 do corpo da OracleSheet): numa tela de 320 px ela ainda
+          cabe em escala 2; com a margem, cairia para escala 1 e ficaria miúda. */}
+      <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
+        <PersonaScene world={world} state={st} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} extras={doors?.extras} hotspots={hotspots} />
+      </div>
+
+      {/* 2. A Persona: quem é */}
+      <section ref={personaRef} className="scroll-mt-3 space-y-3">
+        <div className="flex items-center gap-3.5 min-w-0">
+          {entry && st.code && text ? (
+            <>
+              <span className="block shrink-0 w-[54px]">
+                <PersonaCard persona={entry} code={st.code} compact eager className="w-full" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <PersonaCode code={st.code} className="block text-[2.5rem] leading-[0.95] tracking-[0.04em]" />
+                <p className="text-lg font-semibold leading-snug" style={{ color: PAPER }}>
+                  {text.title}
+                </p>
+                <p className="text-[13px] leading-snug" style={{ color: MIST }}>
+                  {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
+                </p>
+              </div>
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  className={`grid place-items-center w-11 h-11 shrink-0 self-start rounded-full border border-white/15 transition hover:border-white/35 hover:bg-white/5 ${FOCUS_RING}`}
+                  style={{ color: PAPER }}
+                  aria-label={t('oracle.hub.share')}
+                  title={t('oracle.hub.share')}
+                >
+                  <Share2 className="w-[18px] h-[18px]" aria-hidden />
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <span style={{ ...PIXEL, color: 'rgba(243,234,211,0.25)' }} className="shrink-0 text-[2.5rem] leading-[0.95] tracking-[0.04em]" aria-hidden>
+                ???
+              </span>
+              <div className="min-w-0">
+                <p className="text-lg font-semibold leading-snug" style={{ color: PAPER }}>
+                  {world.rated === 0 ? t('personaWorld.plate.egg') : t('personaWorld.plate.larva')}
+                </p>
+                <p className="text-[13px] leading-snug" style={{ color: MIST }}>
+                  {st.counted >= threshold ? t('personaWorld.plate.needShelves') : t('personaWorld.plate.progress', { counted: st.counted, threshold })}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+        {text?.blurb && (
+          <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
+            {text.blurb}
+          </p>
+        )}
+        {!st.hasTrio && <Bar value={Math.min(1, st.counted / threshold)} tall label={t('oracle.intro.progressLabel')} />}
+      </section>
+
+      {/* 3. A mariposa de perto, com a bitola */}
+      <section ref={mothRef} className="scroll-mt-3 space-y-3">
         <div className="rounded-2xl p-2" style={{ background: STAGE_BG }}>
           <MothCloseUp world={world} state={st} onOpenTitle={onOpenTitle} label={creatureLabel} />
         </div>
-        {!st.hasTrio ? (
-          <Lead>{world.rated === 0 ? t('personaWorld.now.egg') : t('personaWorld.now.larva')}</Lead>
-        ) : (
-          <>
-            <Lead>
-              {st.phaseDistinct
-                ? t('personaWorld.now.distinct', { code: st.code, mood: moodName(st.phaseMood) })
-                : st.phaseAvailable
-                  ? t('personaWorld.now.same')
-                  : t('personaWorld.now.early', { min: PHASE_MIN, window: PHASE_WINDOW, left: st.phaseLeft })}
-            </Lead>
-            <div className="grid gap-1.5">
-              {st.phaseAvailable ? (
+        {!st.hasTrio && <Note>{world.rated === 0 ? t('personaWorld.now.egg') : t('personaWorld.now.larva')}</Note>}
+        {st.hasTrio && (
+          <div className="flex items-center gap-2.5">
+            <span style={{ ...PIXEL, background: PAPER, color: INK }} className="shrink-0 px-2 py-[5px] rounded-md text-[13px] leading-none">
+              {gaugeName(st.gaugeKey)}
+            </span>
+            {st.nextGaugeKey && (
+              <>
+                <Bar value={st.gaugeBar} label={t('personaWorld.plate.gaugeAria', { pct: Math.floor(st.gaugeBar * 100), next: gaugeName(st.nextGaugeKey) })} />
+                <span style={{ ...PIXEL, color: MIST }} className="shrink-0 text-[13px] leading-none">
+                  {gaugeName(st.nextGaugeKey)}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 4. As barras: sempre, agora e a evolução desde o início */}
+        {(st.hasTrio || evolution) && (
+          <div className="grid gap-1.5 pt-1">
+            {st.hasTrio &&
+              (st.phaseAvailable ? (
                 <>
                   {strip(st.essence, t('personaWorld.now.stripAlways'))}
                   {strip(st.now, t('personaWorld.now.stripNow'))}
                 </>
               ) : (
                 strip(st.now, t('personaWorld.now.stripWings'))
-              )}
-            </div>
-            {world.eyes.length > 0 && (
-              <div className="space-y-2">
-                <Note>{t('personaWorld.now.eyes')}</Note>
-                {thumbRow(world.eyes, 6)}
-              </div>
-            )}
-          </>
-        )}
-        {world.last.length > 0 && (
-          <section className="space-y-1 pt-2">
-            <Heading>{t('personaWorld.now.last')}</Heading>
-            <ol>
-              {world.last.map((title) => (
-                <li key={`${title.type}:${title.id}`}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenTitle(title)}
-                    className={`w-full flex items-center justify-start gap-2.5 text-left px-2 -mx-2 rounded-lg transition hover:bg-white/[0.05] ${FOCUS_RING}`}
-                  >
-                    <span style={{ ...PIXEL, color: ratingTone(Math.round(title.rating)).color }} className="w-7 shrink-0 text-right text-[15px] leading-none tabular-nums">
-                      {fmtRating(title.rating)}
-                    </span>
-                    <span className="flex-1 min-w-0 text-[14px] leading-snug break-words" style={{ color: PAPER }}>
-                      {titleName(title)}
-                    </span>
-                    <Tile letter={title.letter} small />
-                    <span className="sr-only">{title.letter ? moodName(title.letter) : t('personaWorld.archive')}</span>
-                  </button>
-                </li>
               ))}
-            </ol>
-          </section>
-        )}
-      </>
-    );
-  };
-
-  // ---------- Por vir: a envergadura e a forma vizinha ----------
-  const next = () => {
-    if (!st.hasTrio) {
-      const threshold = world.persona?.threshold || 10;
-      return (
-        <>
-          <Heading>{t('personaWorld.next.birth')}</Heading>
-          <Lead>{t('personaWorld.next.birthLead')}</Lead>
-          <div className="flex items-center gap-2.5">
-            <Bar value={Math.min(1, st.counted / threshold)} tall label={t('oracle.intro.progressLabel')} />
-            <span style={{ ...PIXEL, color: MIST }} className="text-[13px] leading-none tabular-nums">
-              {Math.min(st.counted, threshold)} / {threshold}
-            </span>
+            {evolution && <EvolutionBar label={t('personaWorld.replay.label')} {...evolution} />}
           </div>
-        </>
-      );
-    }
-    const degree = st.neighbor === 'cocoon' ? 2 : st.neighbor === 'near' ? 1 : 0;
-    const degrees = [t('personaWorld.next.far'), t('personaWorld.next.near'), t('personaWorld.next.cocoon')];
-    const item = FURNITURE[st.stage + 1] ? t(`personaWorld.furniture.${FURNITURE[st.stage + 1]}`) : '';
-    return (
-      <>
-        <Heading>{t('personaWorld.next.wingspan')}</Heading>
-        {st.nextGaugeKey ? (
-          <>
-            <Lead>{t('personaWorld.next.wingspanLead', { from: gaugeName(st.gaugeKey), to: gaugeName(st.nextGaugeKey) })}</Lead>
-            <div className="flex items-center gap-2.5">
-              <Bar value={st.gaugeBar} tall label={t('personaWorld.plate.gaugeAria', { pct: Math.floor(st.gaugeBar * 100), next: gaugeName(st.nextGaugeKey) })} />
-              <span style={{ ...PIXEL, color: MIST }} className="text-[13px] leading-none tabular-nums">
-                {Math.floor(st.gaugeBar * 100)}%
-              </span>
-            </div>
-            {item && <Note>{t(st.stage + 1 <= 7 ? 'personaWorld.next.arrives' : 'personaWorld.next.arrivesRoom', { to: gaugeName(st.nextGaugeKey), item })}</Note>}
-          </>
-        ) : (
-          <Lead>{t('personaWorld.next.max')}</Lead>
         )}
+      </section>
 
-        <Heading className="pt-3">{t('personaWorld.next.neighbor')}</Heading>
-        {st.nextCode && st.challenger && st.weakest ? (
-          <>
-            <div className="flex items-center gap-3.5">
-              <PersonaCode code={st.nextCode} className="text-[30px] leading-none tracking-[0.04em]" />
-              <span className="min-w-0 font-semibold leading-snug" style={{ color: PAPER }}>
-                {codeName(st.nextCode)}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5" role="img" aria-label={t('personaWorld.next.degreesAria', { degree: degrees[degree] })}>
-              {degrees.map((label, index) => (
-                <span
-                  key={label}
-                  className="grid place-items-center h-8 rounded-lg text-[13px] leading-none"
-                  style={index === degree ? { ...PIXEL, background: PAPER, color: INK } : { ...PIXEL, color: 'rgba(243,234,211,0.45)', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.14)' }}
+      {/* 5. Os títulos dos olhos e os últimos títulos */}
+      {st.hasTrio && world.eyes.length > 0 && (
+        <section className="space-y-2">
+          <Note>{t('personaWorld.now.eyes')}</Note>
+          <ul className="grid grid-cols-6 gap-2 max-w-[440px]">
+            {world.eyes.map((title) => (
+              <li key={`${title.type}:${title.id}`} className="min-w-0">
+                {thumb(title)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {world.last.length > 0 && (
+        <section className="space-y-1">
+          <Heading>{t('personaWorld.now.last')}</Heading>
+          <ol>
+            {world.last.map((title) => (
+              <li key={`${title.type}:${title.id}`}>
+                <button
+                  type="button"
+                  onClick={() => onOpenTitle(title)}
+                  className={`w-full flex items-center justify-start gap-2.5 text-left px-2 -mx-2 rounded-lg transition hover:bg-white/[0.05] ${FOCUS_RING}`}
                 >
-                  {label}
-                </span>
-              ))}
-            </div>
-            <Lead>
-              {t(degree === 2 ? 'personaWorld.next.cocoonLead' : degree === 1 ? 'personaWorld.next.nearLead' : 'personaWorld.next.farLead', {
-                challenger: moodName(st.challenger),
-                weakest: moodName(st.weakest),
-              })}
-            </Lead>
-            <Note>{t('personaWorld.next.rule')}</Note>
-          </>
-        ) : (
-          <Lead>{t('personaWorld.next.noNeighbor')}</Lead>
-        )}
-      </>
-    );
-  };
-
-  const threshold = world.persona?.threshold || 10;
-  return (
-    <div className="space-y-4">
-      {/* No celular a cena vai de borda a borda da gaveta (o -mx-5 desfaz o
-          px-5 do corpo da OracleSheet): numa tela de 320 px ela ainda cabe em
-          escala 2; com a margem, cairia para escala 1 e ficaria miúda. */}
-      <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
-        <PersonaScene
-          world={world}
-          state={st}
-          onPick={pickScene}
-          label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')}
-          extras={doors?.extras}
-          hotspots={doors?.hotspots}
-        />
-      </div>
-
-      {replay}
-
-      {/* a placa: quem é */}
-      <div className="flex items-center gap-3.5 min-w-0">
-        {entry && st.code && text ? (
-          <>
-            <button
-              type="button"
-              onClick={onOpenRevelation}
-              className={`block shrink-0 w-[54px] min-w-0 min-h-0 rounded-xl ${FOCUS_RING}`}
-              aria-label={`${t('oracle.revelation')}: ${text.title}`}
-              title={t('oracle.revelation')}
-            >
-              <PersonaCard persona={entry} code={st.code} compact eager className="w-full" />
-            </button>
-            <div className="min-w-0">
-              <PersonaCode code={st.code} className="block text-[2.5rem] leading-[0.95] tracking-[0.04em]" />
-              <p className="text-lg font-semibold leading-snug" style={{ color: PAPER }}>
-                {text.title}
-              </p>
-              <p className="text-[13px] leading-snug" style={{ color: MIST }}>
-                {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <span style={{ ...PIXEL, color: 'rgba(243,234,211,0.25)' }} className="shrink-0 text-[2.5rem] leading-[0.95] tracking-[0.04em]" aria-hidden>
-              ???
-            </span>
-            <div className="min-w-0">
-              <p className="text-lg font-semibold leading-snug" style={{ color: PAPER }}>
-                {world.rated === 0 ? t('personaWorld.plate.egg') : t('personaWorld.plate.larva')}
-              </p>
-              <p className="text-[13px] leading-snug" style={{ color: MIST }}>
-                {st.counted >= threshold ? t('personaWorld.plate.needShelves') : t('personaWorld.plate.progress', { counted: st.counted, threshold })}
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* a bitola: o quanto cresceu */}
-      <div className="flex items-center gap-2.5">
-        <span style={{ ...PIXEL, background: PAPER, color: INK }} className="shrink-0 px-2 py-[5px] rounded-md text-[13px] leading-none">
-          {gaugeName(st.gaugeKey)}
-        </span>
-        {st.nextGaugeKey && (
-          <>
-            <Bar value={st.gaugeBar} label={t('personaWorld.plate.gaugeAria', { pct: Math.floor(st.gaugeBar * 100), next: gaugeName(st.nextGaugeKey) })} />
-            <span style={{ ...PIXEL, color: MIST }} className="shrink-0 text-[13px] leading-none">
-              {gaugeName(st.nextGaugeKey)}
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* os três botões (enquanto a história passa, saem: ficam a cena, a placa e a bitola) */}
-      <div ref={tabsRef} role="tablist" aria-label={t('personaWorld.tabs.label')} className={`grid-cols-3 gap-2 pt-1 scroll-mt-3 ${replaying ? 'hidden' : 'grid'}`}>
-        {TABS.map((key) => {
-          const selected = tab === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              id={`persona-tab-${key}`}
-              aria-selected={selected}
-              aria-controls="persona-tabpanel"
-              tabIndex={selected ? 0 : -1}
-              onClick={() => showTab(key)}
-              onKeyDown={onTabKey}
-              className={`h-11 rounded-xl text-[15px] leading-none transition-colors ${FOCUS_RING}`}
-              style={
-                selected
-                  ? { ...PIXEL, background: PAPER, color: INK, boxShadow: '0 3px 0 #9D9381' }
-                  : { ...PIXEL, background: '#261B45', color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.14), 0 3px 0 #0B0716' }
-              }
-            >
-              {t(`personaWorld.tabs.${key}`)}
-            </button>
-          );
-        })}
-      </div>
-      {!replaying && (
-        <div id="persona-tabpanel" role="tabpanel" aria-labelledby={`persona-tab-${tab}`} className="space-y-3 min-w-0">
-          {tab === 'always' ? always() : tab === 'now' ? now() : next()}
-        </div>
+                  <span style={{ ...PIXEL, color: ratingTone(Math.round(title.rating)).color }} className="w-7 shrink-0 text-right text-[15px] leading-none tabular-nums">
+                    {fmtRating(title.rating)}
+                  </span>
+                  <span className="flex-1 min-w-0 text-[14px] leading-snug break-words" style={{ color: PAPER }}>
+                    {titleName(title)}
+                  </span>
+                  <Tile letter={title.letter} small />
+                  <span className="sr-only">{title.letter ? moodName(title.letter) : t('personaWorld.archive')}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
     </div>
   );

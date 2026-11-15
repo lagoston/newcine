@@ -1,7 +1,8 @@
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { MIST, NIGHT, PAPER, VELVET } from '../../lib/oracleTheme';
 import { LETTERS, type PersonaWorld, type WorldState, type WorldTitle } from '../../lib/personaWorld';
-import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, type StudioExtras } from './studio';
+import { GLOW_SOFT, glowAlphas, glowOf, paintGlow, type Glow } from './glow';
+import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, type SpotKind, type StudioExtras } from './studio';
 
 // O desenho da Persona viva (13/11/2026): a cabine de projeção isométrica em
 // pixel art e a mariposa. Tudo é desenhado num canvas pequeno (160 × 142) e
@@ -10,13 +11,17 @@ import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, t
 //
 // Cada coisa da cena nasce de um dado de quem avaliou:
 //   • estante (parede direita): as nove prateleiras, na ordem das letras. Uma
-//     lata colorida = 1 título; lata clara = 10; lata clara com fita dourada =
-//     100. Tampa dourada na lata colorida = nota 9 ou 10. As três prateleiras
-//     do código ficam acesas;
-//   • tela (parede esquerda): o personagem da Persona (a foto do TMDB reduzida
-//     a 38 × 29 pixels; sem foto, um vulto);
+//     lata colorida = 1 título; lata dourada = 10 (até 14/11/2026 era clara;
+//     o Bruno pediu dourada); lata dourada com fita clara = 100. Tampa dourada
+//     na lata colorida = nota 9 ou 10. As três prateleiras do código ficam
+//     acesas;
+//   • tela (parede esquerda): a capa do filme da Persona (reduzida a 38 × 29
+//     pixels; sem imagem, um vulto);
 //   • néon: as três letras do código;
-//   • pôsteres: os últimos títulos de nota 10 (o pôster de verdade, reduzido);
+//   • quadros da parede: os 4 últimos pôsteres que a pessoa ganhou no Poster
+//     Jackpot (a imagem de verdade, reduzida), com a moldura na cor da
+//     raridade. Sem nenhum, a parede fica vazia. Até 14/11/2026 à tarde eram
+//     os títulos de nota 10;
 //   • caixa de arquivo: os títulos de fora das prateleiras;
 //   • cores da sala: as do trio (parede = a mais forte, chão = a segunda);
 //   • mobília: um móvel por bitola (projetor, poltrona, tapete, abajur,
@@ -33,7 +38,7 @@ export type Pt = [number, number];
 export const GOLD = '#F4C454';
 // 14/11/2026 (o estúdio): a cabine ficou mais comprida para a direita, de
 // 6 × 6 para 9 × 6 ladrilhos, para caber a sala de estar (studio.ts): a
-// máquina do Jackpot, a mesa de pôquer, o aquário, a estante do livro e os
+// máquina do Jackpot, a mesa de pôquer, a estante do guia e os
 // lugares de conquista. A parte do cinema não saiu do lugar.
 export const RW = 180;
 export const RH = 158;
@@ -134,13 +139,6 @@ const wallImage = (ctx: Ctx, side: Side, u: number, v: number, image: HTMLCanvas
     ctx.drawImage(image, side === 'R' ? d : w - 1 - d, 0, 1, h, X, OY + (ux >> 1) - v - h, 1, h);
   }
 };
-// ponto da tela → (u, v) da parede daquele lado
-const wallPoint = (x: number, y: number): { side: Side; u: number; v: number } => {
-  const xi = Math.floor(x);
-  const side: Side = xi >= CX ? 'R' : 'L';
-  const u = side === 'R' ? xi - CX : CX - 1 - xi;
-  return { side, u, v: OY + (u >> 1) - y };
-};
 // caixa isométrica (x, y = canto de trás; w ao longo de x, d ao longo de y, h de altura)
 const box = (ctx: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, c: string) => {
   const A = iso(x, y, z + h);
@@ -156,7 +154,7 @@ const box = (ctx: Ctx, x: number, y: number, z: number, w: number, d: number, h:
 };
 
 // As ferramentas daqui, para o desenho da sala de estar (studio.ts).
-const KIT: Kit = { iso, box, poly, px, mix, dark, light, moodColor };
+const KIT: Kit = { iso, box, poly, px, mix, dark, light, moodColor, size: [RW, RH] };
 
 const FONT5: Record<string, string[]> = {
   M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
@@ -178,6 +176,8 @@ export const SCREEN_SIZE = (stage: number): { w: number; h: number } => {
   return { w: r.w, h: r.h };
 };
 export const POSTER_SIZE = { w: 7, h: 11 };
+// a moldura de cada quadro: a cor da raridade do pôster (as mesmas do Poster Jackpot)
+const RARITY_FRAME: Record<string, string> = { common: '#D8D2C6', rare: '#5EA8FF', epic: '#C77DFF', legendary: '#FFC83D' };
 const POSTER_SLOTS: Pt[] = [
   [50, 26],
   [60, 26],
@@ -224,9 +224,9 @@ export function shrinkCover(img: HTMLImageElement, w: number, h: number, fx = 0.
 }
 
 export interface SceneImages {
-  // o retrato do personagem, já no tamanho da tela
+  // a capa do filme da Persona, já no tamanho da tela
   portrait: HTMLCanvasElement | null;
-  // os pôsteres das notas 10 (7 × 11), na ordem de world.tens
+  // os pôsteres do Jackpot (7 × 11), na ordem de world.posters
   posters: (HTMLCanvasElement | null)[];
 }
 export const NO_IMAGES: SceneImages = { portrait: null, posters: [] };
@@ -310,9 +310,11 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
       const sx = u0 + 1 + (item % 6) * 3;
       const sv = v0 + 1 + Math.floor(item / 6) * 4;
       if (item < hundreds + tens) {
-        wallRect(ctx, 'R', sx, sv, 2, 3, PAPER);
-        wallRect(ctx, 'R', sx, sv, 2, 1, dark(PAPER, 0.3));
-        if (item < hundreds) wallRect(ctx, 'R', sx, sv + 1, 2, 1, GOLD);
+        // dourada = 10 títulos; dourada com fita clara = 100
+        wallRect(ctx, 'R', sx, sv, 2, 3, GOLD);
+        wallRect(ctx, 'R', sx, sv, 2, 1, dark(GOLD, 0.34));
+        wallRect(ctx, 'R', sx, sv + 2, 2, 1, light(GOLD, 0.45));
+        if (item < hundreds) wallRect(ctx, 'R', sx, sv + 1, 2, 1, PAPER);
       } else {
         const rating = lids[item - hundreds - tens];
         wallRect(ctx, 'R', sx, sv, 2, 3, c);
@@ -369,12 +371,13 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     wallRect(ctx, 'L', screen.u - 2, screen.v + screen.h - 1, screen.w + 4, 2, light(velvet, 0.12));
     wallRect(ctx, 'L', screen.u - 2, screen.v + screen.h - 2, screen.w + 4, 1, GOLD);
   }
-  world.tens.slice(0, POSTER_SLOTS.length).forEach((title, index) => {
+  // os quadros: os últimos pôsteres ganhos no Jackpot, com a moldura na cor da raridade
+  world.posters.slice(0, POSTER_SLOTS.length).forEach((poster, index) => {
     const [u, v] = POSTER_SLOTS[index];
-    wallRect(ctx, 'L', u, v, 9, 13, PAPER);
+    wallRect(ctx, 'L', u, v, 9, 13, RARITY_FRAME[poster.rarity] ?? PAPER);
     const image = images.posters[index];
     if (image) wallImage(ctx, 'L', u + 1, v + 1, image);
-    else miniPoster(ctx, 'L', u, v, title.titlePt || title.titleEn || `${title.type}:${title.id}`);
+    else miniPoster(ctx, 'L', u, v, poster.path);
   });
   if (st.stage >= 9) {
     // o letreiro de lâmpadas (Cinerama), no alto das duas paredes
@@ -413,10 +416,11 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     for (let a = 0; a < Math.min(st.out, 9); a += 1) px(ctx, ap[0] - 4 + (a % 3) * 3, ap[1] - 3 - Math.floor(a / 3) * 2, PAPER, 2, 1);
   }
   if (st.stage >= 6) {
-    // pipoqueira (35 mm)
-    box(ctx, 4.7, 4.6, 0, 0.8, 0.8, 9, '#B3202E');
-    box(ctx, 4.75, 4.65, 9, 0.7, 0.7, 7, '#F6E7A8');
-    const pp = iso(5.1, 5.0, 16);
+    // pipoqueira (35 mm). Um pouco para a esquerda desde 14/11/2026 (noite):
+    // onde estava, encostava na caixa do Clube do Terror.
+    box(ctx, 4.4, 4.75, 0, 0.8, 0.8, 9, '#B3202E');
+    box(ctx, 4.45, 4.8, 9, 0.7, 0.7, 7, '#F6E7A8');
+    const pp = iso(4.8, 5.15, 16);
     px(ctx, pp[0] - 5, pp[1] - 1, PAPER, 10, 1);
     px(ctx, pp[0] - 2, pp[1] + 3, GOLD, 2, 2);
     px(ctx, pp[0] + 1, pp[1] + 4, GOLD, 2, 2);
@@ -442,12 +446,59 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     px(ctx, pr[0] + 3, pr[1] - 3, MIST, 1, 1);
   }
 
-  // ---- a sala de estar (14/11/2026): a máquina, a mesa, o aquário, o livro e as conquistas ----
+  // ---- a sala de estar (14/11/2026): a máquina, a estante do guia, a mesa e a caixa ----
   drawLounge(KIT, ctx, world, extras);
 }
 
-// Os objetos da sala de estar que levam a algum lugar (o retângulo de cada um na cena).
-export const studioSpots = (world: PersonaWorld, extras: StudioExtras = NO_EXTRAS): Spot[] => loungeSpots(KIT, world, extras);
+// ---------- o que pode ser tocado ----------
+// o retângulo (na cena) que cobre um retângulo da parede
+const wallBox = (side: Side, u: number, v: number, w: number, h: number): Omit<Spot, 'kind'> => ({
+  x: side === 'R' ? CX + u : CX - u - w,
+  y: OY + (u >> 1) - v - h,
+  w,
+  h: h + ((u + w - 1) >> 1) - (u >> 1),
+});
+// por onde a mariposa voa (paintFrame) e onde ficam o ovo e a lagarta
+const MOTH_HOME: [number, number, number] = [2.3, 3.2, 30];
+const creatureBox = (st: WorldState, world: PersonaWorld): Omit<Spot, 'kind'> => {
+  if (st.hasTrio) {
+    const [x, y] = iso(...MOTH_HOME);
+    return { x: Math.round(x) - 27, y: Math.round(y) - 23, w: 54, h: 46 };
+  }
+  const [x, y] = world.rated === 0 ? iso(3, 3, 7) : iso(3, 3.2, 5);
+  return world.rated === 0 ? { x: Math.round(x) - 12, y: Math.round(y) - 15, w: 24, h: 30 } : { x: Math.round(x) - 48, y: Math.round(y) - 9, w: 96, h: 22 };
+};
+
+// Tudo o que pode ser tocado no estúdio, com o retângulo de cada coisa: os
+// objetos da sala de estar (studio.ts) e, do cinema, a estante das latas, a
+// tela, os quadros da parede e a mariposa (ou o ovo, ou a lagarta). A ordem é
+// a de trás para a frente: onde dois retângulos se cruzam, vale o último.
+export function studioSpots(world: PersonaWorld, st: WorldState, extras: StudioExtras = NO_EXTRAS): Spot[] {
+  const spots: Spot[] = [{ kind: 'shelves', ...wallBox('R', 5, 3, 61, 46) }];
+  const screen = screenRect(st.stage);
+  spots.push({ kind: 'screen', ...wallBox('L', screen.u - 1, screen.v - 1, screen.w + 2, screen.h + 2) });
+  const frames = Math.min(world.posters.length, POSTER_SLOTS.length);
+  if (frames > 0) {
+    const us = POSTER_SLOTS.slice(0, frames).map((slot) => slot[0]);
+    const vs = POSTER_SLOTS.slice(0, frames).map((slot) => slot[1]);
+    const u0 = Math.min(...us);
+    const v0 = Math.min(...vs);
+    spots.push({ kind: 'posters', ...wallBox('L', u0 - 1, v0 - 1, Math.max(...us) + 9 - u0 + 2, Math.max(...vs) + 13 - v0 + 2) });
+  }
+  spots.push({ kind: 'moth', ...creatureBox(st, world) });
+  return spots.concat(loungeSpots(KIT, world, extras));
+}
+
+// ---------- o brilho do que pode ser tocado (glow.ts) ----------
+const screenGlow = (stage: number): Glow =>
+  glowOf(`screen:${stage}`, RW, RH, (ctx) => {
+    const r = screenRect(stage);
+    // com a cortina (70 mm em diante) o contorno abraça a cortina
+    const pad = stage >= 7 ? 2 : 1;
+    wallRect(ctx, 'L', r.u - pad, r.v - pad, r.w + pad * 2, r.h + pad * 2, '#fff');
+  });
+const postersGlow = (count: number): Glow => glowOf(`posters:${count}`, RW, RH, (ctx) => POSTER_SLOTS.slice(0, count).forEach(([u, v]) => wallRect(ctx, 'L', u, v, 9, 13, '#fff')));
+const NO_GLOW: ReadonlySet<SpotKind> = new Set();
 
 // o facho do projetor (por cima da mobília, por baixo da mariposa)
 const drawBeam = (ctx: Ctx, st: WorldState, tick: number) => {
@@ -617,32 +668,64 @@ export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: M
         px(ctx, x0 + gx, y0 + gy, rim ? EDGE : color);
       }
     }
-    // olhos: cada um é um título de nota 9 ou 10 (posição polar, sempre dentro da asa)
-    const foreAt = (t: number, d: number): Pt => {
-      const R = W.len * Math.pow(Math.sin(Math.PI * Math.pow(t, W.a)), W.b);
+    // Os olhos: cada um é um título de nota 9 ou 10.
+    //
+    // 14/11/2026 (noite), correção do Bruno: os olhos "mais centralizados,
+    // para ficarem coerentes em todos os tipos de borboleta". Antes eles
+    // ficavam em pontos fixos da asa, que em algumas formas caíam na beirada.
+    // Agora cada olho fica no meio da largura da asa, na distância pedida:
+    //   • o primeiro par, no meio da asa da frente;
+    //   • o segundo par, no meio da asa de trás;
+    //   • o terceiro par, na asa da frente, perto do corpo (e o primeiro par
+    //     vai um pouco para fora, para os dois caberem em fila no eixo da asa).
+    // `level` é a distância do olho à raiz da asa, de 0 a 1 do comprimento
+    // dela; o ângulo é o meio do trecho em que a asa chega até lá.
+    const foreR = (t: number) => W.len * Math.pow(Math.sin(Math.PI * Math.pow(t, W.a)), W.b);
+    const hindR = (t: number) => W.hind * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 0.75);
+    const middle = (radius: (t: number) => number, level: number): [number, number] => {
+      let peak = 0;
+      for (let i = 0; i <= 48; i += 1) peak = Math.max(peak, radius(i / 48));
+      let lo = 1;
+      let hi = 0;
+      for (let i = 0; i <= 48; i += 1) {
+        if (radius(i / 48) >= level * peak) {
+          lo = Math.min(lo, i / 48);
+          hi = Math.max(hi, i / 48);
+        }
+      }
+      return [(lo + hi) / 2, level * peak];
+    };
+    const foreAt = (level: number): Pt => {
+      const [t, r] = middle(foreR, level);
       const th = FORE[0] + t * (FORE[1] - FORE[0]);
-      return [0.05 + d * R * Math.cos(th), -0.1 + d * R * Math.sin(th)];
+      return [0.05 + r * Math.cos(th), -0.1 + r * Math.sin(th)];
     };
-    const hindAt = (t: number, d: number): Pt => {
-      const R = W.hind * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 0.75);
+    const hindAt = (level: number): Pt => {
+      const [t, r] = middle(hindR, level);
       const th = HIND[0] + t * (HIND[1] - HIND[0]);
-      return [0.04 + d * R * Math.cos(th), 0.02 + d * R * Math.sin(th)];
+      return [0.04 + r * Math.cos(th), 0.02 + r * Math.sin(th)];
     };
-    const peak = Math.pow(0.5, 1 / W.a);
-    const spots = [foreAt(peak, 0.62), hindAt(0.42, 0.6), foreAt(Math.min(0.92, peak + 0.26), 0.56)];
+    const mine = [0, 1, 2].map((s) => spec.eyes[s * 2 + (side < 0 ? 0 : 1)]);
+    const spots = [foreAt(mine[2] ? 0.68 : 0.52), hindAt(0.52), foreAt(0.34)];
+    // Pequena (no estúdio, voando, e no Patrono), cada olho é um pixel só:
+    // com o tamanho normal os seis olhos cobriam a asa e apagavam a forma dela.
+    const dot = flat || U < 18;
     spots.forEach((spot, s) => {
-      const eye = spec.eyes[s * 2 + (side < 0 ? 0 : 1)];
+      const eye = mine[s];
       if (!eye) return;
       const ox = Math.round(cx + side * spot[0] * U * flap);
       const oy = Math.round(cy + spot[1] * U);
-      // no Patrono (flat) o olho é uma pinta de um pixel: com o raio normal,
-      // os seis olhos cobririam a asa inteira de uma mariposa tão pequena
-      const rr = flat ? 0.5 : Math.max(1.5, U * 0.085);
+      if (dot) {
+        px(ctx, ox, oy, flat || eye.gold ? GOLD : PAPER);
+        hits.push({ x: ox, y: oy, r: 2, eye });
+        return;
+      }
+      const rr = Math.max(1.5, U * 0.085);
       const reach = Math.ceil(rr);
       for (let yy = -reach; yy <= reach; yy += 1) {
         for (let xx = -reach; xx <= reach; xx += 1) {
           const q = Math.sqrt(xx * xx + yy * yy);
-          if (q <= rr) px(ctx, ox + xx, oy + yy, flat ? GOLD : q > rr * 0.62 ? (eye.gold ? GOLD : PAPER) : q > rr * 0.3 ? moodColor(eye.letter) : EDGE);
+          if (q <= rr) px(ctx, ox + xx, oy + yy, q > rr * 0.62 ? (eye.gold ? GOLD : PAPER) : q > rr * 0.3 ? moodColor(eye.letter) : EDGE);
         }
       }
       hits.push({ x: ox, y: oy, r: rr + 2, eye });
@@ -729,6 +812,34 @@ const drawCocoon = (ctx: Ctx, x: number, y: number, nextCode: string) => {
 };
 const COCOON_AT: Pt = [CX - 1 - 60, OY + 30 - WALL + 4];
 
+// ---------- o brilho da mariposa e da lagarta (glow.ts) ----------
+// a mariposa muda de desenho a cada batida de asa: um contorno por batida, guardado por mariposa
+const MOTH_BOX = 52;
+const mothGlows = new WeakMap<MothSpec, Map<number, Glow>>();
+const mothGlow = (spec: MothSpec, flap: number): Glow => {
+  let byFlap = mothGlows.get(spec);
+  if (!byFlap) {
+    byFlap = new Map();
+    mothGlows.set(spec, byFlap);
+  }
+  let glow = byFlap.get(flap);
+  if (!glow) {
+    glow = glowOf(null, MOTH_BOX, MOTH_BOX, (ctx) => drawMoth(ctx, MOTH_BOX / 2, MOTH_BOX / 2, 15, spec, flap));
+    byFlap.set(flap, glow);
+  }
+  return glow;
+};
+const LARVA_BOX: [number, number] = [108, 40];
+const larvaGlows = new WeakMap<PersonaWorld, Glow>();
+const larvaGlow = (world: PersonaWorld): Glow => {
+  let glow = larvaGlows.get(world);
+  if (!glow) {
+    glow = glowOf(null, LARVA_BOX[0], LARVA_BOX[1], (ctx) => drawLarva(ctx, LARVA_BOX[0] / 2, LARVA_BOX[1] / 2, 2, world));
+    larvaGlows.set(world, glow);
+  }
+  return glow;
+};
+
 // ---------- um quadro da cena ----------
 // `room` é a cabine já desenhada (drawRoom) num canvas à parte; aqui entram só
 // as partes que se mexem. Devolve onde a criatura ficou (para o toque).
@@ -741,6 +852,8 @@ export function paintFrame(
   tick: number,
   still: boolean,
   extras: StudioExtras = NO_EXTRAS,
+  // o que pode ser tocado nesta cena (e por isso brilha)
+  glow: ReadonlySet<SpotKind> = NO_GLOW,
 ): Pt {
   ctx.clearRect(0, 0, RW, RH);
   ctx.imageSmoothingEnabled = false;
@@ -755,45 +868,24 @@ export function paintFrame(
       }
     }
   }
-  paintLounge(KIT, ctx, world, extras, tick, still);
+  // o brilho da tela e dos quadros (na parede, por baixo de tudo o que se mexe)
+  const soft = glowAlphas(tick, still, false);
+  if (glow.has('screen')) paintGlow(ctx, screenGlow(st.stage), 0, 0, GLOW_SOFT, soft);
+  if (glow.has('posters') && world.posters.length > 0) paintGlow(ctx, postersGlow(Math.min(world.posters.length, POSTER_SLOTS.length)), 0, 0, GLOW_SOFT, soft);
+  paintLounge(KIT, ctx, world, extras, tick, still, glow);
   drawBeam(ctx, st, still ? 1 : tick);
   if (spec) {
     const a = tick / 10;
-    const p = still ? iso(2.3, 3.3, 30) : iso(2.3 + Math.sin(a) * 0.5, 3.1 + Math.cos(a * 1.3) * 0.35, 30 + Math.sin(a * 2.1) * 3);
+    const p = still ? iso(MOTH_HOME[0], MOTH_HOME[1] + 0.1, MOTH_HOME[2]) : iso(MOTH_HOME[0] + Math.sin(a) * 0.5, MOTH_HOME[1] - 0.1 + Math.cos(a * 1.3) * 0.35, MOTH_HOME[2] + Math.sin(a * 2.1) * 3);
     const at: Pt = [Math.round(p[0]), Math.round(p[1])];
-    drawMoth(ctx, at[0], at[1], 15, spec, still ? 1 : [1, 0.78, 0.5, 0.78][tick % 4]);
+    const flap = still ? 1 : [1, 0.78, 0.5, 0.78][tick % 4];
+    if (glow.has('moth')) paintGlow(ctx, mothGlow(spec, flap), at[0] - MOTH_BOX / 2, at[1] - MOTH_BOX / 2, GLOW_SOFT, soft);
+    drawMoth(ctx, at[0], at[1], 15, spec, flap);
     return at;
   }
   const q = world.rated === 0 ? iso(3, 3, 7) : iso(3 + (still ? 0 : Math.sin(tick / 14) * 0.5), 3.2, 5);
   const at: Pt = [Math.round(q[0]), Math.round(q[1])];
+  if (glow.has('moth')) paintGlow(ctx, larvaGlow(world), at[0] - LARVA_BOX[0] / 2, at[1] - LARVA_BOX[1] / 2, GLOW_SOFT, soft);
   drawLarva(ctx, at[0], at[1], 2, world);
   return at;
-}
-
-// ---------- o toque ----------
-export type SceneHit = { kind: 'creature' } | { kind: 'cocoon' } | { kind: 'screen' } | { kind: 'poster'; title: WorldTitle } | { kind: 'shelf'; letter: string } | { kind: 'room' };
-
-// O que há no ponto (x, y) da cena (em pixels da cena). `creature` é onde a
-// mariposa (ou a lagarta) está no quadro de agora.
-export function sceneHit(x: number, y: number, st: WorldState, world: PersonaWorld, creature: Pt | null): SceneHit {
-  if (creature && Math.abs(x - creature[0]) < 16 && Math.abs(y - creature[1]) < 14) return { kind: 'creature' };
-  if (st.hasTrio && st.neighbor === 'cocoon' && Math.abs(x - COCOON_AT[0]) < 8 && y > COCOON_AT[1] - 6 && y < COCOON_AT[1] + 14) return { kind: 'cocoon' };
-  const p = wallPoint(x, y);
-  if (p.v >= 0 && p.v < WALL && p.u < (p.side === 'R' ? WALL_R : WALL_L)) {
-    if (p.side === 'L') {
-      const tens = world.tens.slice(0, POSTER_SLOTS.length);
-      for (let i = 0; i < tens.length; i += 1) {
-        const [u, v] = POSTER_SLOTS[i];
-        if (p.u >= u - 1 && p.u < u + 10 && p.v >= v - 1 && p.v < v + 14) return { kind: 'poster', title: tens[i] };
-      }
-      const screen = screenRect(st.stage);
-      if (st.hasTrio && p.u >= screen.u && p.u < screen.u + screen.w && p.v >= screen.v && p.v < screen.v + screen.h) return { kind: 'screen' };
-    } else {
-      for (let m = 0; m < LETTERS.length; m += 1) {
-        const cell = shelfCell(m);
-        if (p.u >= cell.u && p.u < cell.u + 19 && p.v >= cell.v && p.v < cell.v + 14) return { kind: 'shelf', letter: LETTERS[m] };
-      }
-    }
-  }
-  return { kind: 'room' };
 }

@@ -78,6 +78,13 @@ export interface WorldMolt {
   no: number | null;
 }
 
+export interface WorldPoster {
+  // o caminho da imagem no TMDB
+  path: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  effect: string;
+}
+
 export interface PersonaWorld {
   persona: UserPersona | null;
   rated: number;
@@ -90,16 +97,17 @@ export interface PersonaWorld {
   // as prateleiras dos primeiros títulos (os gomos da lagarta)
   first: string[];
   eyes: WorldTitle[];
-  tens: WorldTitle[];
   last: WorldTitle[];
   best: Record<string, WorldTitle[]>;
   molts: WorldMolt[];
   // 14/11/2026 (o estúdio): as tags que a pessoa conquistou, da mais antiga à
-  // mais nova. As de evento viram objetos no estúdio (a abóbora, a árvore).
+  // mais nova. As que liberam um objeto viram esse objeto no estúdio (hoje só
+  // a caixa do Clube do Terror, da Deadly Sleeping).
   tags: { id: string; at: string }[];
-  // a Watchlist, para o aquário: quantos títulos esperam e a prateleira dos 8
-  // mais novos (um peixe por título; null = título de fora das prateleiras)
-  watch: { count: number; fish: (string | null)[] };
+  // 14/11/2026 (noite): os 4 últimos pôsteres que a pessoa ganhou no Poster
+  // Jackpot, do mais novo ao mais antigo. São os quadros da parede do estúdio
+  // (antes eram os títulos de nota 10). Sem nenhum, a parede fica vazia.
+  posters: WorldPoster[];
 }
 
 export type Neighbor = 'far' | 'near' | 'cocoon';
@@ -187,7 +195,6 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
     recent,
     first: Array.isArray(raw.first) ? (raw.first as unknown[]).map(String).filter((l) => MOOD_BY_LETTER[l]) : [],
     eyes: parseTitles(raw.eyes),
-    tens: parseTitles(raw.tens),
     last: parseTitles(raw.last),
     best,
     molts: Array.isArray(raw.molts)
@@ -198,13 +205,17 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
     tags: Array.isArray(raw.tags)
       ? (raw.tags as Row[]).map((tag) => ({ id: String(tag.id ?? ''), at: String(tag.at ?? '') })).filter((tag) => tag.id)
       : [],
-    watch: {
-      count: raw.watch && typeof raw.watch === 'object' ? num((raw.watch as Row).n) : 0,
-      fish:
-        raw.watch && typeof raw.watch === 'object' && Array.isArray((raw.watch as Row).fish)
-          ? ((raw.watch as Row).fish as unknown[]).map((letter) => (typeof letter === 'string' && MOOD_BY_LETTER[letter] ? letter : null))
-          : [],
-    },
+    posters: Array.isArray(raw.posters)
+      ? (raw.posters as Row[])
+          .map((poster): WorldPoster | null => {
+            const path = strOrNull(poster.path);
+            const rarity = String(poster.rarity ?? '');
+            if (!path) return null;
+            return { path, rarity: rarity === 'rare' || rarity === 'epic' || rarity === 'legendary' ? rarity : 'common', effect: String(poster.effect ?? 'none') };
+          })
+          .filter((poster): poster is WorldPoster => Boolean(poster))
+          .slice(0, 4)
+      : [],
   };
 }
 
