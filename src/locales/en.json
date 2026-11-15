@@ -3006,15 +3006,15 @@
     "marks": {
       "firstWin": {
         "name": "All-in",
-        "rule": "Win 5 Pôster Poker tournaments."
+        "rule": "Win a tournament without losing a single all-in, with 5 or more all-ins."
       },
       "foxHunter": {
         "name": "Outfoxed",
-        "rule": "Knock out the Fox in 5 tournaments."
+        "rule": "Win 5 tournaments with the Fox as your last opponent."
       },
       "cleanSweep": {
         "name": "Clean Sweep",
-        "rule": "Knock out all three oracles in the same tournament, 3 times."
+        "rule": "Knock out all three oracles in the same tournament, 5 times."
       },
       "oscarBluff": {
         "name": "Poker Face",
@@ -3026,7 +3026,7 @@
       },
       "highStakes": {
         "name": "High Stakes",
-        "rule": "Win 5 tournaments betting a poster from your collection."
+        "rule": "Win a legendary tournament with a legendary poster from your collection as the stake."
       },
       "royalFlush": {
         "name": "Royal Flush",
@@ -3038,7 +3038,7 @@
       },
       "cardShark": {
         "name": "Card Shark",
-        "rule": "Win 20 tournaments."
+        "rule": "Win 5 tournaments on your first entry of the week."
       }
     },
     "hands": {

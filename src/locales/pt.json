@@ -3011,15 +3011,15 @@
     "marks": {
       "firstWin": {
         "name": "All-in",
-        "rule": "Vença 5 torneios do Pôster Poker."
+        "rule": "Vença um torneio sem perder nenhum all-in, com 5 all-ins ou mais."
       },
       "foxHunter": {
         "name": "Outfoxed",
-        "rule": "Elimine o Raposo em 5 torneios."
+        "rule": "Vença 5 torneios com o Raposo como último adversário."
       },
       "cleanSweep": {
         "name": "Clean Sweep",
-        "rule": "Elimine os três oráculos no mesmo torneio, 3 vezes."
+        "rule": "Elimine os três oráculos no mesmo torneio, 5 vezes."
       },
       "oscarBluff": {
         "name": "Poker Face",
@@ -3031,7 +3031,7 @@
       },
       "highStakes": {
         "name": "High Stakes",
-        "rule": "Vença 5 torneios apostando um pôster da sua coleção."
+        "rule": "Vença um torneio lendário apostando um pôster lendário da sua coleção."
       },
       "royalFlush": {
         "name": "Royal Flush",
@@ -3043,7 +3043,7 @@
       },
       "cardShark": {
         "name": "Card Shark",
-        "rule": "Vença 20 torneios."
+        "rule": "Vença 5 torneios na primeira entrada da semana."
       }
     },
     "hands": {

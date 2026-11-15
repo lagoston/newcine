@@ -2,12 +2,17 @@
 --
 -- NÃO APLICADA. Espera o ok do Bruno, porque apaga conquistas de outras pessoas.
 --
--- Em 15/11/2026 as metas das tags de Jogos subiram (migração
--- 20261115191000_game_tags_harder.sql), a pedido do Bruno: "As tags vermelhas
--- estão muito fáceis de ganhar. Eu praticamente já ganhei todas só testando os
--- jogos". Aquela migração só mudou a regra daqui para a frente: quem já tinha a
--- tag continuou com ela. No dia eram 15 conquistas de 5 contas (8 do Bruno), e
--- nenhuma cumpria a meta nova.
+-- Em 15/11/2026 as metas das tags de Jogos subiram duas vezes, a pedido do
+-- Bruno: à tarde (migração 20261115191000_game_tags_harder.sql: "As tags
+-- vermelhas estão muito fáceis de ganhar. Eu praticamente já ganhei todas só
+-- testando os jogos") e à noite (20261115213000_game_tags_rare.sql: "estão
+-- muito banais, tem que ser algo bem mais raro"). As duas só mudaram a regra
+-- daqui para a frente: quem já tinha a tag continuou com ela. No dia eram 15
+-- conquistas de 5 contas (8 do Bruno), e nenhuma cumpria a meta nova.
+--
+-- Este arquivo se chamava 20261115193000_…; ganhou um número depois do da
+-- migração da noite para que, numa reconstrução do banco pela ordem dos
+-- arquivos, a conferência rode com as metas finais.
 --
 -- Esta migração confere as tags que têm contagem (requirement_data com metric
 -- e goal) e tira de cada pessoa as que ela não cumpre mais:
