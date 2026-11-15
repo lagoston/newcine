@@ -2883,6 +2883,16 @@
     "youHave": "Você já tem",
     "pickBoth": "Escolha os dois pôsteres",
     "send": "Enviar proposta",
+    "info": {
+      "open": "Ver os detalhes de {{title}}",
+      "pickHint": "Toque num pôster para ver os detalhes (número, raridade, efeito e o título) e escolher.",
+      "offer": "Oferecer este pôster",
+      "ask": "Pedir este pôster",
+      "chosen": "Escolhido para a troca",
+      "remove": "Tirar da troca",
+      "yours": "O seu pôster",
+      "theirs": "O pôster de {{name}}"
+    },
     "sent": "Proposta enviada para {{name}}.",
     "acceptedToast": "Troca feita! O pôster novo já está na sua coleção.",
     "declinedToast": "Proposta recusada.",

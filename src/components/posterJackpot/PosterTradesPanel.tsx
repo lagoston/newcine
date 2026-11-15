@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowLeftRight, Check, Loader2, Repeat2, Send, Users, X } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Check, Loader2, Maximize2, Repeat2, Send, Users, X } from 'lucide-react';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
+import PosterInfoSheet from './PosterInfoSheet';
 import { PAPER, MIST, VELVET, FOCUS_RING } from '../../lib/oracleTheme';
 import { titleOf } from '../../lib/posterJackpot';
 import {
@@ -25,12 +26,24 @@ import {
 // A aba Trocas do Poster Jackpot: as propostas recebidas (aceitar/recusar),
 // as enviadas (cancelar), o histórico e o "Propor troca" (escolher o amigo,
 // o seu pôster e o dele).
+//
+// 15/11/2026 (pedido do Bruno: "é necessário que de alguma forma o menu
+// expandido dos pôsteres com as informações apareçam, para propiciar uma
+// troca justa sem enganação"): todo pôster de uma troca abre o menu expandido
+// dele (PosterInfoSheet: o pôster grande com o efeito, o título e o ano, o
+// número de colecionador, a raridade, o efeito, e o menu do título).
+//   • No "Propor troca", tocar num pôster abre o menu e a escolha é feita lá
+//     dentro ("Oferecer este pôster" / "Pedir este pôster"): ninguém escolhe
+//     sem ver o que está escolhendo.
+//   • Nos cartões das trocas (recebidas, enviadas, histórico e sussurros), os
+//     dois pôsteres abrem o menu: dá para conferir antes de aceitar.
 
 // 03/11/2026 (pôquer): pôster ganho no Grande Blefe não entra em trocas; a
 // trava é do banco (gatilho poker_trade_guard → exceção 'untradeable'). Aqui
 // só a mensagem certa, lida antes do tradeErrorCode (que não conhece o código).
 const isUntradeable = (error: unknown) => ((error as { message?: string })?.message || '').includes('untradeable');
 const isTablePrize = (poster: TradePoster) => (poster as TradePoster & { tradeable?: boolean }).tradeable === false;
+const sameVersion = (a: TradePoster | null, b: TradePoster | null) => !!a && !!b && a.id === b.id && a.effect === b.effect;
 
 const Avatar: React.FC<{ user: { username: string; avatar_url: string | null }; size?: number }> = ({ user, size = 36 }) =>
   user.avatar_url ? (
@@ -41,21 +54,35 @@ const Avatar: React.FC<{ user: { username: string; avatar_url: string | null }; 
     </span>
   );
 
-// Um lado da troca: o pôster, o título e a raridade.
-const TradeSide: React.FC<{ poster: TradePoster; label: string }> = ({ poster, label }) => {
-  const { i18n } = useTranslation();
+// Um lado da troca: o pôster (que abre o menu expandido), o título e a raridade.
+const TradeSide: React.FC<{ poster: TradePoster; label: string; onOpen: (poster: TradePoster) => void }> = ({ poster, label, onOpen }) => {
+  const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   return (
     <div className="min-w-0 flex-1 text-center">
       <p className="text-[11.5px] font-semibold" style={{ color: MIST }}>{label}</p>
-      <PosterArt
-        filePath={poster.file_path}
-        effect={poster.effect}
-        alt={titleOf(poster, isPt)}
-        size="w342"
-        className="mt-1.5 mx-auto w-full max-w-[120px] aspect-[2/3] rounded-xl shadow-[0_14px_28px_-14px_rgba(0,0,0,0.9)]"
-        mark={{ rarity: poster.rarity, serial: poster.serial, size: 'xs' }}
-      />
+      <button
+        type="button"
+        onClick={() => onOpen(poster)}
+        aria-label={t('trades.info.open', { title: titleOf(poster, isPt) })}
+        className={`group relative mt-1.5 mx-auto block w-full max-w-[120px] rounded-xl transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98] ${FOCUS_RING}`}
+      >
+        <PosterArt
+          filePath={poster.file_path}
+          effect={poster.effect}
+          alt=""
+          size="w342"
+          className="w-full aspect-[2/3] rounded-xl shadow-[0_14px_28px_-14px_rgba(0,0,0,0.9)]"
+          mark={{ rarity: poster.rarity, serial: poster.serial, size: 'xs' }}
+        />
+        <span
+          aria-hidden
+          className="absolute top-1.5 right-1.5 z-10 grid place-items-center w-6 h-6 rounded-full text-white transition-transform duration-200 group-hover:scale-110"
+          style={{ background: 'rgba(10,14,44,0.78)', boxShadow: 'inset 0 0 0 1px rgba(255,232,163,0.4), 0 4px 10px -4px rgba(0,0,0,0.8)' }}
+        >
+          <Maximize2 className="w-3 h-3" />
+        </span>
+      </button>
       <p className="mt-1.5 text-[12.5px] font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>{titleOf(poster, isPt)}</p>
       <div className="mt-1 flex flex-wrap justify-center gap-1">
         <RarityTag rarity={poster.rarity} />
@@ -72,10 +99,14 @@ export const TradeCard: React.FC<{
   onRespond?: (trade: PosterTrade, accept: boolean) => void;
   onCancel?: (trade: PosterTrade) => void;
   compact?: boolean;
-}> = ({ trade, busy = false, onRespond, onCancel, compact = false }) => {
+  // o menu expandido de um pôster aberto por cima (o Esc fecha só ele)
+  onLayer?: (open: boolean) => void;
+}> = ({ trade, busy = false, onRespond, onCancel, compact = false, onLayer }) => {
   const { t } = useTranslation();
   const { give, get } = tradeSides(trade);
   const pending = trade.status === 'pending';
+  // o pôster aberto no menu expandido, com o lado dele na troca
+  const [info, setInfo] = useState<{ poster: TradePoster; caption: string } | null>(null);
   return (
     <div
       className={`rounded-2xl ${compact ? 'p-3' : 'p-3.5 sm:p-4'}`}
@@ -99,11 +130,11 @@ export const TradeCard: React.FC<{
         </div>
       )}
       <div className={`${compact ? '' : 'mt-3'} flex items-start gap-2 sm:gap-3`}>
-        <TradeSide poster={give} label={t('trades.youGive')} />
+        <TradeSide poster={give} label={t('trades.youGive')} onOpen={(poster) => setInfo({ poster, caption: t('trades.youGive') })} />
         <span className="mt-[22%] grid place-items-center w-9 h-9 shrink-0 rounded-full" style={{ background: 'rgba(244,196,84,0.14)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45)' }} aria-hidden>
           <ArrowLeftRight className="w-4 h-4" />
         </span>
-        <TradeSide poster={get} label={t('trades.youGet')} />
+        <TradeSide poster={get} label={t('trades.youGet')} onOpen={(poster) => setInfo({ poster, caption: t('trades.youGet') })} />
       </div>
       {pending && trade.incoming && onRespond && (
         <div className="mt-3.5 grid grid-cols-2 gap-2">
@@ -143,6 +174,7 @@ export const TradeCard: React.FC<{
           </button>
         </div>
       )}
+      <PosterInfoSheet poster={info?.poster ?? null} caption={info?.caption} onClose={() => setInfo(null)} onLayer={onLayer} />
     </div>
   );
 };
@@ -163,19 +195,20 @@ export const StatusPill: React.FC<{ status: TradeStatus }> = ({ status }) => {
   );
 };
 
-// Grade de pôsteres para escolher um lado da troca.
+// Grade de pôsteres para escolher um lado da troca. Tocar abre o menu
+// expandido do pôster; a escolha é feita lá dentro (15/11/2026).
 const PickGrid: React.FC<{
   posters: TradePoster[];
   selected: TradePoster | null;
-  onSelect: (poster: TradePoster) => void;
+  onOpen: (poster: TradePoster) => void;
   blockedLabel: string;
-}> = ({ posters, selected, onSelect, blockedLabel }) => {
+}> = ({ posters, selected, onOpen, blockedLabel }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   return (
     <ul className="grid grid-cols-4 sm:grid-cols-5 gap-2">
       {posters.map((poster) => {
-        const active = !!selected && selected.id === poster.id && selected.effect === poster.effect;
+        const active = sameVersion(selected, poster);
         // Prêmio da mesa: o servidor já tira da lista; se vier, fica travado.
         const tablePrize = isTablePrize(poster);
         const blocked = !!poster.other_has || tablePrize;
@@ -183,10 +216,10 @@ const PickGrid: React.FC<{
           <li key={`${poster.id}:${poster.effect}`}>
             <button
               type="button"
-              onClick={() => !blocked && onSelect(poster)}
+              onClick={() => !blocked && onOpen(poster)}
               disabled={blocked}
               aria-pressed={active}
-              aria-label={titleOf(poster, isPt)}
+              aria-label={t('trades.info.open', { title: titleOf(poster, isPt) })}
               className={`relative block w-full rounded-lg transition ${FOCUS_RING} ${blocked ? 'cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
               style={{ boxShadow: active ? '0 0 0 2.5px #F4C454, 0 0 18px -2px rgba(244,196,84,0.8)' : undefined }}
             >
@@ -218,7 +251,7 @@ const PickGrid: React.FC<{
 };
 
 // O "Propor troca": amigo → os dois pôsteres → enviar.
-const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onDone, onBack }) => {
+const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void; onLayer?: (open: boolean) => void }> = ({ onDone, onBack, onLayer }) => {
   const { t } = useTranslation();
   const [friends, setFriends] = useState<TradeFriend[] | null>(null);
   const [friend, setFriend] = useState<TradeFriend | null>(null);
@@ -226,6 +259,14 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
   const [give, setGive] = useState<TradePoster | null>(null);
   const [get, setGet] = useState<TradePoster | null>(null);
   const [sending, setSending] = useState(false);
+  // o pôster aberto no menu expandido e de que lado ele entra
+  const [info, setInfo] = useState<{ poster: TradePoster; side: 'give' | 'get' } | null>(null);
+  const infoChosen = info ? sameVersion(info.side === 'give' ? give : get, info.poster) : false;
+  const choose = (side: 'give' | 'get', poster: TradePoster | null) => {
+    if (side === 'give') setGive(poster);
+    else setGet(poster);
+    setInfo(null);
+  };
 
   useEffect(() => {
     getTradeFriends()
@@ -241,6 +282,7 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
     setBoard(null);
     setGive(null);
     setGet(null);
+    setInfo(null);
     getTradeBoard(friend.id)
       .then(setBoard)
       .catch((error) => {
@@ -317,6 +359,7 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
         <Avatar user={friend} />
         <h3 className="text-[16px] font-semibold" style={{ color: PAPER }}>{t('trades.tradeWith', { name: friend.username })}</h3>
       </div>
+      <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: MIST }}>{t('trades.info.pickHint')}</p>
 
       {!board ? (
         <div className="flex justify-center py-10">
@@ -330,14 +373,14 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
               <p className="mt-2 text-sm" style={{ color: MIST }}>{t('trades.noMine')}</p>
             ) : (
               <div className="mt-2">
-                <PickGrid posters={board.mine} selected={give} onSelect={setGive} blockedLabel={t('trades.theyHave')} />
+                <PickGrid posters={board.mine} selected={give} onOpen={(poster) => setInfo({ poster, side: 'give' })} blockedLabel={t('trades.theyHave')} />
               </div>
             )}
           </section>
           <section className="mt-5">
             <h4 className="text-[13.5px] font-semibold" style={{ color: '#FFE8A3' }}>{t('trades.pickGet', { name: friend.username })}</h4>
             <div className="mt-2">
-              <PickGrid posters={board.theirs} selected={get} onSelect={setGet} blockedLabel={t('trades.youHave')} />
+              <PickGrid posters={board.theirs} selected={get} onOpen={(poster) => setInfo({ poster, side: 'get' })} blockedLabel={t('trades.youHave')} />
             </div>
           </section>
 
@@ -365,6 +408,41 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
           </div>
         </>
       )}
+
+      <PosterInfoSheet
+        poster={info?.poster ?? null}
+        caption={info ? (info.side === 'give' ? t('trades.info.yours') : t('trades.info.theirs', { name: friend.username })) : undefined}
+        onClose={() => setInfo(null)}
+        onLayer={onLayer}
+      >
+        {info &&
+          (infoChosen ? (
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <p className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: '#FFE8A3' }}>
+                <Check className="w-4 h-4" aria-hidden />
+                {t('trades.info.chosen')}
+              </p>
+              <button
+                type="button"
+                onClick={() => choose(info.side, null)}
+                className={`inline-flex items-center gap-1.5 h-11 px-5 rounded-xl text-sm font-semibold transition hover:bg-white/10 ${FOCUS_RING}`}
+                style={{ color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25)' }}
+              >
+                <X className="w-4 h-4" aria-hidden />
+                {t('trades.info.remove')}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => choose(info.side, info.poster)}
+              className={`pj-spin mt-4 inline-flex items-center justify-center gap-1.5 h-11 px-6 rounded-full text-sm font-bold ${FOCUS_RING}`}
+            >
+              <ArrowLeftRight className="w-4 h-4" aria-hidden />
+              <span className="relative">{info.side === 'give' ? t('trades.info.offer') : t('trades.info.ask')}</span>
+            </button>
+          ))}
+      </PosterInfoSheet>
     </div>
   );
 };
@@ -372,7 +450,9 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
 const PosterTradesPanel: React.FC<{
   trades: PosterTrade[] | null;
   onChanged: () => void;
-}> = ({ trades, onChanged }) => {
+  // um menu expandido de pôster aberto por cima: o Esc fecha só ele
+  onLayer?: (open: boolean) => void;
+}> = ({ trades, onChanged, onLayer }) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'list' | 'propose'>('list');
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -434,6 +514,7 @@ const PosterTradesPanel: React.FC<{
   if (mode === 'propose') {
     return (
       <ProposeFlow
+        onLayer={onLayer}
         onBack={() => setMode('list')}
         onDone={() => {
           setMode('list');
@@ -484,7 +565,7 @@ const PosterTradesPanel: React.FC<{
               <h4 className="text-[14px] font-semibold" style={{ color: PAPER }}>{t('trades.incoming', { count: incoming.length })}</h4>
               <div className="mt-2.5 space-y-3">
                 {incoming.map((trade) => (
-                  <TradeCard key={trade.id} trade={trade} busy={busyId === trade.id} onRespond={respond} />
+                  <TradeCard key={trade.id} trade={trade} busy={busyId === trade.id} onRespond={respond} onLayer={onLayer} />
                 ))}
               </div>
             </motion.section>
@@ -494,7 +575,7 @@ const PosterTradesPanel: React.FC<{
               <h4 className="text-[14px] font-semibold" style={{ color: PAPER }}>{t('trades.outgoing', { count: outgoing.length })}</h4>
               <div className="mt-2.5 space-y-3">
                 {outgoing.map((trade) => (
-                  <TradeCard key={trade.id} trade={trade} busy={busyId === trade.id} onCancel={cancel} />
+                  <TradeCard key={trade.id} trade={trade} busy={busyId === trade.id} onCancel={cancel} onLayer={onLayer} />
                 ))}
               </div>
             </motion.section>
@@ -510,7 +591,7 @@ const PosterTradesPanel: React.FC<{
               </div>
               <div className="mt-2.5 space-y-3">
                 {history.map((trade) => (
-                  <TradeCard key={trade.id} trade={trade} />
+                  <TradeCard key={trade.id} trade={trade} onLayer={onLayer} />
                 ))}
               </div>
             </motion.section>

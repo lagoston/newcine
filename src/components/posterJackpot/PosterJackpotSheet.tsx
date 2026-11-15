@@ -1,16 +1,15 @@
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, Crown, Gift, Loader2, Share2, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
-import PosterArt, { EffectTag, RarityTag } from './PosterArt';
-import { RarityGem, SerialLine } from './CollectorMark';
+import PosterArt from './PosterArt';
+import { RarityGem } from './CollectorMark';
 import ChipRack, { ChipFace, type ChipKind } from './Chips';
 import LuckyMeter from './LuckyMeter';
-import { getMovieDetails, type Movie } from '../../lib/tmdb';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
 import JackpotReveal, { Twinkle } from './JackpotReveal';
 import ContractPanel from './ContractPanel';
@@ -51,14 +50,12 @@ import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '
 import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } from '../../lib/invite';
 import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
 import PosterTradesPanel from './PosterTradesPanel';
+import PosterInfoSheet from './PosterInfoSheet';
 import { DailyChipReward } from './DailyChip';
 import TablePrizeSeal from '../poker/jackpot/TablePrizeSeal';
 import '../../styles/posterJackpot.css';
 
-// O menu expandido do título (aberto ao tocar no pôster no detalhe da
-// coleção). Carregado sob demanda: o MovieDetailsModal também mostra
-// pôsteres do Jackpot, e assim os dois módulos não se puxam na carga.
-const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
+// O menu expandido do título mora na PosterInfoSheet desde 15/11/2026.
 
 // Poster Jackpot: a roleta do Oracle Hub. Um palco de parque encantado
 // (céu estrelado, moldura dourada em arco, lâmpadas de letreiro correndo)
@@ -623,28 +620,9 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
   };
   const [open, setOpen] = useState<OwnedPoster | null>(null);
   const [busy, setBusy] = useState(false);
-  // O menu expandido do título, aberto ao tocar no pôster do detalhe.
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [loadingMovie, setLoadingMovie] = useState(false);
-
-  // Com o detalhe aberto, o Esc fecha só ele (e não a roleta inteira).
-  useEffect(() => {
-    onLayer?.(!!open);
-  }, [open, onLayer]);
-  useEffect(() => () => onLayer?.(false), [onLayer]);
-
-  const openTitle = async (poster: OwnedPoster) => {
-    if (loadingMovie) return;
-    setLoadingMovie(true);
-    try {
-      setMovie(await getMovieDetails(poster.tmdb_id, poster.media_type));
-    } catch (error) {
-      console.error('Poster Jackpot open title:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setLoadingMovie(false);
-    }
-  };
+  // O detalhe do pôster (o menu expandido, com o menu do título dentro) é a
+  // PosterInfoSheet desde 15/11/2026: a mesma das trocas. Com ele aberto, o
+  // Esc fecha só ele (e não a roleta inteira).
 
   const toggleEquip = async (poster: OwnedPoster) => {
     setBusy(true);
@@ -721,56 +699,9 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
         />
       )}
 
-      <OracleSheet
-        open={!!open}
-        onClose={() => setOpen(null)}
-        title={open ? titleOf(open, isPt) : ''}
-        subtitle={open?.year ? String(open.year) : undefined}
-        size="md"
-        zIndexClass="z-[10005]"
-        escapeEnabled={!movie}
-      >
+      <PosterInfoSheet poster={open} onClose={() => setOpen(null)} onLayer={onLayer}>
         {open && (
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => openTitle(open)}
-              aria-label={t('jackpot.collection.openTitle', { title: titleOf(open, isPt) })}
-              className={`group relative mx-auto block w-44 sm:w-52 rounded-2xl transition-transform duration-200 hover:-translate-y-1 active:scale-[0.98] ${FOCUS_RING}`}
-            >
-              {/* 04/11/2026: o w342 da grade (já no cache) fica por baixo
-                  enquanto o w500 carrega — o detalhe abria com o quadro vazio
-                  e o pôster "pipocava" depois. */}
-              <PosterArt
-                filePath={open.file_path}
-                effect={open.effect}
-                alt=""
-                size="w500"
-                placeholderSize="w342"
-                loading="eager"
-                className="aspect-[2/3] rounded-2xl shadow-[0_22px_44px_-20px_rgba(0,0,0,0.95)]"
-                mark={{ rarity: open.rarity, serial: open.serial, size: 'md' }}
-              />
-              <span
-                aria-hidden
-                className="absolute top-2 right-2 z-10 grid place-items-center w-8 h-8 rounded-full text-white transition-transform duration-200 group-hover:scale-110"
-                style={{ background: 'rgba(10,14,44,0.78)', boxShadow: 'inset 0 0 0 1px rgba(255,232,163,0.4), 0 6px 14px -6px rgba(0,0,0,0.8)' }}
-              >
-                {loadingMovie ? <Loader2 className="w-4 h-4 animate-spin" /> : <Maximize2 className="w-4 h-4" />}
-              </span>
-            </button>
-            <p className="mt-2 text-[11.5px]" style={{ color: MIST }}>{t('jackpot.collection.openHint')}</p>
-            <SerialLine rarity={open.rarity} serial={open.serial} gem={false} className="mt-3 text-[15px]" />
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-              <RarityTag rarity={open.rarity} />
-              <EffectTag effect={open.effect} />
-              {open.tradeable === false && <TablePrizeSeal />}
-            </div>
-            {open.tradeable === false && (
-              <p className="mt-1.5 text-[12px]" style={{ color: MIST }}>
-                {t('pokerEntry.trades.sealHint')}
-              </p>
-            )}
+          <>
             <button
               type="button"
               onClick={() => toggleEquip(open)}
@@ -784,15 +715,9 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
             <p className="mt-3 text-xs leading-relaxed" style={{ color: MIST }}>
               {open.in_library ? t('jackpot.collection.equipHint') : t('jackpot.collection.notInLibrary')}
             </p>
-          </div>
+          </>
         )}
-      </OracleSheet>
-
-      {movie && (
-        <Suspense fallback={null}>
-          <MovieDetailsModal movie={movie} isOpen onClose={() => setMovie(null)} zIndexClass="z-[10010]" />
-        </Suspense>
-      )}
+      </PosterInfoSheet>
     </div>
   );
 };
@@ -1251,6 +1176,7 @@ const PosterJackpotSheet: React.FC<{
             {tab === 'trades' && (
               <PosterTradesPanel
                 trades={trades}
+                onLayer={setLayerOpen}
                 onChanged={() => {
                   loadTrades();
                   loadOwned();

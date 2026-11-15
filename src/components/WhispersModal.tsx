@@ -122,6 +122,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   // story aberto a partir de uma curtida/comentário
   const [openStory, setOpenStory] = useState<FeedStory | null>(null);
+  // Um pôster de troca aberto no menu expandido (o Esc fecha só ele).
+  const [tradeLayer, setTradeLayer] = useState(false);
   // As trocas de pôsteres citadas nos sussurros (por id).
   const [trades, setTrades] = useState<Map<number, PosterTrade>>(new Map());
 
@@ -514,6 +516,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
               compact
               busy={busyId === whisper.id}
               onRespond={whisper.type === 'poster_trade' ? (tr, accept) => respondToTrade(whisper, tr, accept) : undefined}
+              onLayer={setTradeLayer}
             />
           </div>
         );
@@ -697,7 +700,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         title={t('profile.whispers')}
         subtitle={!loading ? (freshCount > 0 ? t('indications.subtitleNew', { count: freshCount }) : t('indications.subtitleNone')) : undefined}
         size="lg"
-        escapeEnabled={!selectedMovie && !openStory}
+        // 15/11/2026: o menu expandido de um pôster de troca aberto por cima
+        escapeEnabled={!selectedMovie && !openStory && !tradeLayer}
         contentKey={filter}
       >
         {loading ? (

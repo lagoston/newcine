@@ -2878,6 +2878,16 @@
     "youHave": "You have it",
     "pickBoth": "Pick both posters",
     "send": "Send proposal",
+    "info": {
+      "open": "See the details of {{title}}",
+      "pickHint": "Tap a poster to see its details (number, rarity, effect and title) and choose.",
+      "offer": "Offer this poster",
+      "ask": "Ask for this poster",
+      "chosen": "Chosen for the trade",
+      "remove": "Remove from the trade",
+      "yours": "Your poster",
+      "theirs": "{{name}}'s poster"
+    },
     "sent": "Proposal sent to {{name}}.",
     "acceptedToast": "Trade done! The new poster is already in your collection.",
     "declinedToast": "Proposal declined.",
