@@ -2,7 +2,28 @@ import { MOOD_BY_LETTER } from '../../lib/moods';
 import { MIST, NIGHT, PAPER, VELVET } from '../../lib/oracleTheme';
 import { LETTERS, type PersonaWorld, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import { GLOW_SOFT, glowAlphas, glowOf, paintGlow, type Glow } from './glow';
-import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, type SpotKind, type StudioExtras } from './studio';
+import {
+  arrangeTargets,
+  drawLounge,
+  frogHome,
+  hasPet,
+  loungeSpots,
+  NO_EXTRAS,
+  paintFrog,
+  paintLounge,
+  pickAt,
+  PROJECTOR_LENS,
+  solidRect,
+  studioLayout,
+  type Arranging,
+  type ArrangeTargets,
+  type ItemId,
+  type Kit,
+  type Rect,
+  type Spot,
+  type SpotKind,
+  type StudioExtras,
+} from './studio';
 
 // O desenho da Persona viva (13/11/2026): a cabine de projeção isométrica em
 // pixel art e a mariposa. Tudo é desenhado num canvas pequeno (160 × 142) e
@@ -24,8 +45,10 @@ import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, t
 //     os títulos de nota 10;
 //   • caixa de arquivo: os títulos de fora das prateleiras;
 //   • cores da sala: as do trio (parede = a mais forte, chão = a segunda);
-//   • mobília: um móvel por bitola (projetor, poltrona, tapete, abajur,
-//     pipoqueira, cortina, tela grande, letreiro);
+//   • mobília: um móvel por nível do estúdio (projetor, poltrona, tapete,
+//     abajur, pipoqueira, planta, cortina, cadeira de diretor, tela grande,
+//     letreiro). Até 15/11/2026 era um por bitola. Os que ficam no chão são
+//     objetos com lugar (studio.ts);
 //   • mariposa: o formato da asa vem da prateleira mais forte; as faixas, das
 //     fatias de cada humor nos últimos 30 títulos; cada olho é um título de
 //     nota 9 ou 10; a ponta das antenas tem a cor da terceira prateleira.
@@ -43,7 +66,7 @@ export const fmtRating = (rating: number): string => (Number.isInteger(rating) ?
 // 14/11/2026 (o estúdio): a cabine ficou mais comprida para a direita, de
 // 6 × 6 para 9 × 6 ladrilhos, para caber a sala de estar (studio.ts): a
 // máquina do Jackpot, a mesa de pôquer, a estante do guia e os
-// lugares de conquista. A parte do cinema não saiu do lugar.
+// lugares marcados no chão. A parte do cinema não saiu do lugar.
 export const RW = 180;
 export const RH = 158;
 const CX = 72;
@@ -173,8 +196,13 @@ const FONT5: Record<string, string[]> = {
 };
 
 // ---------- geometria que o desenho e o toque compartilham ----------
-// a área de imagem da tela (cresce com a "tela grande", bitola IMAX)
-const screenRect = (stage: number) => (stage >= 8 ? { u: 5, v: 8, w: 43, h: 36 } : { u: 8, v: 13, w: 38, h: 29 });
+// Os estágios da cena em que cada coisa do cinema chega (estágio = nível + 1).
+const STAGE_RUG = 4;
+const STAGE_CURTAIN = 8;
+const STAGE_BIG_SCREEN = 10;
+const STAGE_MARQUEE = 11;
+// a área de imagem da tela (cresce com a "tela grande", nível 9)
+const screenRect = (stage: number) => (stage >= STAGE_BIG_SCREEN ? { u: 5, v: 8, w: 43, h: 36 } : { u: 8, v: 13, w: 38, h: 29 });
 export const SCREEN_SIZE = (stage: number): { w: number; h: number } => {
   const r = screenRect(stage);
   return { w: r.w, h: r.h };
@@ -256,7 +284,8 @@ const miniPoster = (ctx: Ctx, side: Side, u: number, v: number, seed: string) =>
 };
 
 // ---------- a cabine (a parte parada) ----------
-export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: SceneImages = NO_IMAGES, extras: StudioExtras = NO_EXTRAS) {
+// `arranging`: a pessoa está arrumando o estúdio (os lugares do chão acendem).
+export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: SceneImages = NO_IMAGES, extras: StudioExtras = NO_EXTRAS, arranging: Arranging | null = null) {
   const t1 = st.hasTrio ? moodColor(st.trio[0]) : '#6B5FA0';
   const t2 = st.hasTrio ? moodColor(st.trio[1]) : '#5A5390';
   const t3 = st.hasTrio ? moodColor(st.trio[2]) : '#8B7FC0';
@@ -363,8 +392,8 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
       }
     }
   }
-  if (st.stage >= 7) {
-    // a cortina da tela (70 mm): dois panos de veludo e o bandô
+  if (st.stage >= STAGE_CURTAIN) {
+    // a cortina da tela (nível 7): dois panos de veludo e o bandô
     const velvet = '#8E1F2F';
     wallRect(ctx, 'L', screen.u - 1, screen.v - 1, 4, screen.h + 2, velvet);
     wallRect(ctx, 'L', screen.u + screen.w - 3, screen.v - 1, 4, screen.h + 2, velvet);
@@ -383,75 +412,20 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     if (image) wallImage(ctx, 'L', u + 1, v + 1, image);
     else miniPoster(ctx, 'L', u, v, poster.path);
   });
-  if (st.stage >= 9) {
-    // o letreiro de lâmpadas (Cinerama), no alto das duas paredes
+  if (st.stage >= STAGE_MARQUEE) {
+    // o letreiro de lâmpadas (nível 10), no alto das duas paredes
     for (let b = 2; b < WALL_R; b += 4) wallRect(ctx, 'R', b, WALL - 4, 1, 1, GOLD);
     for (let b = 2; b < WALL_L; b += 4) wallRect(ctx, 'L', b, WALL - 4, 1, 1, GOLD);
   }
 
-  // ---- mobília que chega com a bitola ----
-  if (st.stage >= 4) {
-    // tapete (16 mm)
+  // ---- o tapete (nível 3): fica no chão, por baixo de tudo ----
+  if (st.stage >= STAGE_RUG) {
     poly(ctx, [iso(1.1, 1.9), iso(3.7, 1.9), iso(3.7, 4.6), iso(1.1, 4.6)], mix(t3, NIGHT, 0.5));
     poly(ctx, [iso(1.4, 2.2), iso(3.4, 2.2), iso(3.4, 4.3), iso(1.4, 4.3)], mix(t3, NIGHT, 0.36));
   }
-  if (st.stage >= 5) {
-    // abajur (Super 16)
-    box(ctx, 0.35, 0.35, 0, 0.3, 0.3, 2, '#4A3B63');
-    const lp = iso(0.5, 0.5, 2);
-    px(ctx, lp[0], lp[1] - 20, '#6F5E8E', 1, 20);
-    poly(
-      ctx,
-      [
-        [lp[0] - 4, lp[1] - 20],
-        [lp[0] + 5, lp[1] - 20],
-        [lp[0] + 3, lp[1] - 27],
-        [lp[0] - 2, lp[1] - 27],
-      ],
-      GOLD,
-    );
-    ctx.fillStyle = 'rgba(244,196,84,0.10)';
-    ctx.fillRect(lp[0] - 9, lp[1] - 24, 19, 26);
-  }
-  if (st.out > 0) {
-    // o Arquivo: os títulos de fora das prateleiras (fichas creme numa caixa)
-    box(ctx, 5.0, 0.3, 0, 0.8, 0.8, 7, '#6B5B4A');
-    const ap = iso(5.4, 0.7, 7);
-    for (let a = 0; a < Math.min(st.out, 9); a += 1) px(ctx, ap[0] - 4 + (a % 3) * 3, ap[1] - 3 - Math.floor(a / 3) * 2, PAPER, 2, 1);
-  }
-  if (st.stage >= 6) {
-    // pipoqueira (35 mm). Um pouco para a esquerda desde 14/11/2026 (noite):
-    // onde estava, encostava na caixa do Clube do Terror.
-    box(ctx, 4.4, 4.75, 0, 0.8, 0.8, 9, '#B3202E');
-    box(ctx, 4.45, 4.8, 9, 0.7, 0.7, 7, '#F6E7A8');
-    const pp = iso(4.8, 5.15, 16);
-    px(ctx, pp[0] - 5, pp[1] - 1, PAPER, 10, 1);
-    px(ctx, pp[0] - 2, pp[1] + 3, GOLD, 2, 2);
-    px(ctx, pp[0] + 1, pp[1] + 4, GOLD, 2, 2);
-  }
-  if (st.stage >= 3) {
-    // poltrona (Super 8), virada para a tela
-    const vel = mix(t2, '#3A1D4F', 0.45);
-    box(ctx, 2.1, 2.7, 0, 1.2, 1.3, 5, vel);
-    box(ctx, 2.15, 2.95, 5, 0.85, 0.8, 1, light(vel, 0.18));
-    box(ctx, 3.0, 2.7, 5, 0.3, 1.3, 10, vel);
-    box(ctx, 2.1, 2.6, 5, 0.9, 0.22, 3, dark(vel, 0.15));
-    box(ctx, 2.1, 3.85, 5, 0.9, 0.22, 3, dark(vel, 0.15));
-  }
-  if (st.stage >= 2) {
-    // projetor: chega quando a Persona nasce (8 mm)
-    box(ctx, 4.3, 2.9, 0, 0.6, 0.6, 12, '#3B3054');
-    box(ctx, 4.15, 2.8, 12, 0.9, 0.8, 5, '#8D86A8');
-    const pr = iso(4.6, 3.2, 17);
-    ctx.fillStyle = '#2A2140';
-    ctx.fillRect(pr[0] - 6, pr[1] - 7, 6, 6);
-    ctx.fillRect(pr[0] + 1, pr[1] - 5, 5, 5);
-    px(ctx, pr[0] - 4, pr[1] - 5, MIST, 2, 2);
-    px(ctx, pr[0] + 3, pr[1] - 3, MIST, 1, 1);
-  }
 
-  // ---- a sala de estar (14/11/2026): a máquina, a estante do guia, a mesa e a caixa ----
-  drawLounge(KIT, ctx, world, extras);
+  // ---- os lugares marcados no chão e os objetos, cada um no seu lugar (studio.ts) ----
+  drawLounge(KIT, ctx, studioLayout(KIT, world, st, extras), arranging);
 }
 
 // ---------- o que pode ser tocado ----------
@@ -490,15 +464,33 @@ export function studioSpots(world: PersonaWorld, st: WorldState, extras: StudioE
     spots.push({ kind: 'posters', ...wallBox('L', u0 - 1, v0 - 1, Math.max(...us) + 9 - u0 + 2, Math.max(...vs) + 13 - v0 + 2) });
   }
   spots.push({ kind: 'moth', ...creatureBox(st, world) });
-  return spots.concat(loungeSpots(KIT, world, extras));
+  return spots.concat(loungeSpots(studioLayout(KIT, world, st, extras)));
+}
+
+// O retângulo de um objeto (ou do sapo) na cena; o guia recorta o desenho dele dali.
+export function studioItemRect(world: PersonaWorld, st: WorldState, extras: StudioExtras, id: ItemId | 'frog'): Rect | null {
+  const layout = studioLayout(KIT, world, st, extras);
+  if (id === 'frog') return hasPet(world, 'frog') ? frogHome(KIT, layout) : null;
+  return solidRect(layout, id);
+}
+
+// Arrumando o estúdio: o objeto ou o lugar do chão que está no ponto tocado (em pixels da cena).
+export function studioPick(world: PersonaWorld, st: WorldState, extras: StudioExtras, x: number, y: number): { item: ItemId } | { place: number } | null {
+  return pickAt(KIT, studioLayout(KIT, world, st, extras), x, y);
+}
+
+// Arrumando o estúdio: os objetos que podem ser pegos, os lugares do chão e o lugar de cada objeto.
+export function studioArrange(world: PersonaWorld, st: WorldState, extras: StudioExtras = NO_EXTRAS): ArrangeTargets & { at: Partial<Record<ItemId, number>> } {
+  const layout = studioLayout(KIT, world, st, extras);
+  return { ...arrangeTargets(KIT, layout), at: layout.at };
 }
 
 // ---------- o brilho do que pode ser tocado (glow.ts) ----------
 const screenGlow = (stage: number): Glow =>
   glowOf(`screen:${stage}`, RW, RH, (ctx) => {
     const r = screenRect(stage);
-    // com a cortina (70 mm em diante) o contorno abraça a cortina
-    const pad = stage >= 7 ? 2 : 1;
+    // com a cortina (nível 7 em diante) o contorno abraça a cortina
+    const pad = stage >= STAGE_CURTAIN ? 2 : 1;
     wallRect(ctx, 'L', r.u - pad, r.v - pad, r.w + pad * 2, r.h + pad * 2, '#fff');
   });
 const postersGlow = (count: number): Glow => glowOf(`posters:${count}`, RW, RH, (ctx) => POSTER_SLOTS.slice(0, count).forEach(([u, v]) => wallRect(ctx, 'L', u, v, 9, 13, '#fff')));
@@ -509,7 +501,7 @@ const drawBeam = (ctx: Ctx, st: WorldState, tick: number) => {
   if (st.stage < 2) return;
   const screen = screenRect(st.stage);
   const at = (u: number, v: number): Pt => [CX - 1 - u, OY + (u >> 1) - v];
-  const lens = iso(4.15, 3.2, 15);
+  const lens = iso(...PROJECTOR_LENS);
   const a = at(screen.u + screen.w, screen.v + screen.h);
   const b = at(screen.u, screen.v + screen.h);
   const c = at(screen.u, screen.v);
@@ -536,12 +528,12 @@ const WING: Record<string, { len: number; a: number; b: number; sc: number; m: n
   F: { len: 0.84, a: 1.0, b: 0.5, sc: 0, m: 0, hind: 0.72, tail: 0 },
   L: { len: 0.94, a: 0.95, b: 0.8, sc: 0.16, m: 3, hind: 0.64, tail: 0 },
 };
-// a envergadura por bitola (a mariposa cresce até 70 mm)
-const SIZE = [0, 0, 0.6, 0.68, 0.76, 0.84, 0.92, 1, 1, 1];
+// o tamanho da mariposa em cada estágio (ela cresce até o nível 7)
+const SIZE = [0, 0, 0.64, 0.72, 0.8, 0.86, 0.92, 0.96, 1, 1, 1, 1];
 // 14/11/2026: o Patrono (a mariposa feita de luz, fora da cabine) é desenhado
-// sempre do mesmo tamanho, qualquer que seja a bitola; ele divide a meia
+// sempre do mesmo tamanho, qualquer que seja o nível; ele divide a meia
 // envergadura por este fator antes de chamar drawMoth.
-export const mothScale = (stage: number): number => SIZE[stage] || 0.6;
+export const mothScale = (stage: number): number => SIZE[stage] || 0.64;
 
 export interface MothEye {
   letter: string;
@@ -598,7 +590,7 @@ const HIND = [8 * DEG, 88 * DEG];
 // pontilhado de escama, e cada olho vira uma pinta dourada lisa.
 export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: MothSpec, flap: number, flat = false): EyeHit[] {
   const W = WING[spec.shape] ?? WING.M;
-  const U = half * (SIZE[spec.stage] || 0.6);
+  const U = half * (SIZE[spec.stage] || 0.64);
   const hits: EyeHit[] = [];
   // as seis cores de cada faixa: asa da frente e de trás × (lisa, escama, borda)
   const palette = spec.bands.map((band) => {
@@ -858,12 +850,14 @@ export function paintFrame(
   extras: StudioExtras = NO_EXTRAS,
   // o que pode ser tocado nesta cena (e por isso brilha)
   glow: ReadonlySet<SpotKind> = NO_GLOW,
+  // a pessoa está arrumando o estúdio: brilha o que pode mudar de lugar
+  arranging: Arranging | null = null,
 ): Pt {
   ctx.clearRect(0, 0, RW, RH);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(room, 0, 0);
   if (st.hasTrio && st.neighbor === 'cocoon' && st.nextCode) drawCocoon(ctx, COCOON_AT[0], COCOON_AT[1], st.nextCode);
-  if (st.stage >= 9 && !still) {
+  if (st.stage >= STAGE_MARQUEE && !still) {
     // as lâmpadas do letreiro piscam alternadas
     for (let b = 2; b < WALL_R; b += 4) {
       if ((b / 4 + (tick >> 2)) % 2 < 1) {
@@ -874,22 +868,24 @@ export function paintFrame(
   }
   // o brilho da tela e dos quadros (na parede, por baixo de tudo o que se mexe)
   const soft = glowAlphas(tick, still, false);
-  if (glow.has('screen')) paintGlow(ctx, screenGlow(st.stage), 0, 0, GLOW_SOFT, soft);
-  if (glow.has('posters') && world.posters.length > 0) paintGlow(ctx, postersGlow(Math.min(world.posters.length, POSTER_SLOTS.length)), 0, 0, GLOW_SOFT, soft);
-  paintLounge(KIT, ctx, world, extras, tick, still, glow);
+  if (!arranging && glow.has('screen')) paintGlow(ctx, screenGlow(st.stage), 0, 0, GLOW_SOFT, soft);
+  if (!arranging && glow.has('posters') && world.posters.length > 0) paintGlow(ctx, postersGlow(Math.min(world.posters.length, POSTER_SLOTS.length)), 0, 0, GLOW_SOFT, soft);
+  const layout = studioLayout(KIT, world, st, extras);
+  paintLounge(KIT, ctx, layout, tick, still, glow, arranging);
+  paintFrog(KIT, ctx, layout, tick, still);
   drawBeam(ctx, st, still ? 1 : tick);
   if (spec) {
     const a = tick / 10;
     const p = still ? iso(MOTH_HOME[0], MOTH_HOME[1] + 0.1, MOTH_HOME[2]) : iso(MOTH_HOME[0] + Math.sin(a) * 0.5, MOTH_HOME[1] - 0.1 + Math.cos(a * 1.3) * 0.35, MOTH_HOME[2] + Math.sin(a * 2.1) * 3);
     const at: Pt = [Math.round(p[0]), Math.round(p[1])];
     const flap = still ? 1 : [1, 0.78, 0.5, 0.78][tick % 4];
-    if (glow.has('moth')) paintGlow(ctx, mothGlow(spec, flap), at[0] - MOTH_BOX / 2, at[1] - MOTH_BOX / 2, GLOW_SOFT, soft);
+    if (!arranging && glow.has('moth')) paintGlow(ctx, mothGlow(spec, flap), at[0] - MOTH_BOX / 2, at[1] - MOTH_BOX / 2, GLOW_SOFT, soft);
     drawMoth(ctx, at[0], at[1], 15, spec, flap);
     return at;
   }
   const q = world.rated === 0 ? iso(3, 3, 7) : iso(3 + (still ? 0 : Math.sin(tick / 14) * 0.5), 3.2, 5);
   const at: Pt = [Math.round(q[0]), Math.round(q[1])];
-  if (glow.has('moth')) paintGlow(ctx, larvaGlow(world), at[0] - LARVA_BOX[0] / 2, at[1] - LARVA_BOX[1] / 2, GLOW_SOFT, soft);
+  if (!arranging && glow.has('moth')) paintGlow(ctx, larvaGlow(world), at[0] - LARVA_BOX[0] / 2, at[1] - LARVA_BOX[1] / 2, GLOW_SOFT, soft);
   drawLarva(ctx, at[0], at[1], 2, world);
   return at;
 }

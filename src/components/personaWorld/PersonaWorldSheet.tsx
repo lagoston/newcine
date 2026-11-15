@@ -2,11 +2,12 @@ import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useStat
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LibraryBig, Plus, RotateCw } from 'lucide-react';
+import { toast } from 'sonner';
 import OracleSheet from '../OracleSheet';
 import PersonaWorks from '../PersonaWorks';
 import MovieDetailsModal from '../MovieDetailsModal';
 import { PERSONA_THRESHOLD, type PersonaEntry, type UserPersona } from '../../lib/persona';
-import { fetchPersonaWorld, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
+import { fetchPersonaWorld, savePersonaLayout, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
 import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
@@ -14,6 +15,7 @@ import { fetchPersonaEntries, fetchPersonaHistory, worldAt, type PersonaHistory 
 import { fetchPersonaThemes, readThemes, type PersonaThemes } from '../../lib/personaThemes';
 import { rememberPatronus } from '../patronus/patronus';
 import PersonaWorldView from './PersonaWorld';
+import type { ItemId } from './studio';
 import { useStudioDoors, type StudioJackpot } from './useStudioDoors';
 
 // O guia do estúdio e a gaveta de compartilhar só são baixados quando alguém abre.
@@ -49,6 +51,13 @@ const PersonaShareModal = lazy(() => import('../PersonaShareModal'));
 // get_persona_themes, pedidos quando a gaveta abre, para qualquer pessoa; com
 // a barra da Evolução no passado, a conta dos temas é refeita só com os
 // títulos avaliados até aquele ponto (readThemes).
+//
+// 15/11/2026 (tarde), pedido do Bruno ("deixe o usuário posicionar os itens que
+// ele já tem"): no seu estúdio, embaixo da cena, "Arrumar o estúdio". Enquanto
+// a pessoa arruma, a gaveta guarda o arranjo em andamento (`draft`) e a cena o
+// mostra; Salvar grava no banco (set_persona_studio_layout) e avisa quem abriu
+// a gaveta (onLayoutSaved), para o cartão da home ou do perfil acompanhar.
+// Cancelar, ou fechar a gaveta, desfaz.
 
 const GHOST_BUTTON = `inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
 const PRIMARY_BUTTON = `inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-center leading-snug shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`;
@@ -69,9 +78,11 @@ interface PersonaWorldSheetProps {
   username?: string | null;
   // na home: a máquina do Jackpot com tudo o que a porta fazia
   jackpot?: StudioJackpot;
+  // o arranjo do estúdio foi salvo (o cartão de quem abriu a gaveta acompanha)
+  onLayoutSaved?: (layout: Record<string, number>) => void;
 }
 
-const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ownerId, isOwn, ownerName, persona: seed, initialWorld = null, username = null, jackpot }) => {
+const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ownerId, isOwn, ownerName, persona: seed, initialWorld = null, username = null, jackpot, onLayoutSaved }) => {
   const { t } = useTranslation();
   const [world, setWorld] = useState<PersonaWorld | null>(initialWorld);
   const [failed, setFailed] = useState(false);
@@ -144,7 +155,43 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
   const total = story?.history.rows.length ?? 0;
   const at = position === null ? total : Math.min(position, total);
   const travelling = Boolean(story) && at < total;
-  const shownWorld = useMemo(() => (travelling && story && world ? worldAt(story.history, at, world, story.entries) : world), [travelling, story, world, at]);
+
+  // ---- arrumar o estúdio (só no seu, no estúdio de hoje) ----
+  // null = não está arrumando; senão, o arranjo em andamento (objeto → lugar)
+  const [draft, setDraft] = useState<Record<string, number> | null>(null);
+  const [savingLayout, setSavingLayout] = useState(false);
+  const arranging = draft !== null;
+  useEffect(() => {
+    if (!open) setDraft(null);
+  }, [open, ownerId]);
+  const saveLayout = () => {
+    if (!draft || savingLayout) return;
+    setSavingLayout(true);
+    savePersonaLayout(draft)
+      .then((saved) => {
+        setWorld((current) => (current ? { ...current, layout: saved } : current));
+        setDraft(null);
+        onLayoutSaved?.(saved);
+        toast.success(t('studio.arrange.saved'));
+      })
+      .catch((error) => {
+        console.error('Studio layout:', error);
+        toast.error(t('studio.arrange.saveError'));
+      })
+      .finally(() => setSavingLayout(false));
+  };
+  const changeLayout = (next: Partial<Record<ItemId, number>>) =>
+    setDraft((current) => {
+      // o que a pessoa acabou de arrumar vale; um lugar guardado para um objeto que ela ainda não tem sai se alguém o ocupou
+      const used = new Set(Object.values(next));
+      const kept = Object.fromEntries(Object.entries(current ?? {}).filter(([item, place]) => !(item in next) && !used.has(place)));
+      return { ...kept, ...(next as Record<string, number>) };
+    });
+
+  const shownWorld = useMemo(() => {
+    if (world && draft) return { ...world, layout: draft };
+    return travelling && story && world ? worldAt(story.history, at, world, story.entries) : world;
+  }, [travelling, story, world, at, draft]);
 
   // ---- os temas das prateleiras (os potinhos) ----
   const [themes, setThemes] = useState<PersonaThemes | null>(null);
@@ -229,8 +276,24 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
                     }
                   : undefined
               }
+              arrange={
+                isOwn && world && !travelling
+                  ? {
+                      active: arranging,
+                      saving: savingLayout,
+                      onStart: () => {
+                        setPosition(null);
+                        setDraft({ ...world.layout });
+                      },
+                      onChange: changeLayout,
+                      onSave: saveLayout,
+                      onCancel: () => setDraft(null),
+                      onReset: () => setDraft({}),
+                    }
+                  : null
+              }
               evolution={
-                isOwn && rated > 0
+                isOwn && rated > 0 && !arranging
                   ? {
                       total,
                       position: at,

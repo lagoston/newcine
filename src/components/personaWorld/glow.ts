@@ -33,7 +33,7 @@ export interface Glow {
 const cache = new Map<string, Glow>();
 
 // A silhueta de um desenho: 1 onde ele pinta, 0 onde fica vazio.
-const silhouette = (w: number, h: number, draw: (ctx: Ctx) => void): Uint8Array | null => {
+export const silhouette = (w: number, h: number, draw: (ctx: Ctx) => void): Uint8Array | null => {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -76,6 +76,8 @@ export function glowOf(key: string | null, w: number, h: number, draw: (ctx: Ctx
     }
   }
   const glow: Glow = { rings: [Int16Array.from(found[0]), Int16Array.from(found[1]), Int16Array.from(found[2])] };
+  // desde que os objetos mudam de lugar (15/11/2026), cada arranjo tem os seus brilhos: o que foi guardado não cresce sem fim
+  if (key && cache.size > 240) cache.clear();
   if (key) cache.set(key, glow);
   return glow;
 }

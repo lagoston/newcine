@@ -5,7 +5,7 @@ import { PersonaCode } from '../PersonaBits';
 import DoorArrow from '../home/DoorArrow';
 import { MOOD_BY_KEY, MOOD_BY_LETTER, type Mood } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD } from '../../lib/persona';
-import { worldState, type PersonaWorld } from '../../lib/personaWorld';
+import { levelText, worldState, type PersonaWorld } from '../../lib/personaWorld';
 import { FOCUS_RING, MIST, PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
 import { PersonaScene } from './PersonaScene';
 import { RH, RW } from './draw';
@@ -31,7 +31,7 @@ import type { StudioDoors } from './useStudioDoors';
 //     embaixo. No celular a cena fica em 2× e o cartão quase encosta nas
 //     bordas da tela, para ela caber inteira em 360 px;
 //   • computador: a cena à esquerda e, ao lado, quem é a pessoa (o código, o
-//     título, as três prateleiras do código, a bitola) e o botão de abrir. A
+//     título, as três prateleiras do código, o nível do estúdio) e o botão de abrir. A
 //     cena fica em 3× quando a janela tem altura para isso (780 px), senão 2×.
 // Só se toca no que brilha na cena (useStudioDoors); o nome e o botão abrem o
 // modal completo.
@@ -226,16 +226,18 @@ const StudioCard: React.FC<StudioCardProps> = ({ world, failed, onRetry, doors, 
               )
             )}
 
-            {/* a bitola: onde a mariposa está e o que vem depois */}
-            {st && st.stage >= 2 && (
-              <div className="mt-5 max-w-[260px]" role="img" aria-label={st.nextGaugeKey ? `${t(`personaWorld.gauges.${st.gaugeKey}`)}. ${t('personaWorld.plate.gaugeAria', { pct: Math.round(st.gaugeBar * 100), next: t(`personaWorld.gauges.${st.nextGaugeKey}`) })}` : t(`personaWorld.gauges.${st.gaugeKey}`)}>
-                <div className="flex items-baseline justify-between gap-2 text-[13px] leading-none">
-                  <span style={{ ...PIXEL, color: PAPER }}>{t(`personaWorld.gauges.${st.gaugeKey}`)}</span>
-                  {st.nextGaugeKey && <span style={{ ...PIXEL, color: MIST }}>{t(`personaWorld.gauges.${st.nextGaugeKey}`)}</span>}
-                </div>
+            {/* o nível do estúdio: quantos títulos já foram avaliados e quantos o próximo nível pede */}
+            {st && st.level > 0 && (
+              <div className="mt-5 max-w-[260px]" role="img" aria-label={`${levelText(t, st)}. ${st.nextAt ? t('personaWorld.level.count', { rated: st.rated, next: st.nextAt }) : t('personaWorld.level.total', { rated: st.rated })}`}>
+                <p style={{ ...PIXEL, color: PAPER }} className="whitespace-nowrap text-[13px] leading-none">
+                  {levelText(t, st)}
+                </p>
                 <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full" style={{ width: `${st.nextGaugeKey ? Math.max(3, Math.round(st.gaugeBar * 100)) : 100}%`, background: `linear-gradient(90deg, ${tints[0]}, ${tints[2]})` }} />
+                  <div className="h-full rounded-full" style={{ width: `${st.nextAt ? Math.max(3, Math.round(st.levelBar * 100)) : 100}%`, background: `linear-gradient(90deg, ${tints[0]}, ${tints[2]})` }} />
                 </div>
+                <p className="mt-1.5 text-[12px] leading-none tabular-nums" style={{ color: MIST }}>
+                  {st.nextAt ? t('personaWorld.level.toward', { rated: st.rated, next: st.nextAt }) : t('personaWorld.level.total', { rated: st.rated })}
+                </p>
               </div>
             )}
 

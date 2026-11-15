@@ -922,10 +922,7 @@
       "rated": "titles rated",
       "watching": "watching",
       "openShelf": "Ask the Table",
-      "keywordsTitle": "The themes you love most",
-      "keywordsTitleOf": "The themes {{name}} loves most",
       "keywordsInMood": "Best-rated themes in {{mood}}",
-      "keywordsEmpty": "No themes with 3 or more films yet.",
       "keywordsEmptyMood": "No themes with 2 or more films in this mood yet.",
       "keywordTitle": "{{name}}: {{count}} films, average {{avg}}",
       "peopleTitle": "Your cast",
@@ -3009,15 +3006,15 @@
     "marks": {
       "firstWin": {
         "name": "All-in",
-        "rule": "Win your first Pôster Poker tournament."
+        "rule": "Win 5 Pôster Poker tournaments."
       },
       "foxHunter": {
         "name": "Outfoxed",
-        "rule": "Knock out the Fox in a tournament."
+        "rule": "Knock out the Fox in 5 tournaments."
       },
       "cleanSweep": {
         "name": "Clean Sweep",
-        "rule": "Knock out all three oracles in the same tournament."
+        "rule": "Knock out all three oracles in the same tournament, 3 times."
       },
       "oscarBluff": {
         "name": "Poker Face",
@@ -3029,7 +3026,7 @@
       },
       "highStakes": {
         "name": "High Stakes",
-        "rule": "Win a tournament betting a poster from your collection."
+        "rule": "Win 5 tournaments betting a poster from your collection."
       },
       "royalFlush": {
         "name": "Royal Flush",
@@ -3041,7 +3038,7 @@
       },
       "cardShark": {
         "name": "Card Shark",
-        "rule": "Win 10 tournaments."
+        "rule": "Win 20 tournaments."
       }
     },
     "hands": {
@@ -4104,6 +4101,35 @@
       "terrorVia": "Terror Club, as a guest of @{{name}}",
       "posters": "Poster collection",
       "shelves": "Library"
+    },
+    "items": {
+      "slot": "the Jackpot machine",
+      "book": "the guide's bookcase",
+      "table": "the poker table",
+      "terror": "the Terror Club box",
+      "archive": "the Archive box",
+      "armchair": "the armchair",
+      "popcorn": "the popcorn cart",
+      "plant": "the plant",
+      "chair": "the director's chair",
+      "fox": "the fox's bed",
+      "tank": "the snake's tank"
+    },
+    "arrange": {
+      "start": "Arrange the studio",
+      "stepPick": "Tap the object you want to move.",
+      "stepPlace": "You picked up {{item}}. Now tap the place on the floor where it goes. Tapping another object swaps the two.",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "reset": "Back to default",
+      "saved": "Studio arranged.",
+      "saveError": "Couldn't save the arrangement right now. Try again.",
+      "itemPick": "Pick up {{item}}",
+      "itemPicked": "Put {{item}} down",
+      "itemSwap": "Swap places with {{item}}",
+      "placeFree": "Place {{no}}, empty",
+      "placeTaken": "Place {{no}}, taken"
     }
   },
   "personaWorld": {
@@ -4129,23 +4155,11 @@
     "retry": "Try again",
     "untitled": "Rated title",
     "archive": "Archive",
-    "sceneLabel": "The studio of {{code}}: the bookcase with the nine shelves, the screen with the cover of the Persona's film, the last posters won in the Jackpot, the moth in the projector beam and the lounge with the Jackpot machine, the poker table and the studio guide.",
+    "sceneLabel": "The studio of {{code}}: the bookcase with the nine shelves, the screen with the cover of the Persona's film, the last posters won in the Jackpot, the moth in the projector beam and the objects of the room, each in its place.",
     "sceneLabelEmpty": "The studio, still empty, waiting for the Persona.",
     "mothLabel": "The moth up close. Each eye on the wing is a title rated 9 or 10.",
     "larvaLabel": "The caterpillar up close: one segment per shelf title.",
     "eggLabel": "The egg, waiting for the first title.",
-    "gauges": {
-      "egg": "Egg",
-      "larva": "Caterpillar",
-      "g8": "8 mm",
-      "s8": "Super 8",
-      "g16": "16 mm",
-      "s16": "Super 16",
-      "g35": "35 mm",
-      "g70": "70 mm",
-      "imax": "IMAX",
-      "cinerama": "Cinerama"
-    },
     "furniture": {
       "projector": "the projector",
       "armchair": "the armchair",
@@ -4154,19 +4168,15 @@
       "popcorn": "the popcorn cart",
       "curtain": "the screen curtain",
       "bigScreen": "the big screen",
-      "marquee": "the marquee lights"
+      "marquee": "the marquee lights",
+      "plant": "the plant",
+      "chair": "the director's chair"
     },
     "plate": {
       "egg": "An egg waiting for the first title",
       "larva": "A caterpillar: one segment per title",
       "progress": "{{counted}} of {{threshold}} shelf titles",
-      "needShelves": "Titles from 3 different shelves are still missing",
-      "gaugeAria": "{{pct}}% of the way to {{next}}"
-    },
-    "gauge": {
-      "label": "The studio's level",
-      "line": "Wingspan {{g}}. {{left}} to go until {{next}}.",
-      "max": "Wingspan {{g}}. There is no larger gauge."
+      "needShelves": "Titles from 3 different shelves are still missing"
     },
     "pots": {
       "title": "The nine shelves",
@@ -4185,8 +4195,8 @@
       "lead_other": "The studio keeps everything that was rated: {{count}} titles.",
       "lead_zero": "The studio keeps everything that gets rated. No titles yet.",
       "trioRank": "#{{rank}} of the trio",
-      "archive_one": "Archive: {{count}} title from outside the shelves. It also widens the wingspan.",
-      "archive_other": "Archive: {{count}} titles from outside the shelves. They also widen the wingspan."
+      "archive_one": "Archive: {{count}} title from outside the shelves. It also counts toward the studio's level.",
+      "archive_other": "Archive: {{count}} titles from outside the shelves. They also count toward the studio's level."
     },
     "now": {
       "stripAlways": "Always",
@@ -4209,7 +4219,7 @@
     },
     "guide": {
       "title": "Studio guide",
-      "dialogAria": "Studio guide: the evolutions, the objects, the shelves and the 84 personalities",
+      "dialogAria": "Studio guide: the levels, the places and the pets, the objects, the shelves and the 84 personalities",
       "coverOwn": "How your studio grows and everything in it",
       "coverOther": "How {{name}}'s studio grows and everything in it",
       "open": "Open the guide",
@@ -4222,21 +4232,22 @@
       "pageAria": "Page {{no}} of {{total}}: {{title}}",
       "evolutions": {
         "title": "The evolutions",
-        "intro": "The studio grows with your ratings. There are ten steps, from the egg to Cinerama. At each step the moth grows and a new object arrives. The number of titles is the minimum, for those who spread their ratings across every shelf."
+        "intro": "The studio grows with your ratings. First come the egg and the caterpillar; then ten levels. Each level asks for a number of rated titles (films and series, on or off the shelves), and at each level the moth grows and a new object arrives."
       },
       "today": {
         "labelOwn": "Where you are",
         "labelOther": "Where {{name}} is",
         "egg": "Egg. It hatches with the first rated title.",
         "larva": "Caterpillar: {{counted}} of {{threshold}} shelf titles.",
-        "gauge": "{{gauge}}, wingspan {{g}}. {{left}} to go until {{next}}.",
-        "max": "Cinerama, wingspan {{g}}. There is no larger gauge."
+        "max": "Studio level {{level}}: {{rated}} titles rated. It is the highest level.",
+        "level_one": "Studio level {{level}}: {{rated}} titles rated. {{left}} more to reach level {{next}}.",
+        "level_other": "Studio level {{level}}: {{rated}} titles rated. {{left}} more to reach level {{next}}."
       },
       "needs": {
         "egg": "The start, before the first rating.",
         "larva": "Needs 1 rated title.",
         "born": "Needs 10 shelf titles, in at least 3 moods.",
-        "wingspan": "Wingspan {{g}}: {{n}} titles or more."
+        "titles": "Needs {{n}} rated titles."
       },
       "brings": {
         "egg": "The empty studio, with the nine shelves.",
@@ -4248,20 +4259,9 @@
         "past": "Done",
         "hereOwn": "You are here",
         "hereOther": "{{name}} is here",
-        "left": "{{left}} to go",
-        "future": "To come"
-      },
-      "wing": {
-        "title": "The wing's math",
-        "rule": "The wingspan is the sum of the pushes. Each shelf pushes the wing with the square root of the titles it holds: 4 titles push 2, 9 push 3, 100 push 10.",
-        "tip": "That is why the first title on a rarely visited shelf is worth more than the hundredth on a full one.",
-        "ledgerOwn": "Your wing's math",
-        "ledgerOther": "{{name}}'s wing math",
-        "shelf": "Shelf",
-        "titles": "Titles",
-        "push": "Pushes",
-        "archive": "Archive (off the shelves)",
-        "total": "Wingspan"
+        "future": "To come",
+        "left_one": "{{left}} title to go",
+        "left_other": "{{left}} titles to go"
       },
       "objects": {
         "title": "The objects",
@@ -4271,7 +4271,7 @@
         "poker": "The table",
         "pokerWhat": "Leads to Poster Poker. It shows up for those who have poker unlocked.",
         "book": "This guide",
-        "bookWhat": "It sits on the bookcase next to the machine.",
+        "bookWhat": "It sits on top of the wooden bookcase.",
         "terror": "The Terror Club box",
         "terrorWhat": "A cardboard box with a portal inside. It arrives with the Deadly Sleeping tag and leads to the Terror Club.",
         "has": "Already in the studio",
@@ -4308,6 +4308,23 @@
         "range": "{{from}} to {{to}} of {{total}}",
         "loading": "Loading the personalities…",
         "introPlain": "Each combination of three shelves has a character."
+      },
+      "places": {
+        "title": "The places on the floor",
+        "intro": "The floor has places marked with tape, like a film set. Each object lives in a place; the empty ones wait for the next arrivals.",
+        "howOwn": "In Arrange the studio, pick up an object and tap the place it should go to. On a taken place, the two swap. The projector, the lamp and the rug stay where they are.",
+        "howOther": "Everyone arranges their own: in Arrange the studio, you pick up an object and tap the place it should go to. The projector, the lamp and the rug stay where they are."
+      },
+      "pets": {
+        "title": "The pets",
+        "intro": "Each oracle has a pet. It arrives with the tag for {{goal}} rated titles from that oracle's curation.",
+        "frog": "The frog",
+        "frogWhat": "Roams free, hopping around the studio. Tag {{tag}}, from Sapo Bogart.",
+        "fox": "The fox",
+        "foxWhat": "Sleeps in its little bed. Tag {{tag}}, from Raposo Fincher.",
+        "snake": "The snake",
+        "snakeWhat": "Lives in the tank. Tag {{tag}}, from Cobra Cypher.",
+        "progress": "{{count}} of {{goal}} titles"
       }
     },
     "spots": {
@@ -4315,6 +4332,20 @@
       "moth": "See the moth up close",
       "egg": "See the egg up close",
       "larva": "See the caterpillar up close"
+    },
+    "level": {
+      "label": "The studio's level",
+      "name": "Studio level {{n}}",
+      "short": "Level {{n}}",
+      "egg": "Egg",
+      "larva": "Caterpillar",
+      "line_one": "{{rated}} titles rated. {{left}} more to reach level {{next}}, which brings {{item}}.",
+      "line_other": "{{rated}} titles rated. {{left}} more to reach level {{next}}, which brings {{item}}.",
+      "max": "{{rated}} titles rated. This is the studio's highest level.",
+      "aria": "{{pct}}% of the way to level {{next}}",
+      "count": "{{rated}} of {{next}} rated titles for the next level",
+      "toward": "{{rated}} of {{next}} titles",
+      "total": "{{rated}} titles rated"
     }
   }
 }

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import OracleSheet from './OracleSheet';
 import { personaText, type UserPersona } from '../lib/persona';
-import { worldState, type PersonaWorld } from '../lib/personaWorld';
+import { levelText, worldState, type PersonaWorld } from '../lib/personaWorld';
 import { renderStudioStory } from '../lib/studioCard';
 import { NIGHT, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
 import { shareImageFile, downloadImageFile } from '../lib/shareImage';
@@ -60,7 +60,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, world, e
       extras: { jackpot, poker },
       title: text.title,
       subtitle: text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear }),
-      gauge: t(`personaWorld.gauges.${st.gaugeKey}`),
+      gauge: levelText(t, st),
       rated: t('oracle.share.cardRated', { count: world.rated }),
       username,
       cta: t('oracle.share.cardCta'),

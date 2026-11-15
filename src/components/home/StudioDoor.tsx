@@ -157,6 +157,7 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
             initialWorld={world}
             username={username}
             jackpot={sheetJackpot}
+            onLayoutSaved={(layout) => setWorld((current) => (current ? { ...current, layout } : current))}
           />
         </Suspense>
       )}

@@ -30,8 +30,12 @@ import { Heading, Note, TitleThumb } from './bits';
 // Como o modal entrega aqui o estúdio do ponto em que a barra da Evolução está
 // (e os temas daquele ponto), os potinhos voltam no tempo junto com o resto.
 //
-// Sem nenhum potinho escolhido, aparecem os temas de tudo o que a pessoa
-// avaliou (o que no perfil era "Os temas que você mais ama").
+// 15/11/2026 (tarde), correção do Bruno: os temas "só devem aparecer quando a
+// caixinha é clicada. Porque elas já estão aparecendo automaticamente. […] A
+// hora que você clica na caixinha, que expande o modal daquela categoria, que
+// deve aparecer." Sem nenhum potinho escolhido aparecia a lista geral ("Os
+// temas que você mais ama"), rodando sozinha embaixo dos potinhos; ela saiu.
+// Agora, sem potinho escolhido, ficam só os potinhos e o convite para tocar.
 
 // celular: menos etiquetas por vez
 function useCompact() {
@@ -76,7 +80,7 @@ const ShelfPots: React.FC<ShelfPotsProps> = ({ world, st, isOwn, ownerName, them
   const maxShare = Math.max(0.0001, ...MOODS.map((mood) => share(mood.letter)));
 
   // as etiquetas de um tema: chegando, falhou, ou a nuvem
-  const cloud = (words: ThemeReading['all'] | undefined, accent: string, emptyText: string) =>
+  const cloud = (words: ThemeReading['byLetter'][string] | undefined, accent: string, emptyText: string) =>
     themes ? (
       <KeywordCloud words={words ?? []} perGroup={compact ? 4 : 5} accent={accent} emptyText={emptyText} compact={compact} />
     ) : themesFailed ? (
@@ -143,7 +147,7 @@ const ShelfPots: React.FC<ShelfPotsProps> = ({ world, st, isOwn, ownerName, them
         })}
       </ul>
 
-      {mood && selected ? (
+      {mood && selected && (
         // ---------- a prateleira escolhida ----------
         <div className="rounded-2xl p-4" style={{ background: `linear-gradient(180deg, ${withMoodAlpha(mood, 0.08)}, transparent 60%), rgba(255,255,255,0.03)`, boxShadow: `inset 0 0 0 1px ${withMoodAlpha(mood, 0.35)}` }} aria-live="polite">
           <div className="flex items-start justify-between gap-3">
@@ -229,14 +233,6 @@ const ShelfPots: React.FC<ShelfPotsProps> = ({ world, st, isOwn, ownerName, them
             {t('profile.observatory.openShelf')}
             <ArrowUpRight className="w-4 h-4" aria-hidden />
           </Link>
-        </div>
-      ) : (
-        // ---------- nenhuma escolhida: os temas de tudo ----------
-        <div>
-          <p className="text-[12px] font-medium" style={{ color: MIST }}>
-            {isOwn ? t('profile.observatory.keywordsTitle') : t('profile.observatory.keywordsTitleOf', { name: ownerName ?? '' })}
-          </p>
-          <div className="mt-2">{cloud(themes?.all, st.trio[0] ? MOOD_BY_LETTER[st.trio[0]].color : '#8B5CF6', t('profile.observatory.keywordsEmpty'))}</div>
         </div>
       )}
     </section>

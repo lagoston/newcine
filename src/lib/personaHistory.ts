@@ -16,10 +16,10 @@ import { LETTERS, MARGIN, type PersonaWorld, type WorldTitle } from './personaWo
 //   • depois, a prateleira de fora só entra no trio quando abre 10 pontos
 //     sobre a mais fraca dele (a regra dos 10 pontos).
 // Com a lista e essa conta dá para montar o estúdio como ele estava depois de
-// qualquer nota (worldAt): as latas, as asas, os olhos, a bitola, as mudas e
-// os objetos de tag já conquistados naquele
-// dia. Os quadros da parede (os pôsteres do Jackpot) não têm história
-// guardada: ficam os de hoje.
+// qualquer nota (worldAt): as latas, as asas, os olhos, o nível do estúdio, as
+// mudas, os bichinhos e os objetos de tag já conquistados naquele dia. Os
+// quadros da parede (os pôsteres do Jackpot) e o arranjo dos objetos não têm
+// história guardada: ficam os de hoje.
 //
 // 14/11/2026 (noite): a barra deixou de ter botão e de passar sozinha. É a
 // terceira barra do modal (EvolutionBar), e quem move é a pessoa.
@@ -200,5 +200,13 @@ export function worldAt(history: PersonaHistory, k: number, today: PersonaWorld,
     // os objetos de tag que a pessoa já tinha naquele dia (a caixa do Clube do Terror)
     tags: day ? today.tags.filter((tag) => tag.at.slice(0, 10) <= day) : [],
     posters: today.posters,
+    // o arranjo é o de hoje (não há história dele); os bichinhos, só os que já tinham chegado naquela nota
+    layout: today.layout,
+    oracle: today.oracle,
+    pets: {
+      frog: today.pets.frog !== null && today.pets.frog <= rows.length ? today.pets.frog : null,
+      fox: today.pets.fox !== null && today.pets.fox <= rows.length ? today.pets.fox : null,
+      snake: today.pets.snake !== null && today.pets.snake <= rows.length ? today.pets.snake : null,
+    },
   };
 }

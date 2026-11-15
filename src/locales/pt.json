@@ -925,10 +925,7 @@
       "rated": "títulos avaliados",
       "watching": "assistindo",
       "openShelf": "Pedir à Mesa",
-      "keywordsTitle": "Os temas que você mais ama",
-      "keywordsTitleOf": "Os temas que {{name}} mais ama",
       "keywordsInMood": "Temas mais bem avaliados em {{mood}}",
-      "keywordsEmpty": "Ainda não há temas com 3 filmes ou mais.",
       "keywordsEmptyMood": "Ainda não há temas com 2 filmes ou mais neste humor.",
       "keywordTitle": "{{name}}: {{count}} filmes, média {{avg}}",
       "peopleTitle": "Seu elenco",
@@ -3014,15 +3011,15 @@
     "marks": {
       "firstWin": {
         "name": "All-in",
-        "rule": "Vença o seu primeiro torneio do Pôster Poker."
+        "rule": "Vença 5 torneios do Pôster Poker."
       },
       "foxHunter": {
         "name": "Outfoxed",
-        "rule": "Elimine o Raposo num torneio."
+        "rule": "Elimine o Raposo em 5 torneios."
       },
       "cleanSweep": {
         "name": "Clean Sweep",
-        "rule": "Elimine os três oráculos no mesmo torneio."
+        "rule": "Elimine os três oráculos no mesmo torneio, 3 vezes."
       },
       "oscarBluff": {
         "name": "Poker Face",
@@ -3034,7 +3031,7 @@
       },
       "highStakes": {
         "name": "High Stakes",
-        "rule": "Vença um torneio apostando um pôster da sua coleção."
+        "rule": "Vença 5 torneios apostando um pôster da sua coleção."
       },
       "royalFlush": {
         "name": "Royal Flush",
@@ -3046,7 +3043,7 @@
       },
       "cardShark": {
         "name": "Card Shark",
-        "rule": "Vença 10 torneios."
+        "rule": "Vença 20 torneios."
       }
     },
     "hands": {
@@ -4103,6 +4100,35 @@
       "terrorVia": "Clube do Terror, como convidado de @{{name}}",
       "posters": "Coleção de pôsteres",
       "shelves": "Biblioteca"
+    },
+    "items": {
+      "slot": "a máquina do Jackpot",
+      "book": "a estante do guia",
+      "table": "a mesa de pôquer",
+      "terror": "a caixa do Clube do Terror",
+      "archive": "a caixa do Arquivo",
+      "armchair": "a poltrona",
+      "popcorn": "a pipoqueira",
+      "plant": "a planta",
+      "chair": "a cadeira de diretor",
+      "fox": "a caminha da raposa",
+      "tank": "o aquário da cobra"
+    },
+    "arrange": {
+      "start": "Arrumar o estúdio",
+      "stepPick": "Toque no objeto que você quer mudar de lugar.",
+      "stepPlace": "Você pegou {{item}}. Agora toque no lugar do chão para onde vai. Tocar em outro objeto troca os dois de lugar.",
+      "save": "Salvar",
+      "saving": "Salvando…",
+      "cancel": "Cancelar",
+      "reset": "Voltar ao padrão",
+      "saved": "Estúdio arrumado.",
+      "saveError": "Não deu para salvar o arranjo agora. Tente de novo.",
+      "itemPick": "Pegar {{item}}",
+      "itemPicked": "Soltar {{item}}",
+      "itemSwap": "Trocar de lugar com {{item}}",
+      "placeFree": "Lugar {{no}}, vazio",
+      "placeTaken": "Lugar {{no}}, ocupado"
     }
   },
   "personaWorld": {
@@ -4128,23 +4154,11 @@
     "retry": "Tentar de novo",
     "untitled": "Título avaliado",
     "archive": "Arquivo",
-    "sceneLabel": "O estúdio de {{code}}: a estante com as nove prateleiras, a tela com a capa do filme da Persona, os últimos pôsteres ganhos no Jackpot, a mariposa no facho do projetor e a sala de estar com a máquina do Jackpot, a mesa de pôquer e o guia do estúdio.",
+    "sceneLabel": "O estúdio de {{code}}: a estante com as nove prateleiras, a tela com a capa do filme da Persona, os últimos pôsteres ganhos no Jackpot, a mariposa no facho do projetor e os objetos da sala, cada um no seu lugar.",
     "sceneLabelEmpty": "O estúdio ainda vazio, à espera da Persona.",
     "mothLabel": "A mariposa de perto. Cada olho na asa é um título com nota 9 ou 10.",
     "larvaLabel": "A lagarta de perto: um gomo por título das prateleiras.",
     "eggLabel": "O ovo, à espera do primeiro título.",
-    "gauges": {
-      "egg": "Ovo",
-      "larva": "Lagarta",
-      "g8": "8 mm",
-      "s8": "Super 8",
-      "g16": "16 mm",
-      "s16": "Super 16",
-      "g35": "35 mm",
-      "g70": "70 mm",
-      "imax": "IMAX",
-      "cinerama": "Cinerama"
-    },
     "furniture": {
       "projector": "o projetor",
       "armchair": "a poltrona",
@@ -4153,19 +4167,15 @@
       "popcorn": "a pipoqueira",
       "curtain": "a cortina da tela",
       "bigScreen": "a tela grande",
-      "marquee": "o letreiro de lâmpadas"
+      "marquee": "o letreiro de lâmpadas",
+      "plant": "a planta",
+      "chair": "a cadeira de diretor"
     },
     "plate": {
       "egg": "Um ovo à espera do primeiro título",
       "larva": "Uma lagarta: um gomo por título",
       "progress": "{{counted}} de {{threshold}} títulos das prateleiras",
-      "needShelves": "Faltam títulos de 3 prateleiras diferentes",
-      "gaugeAria": "{{pct}}% do caminho até {{next}}"
-    },
-    "gauge": {
-      "label": "O nível do estúdio",
-      "line": "Envergadura {{g}}. Faltam {{left}} para {{next}}.",
-      "max": "Envergadura {{g}}. Não há bitola maior."
+      "needShelves": "Faltam títulos de 3 prateleiras diferentes"
     },
     "pots": {
       "title": "As nove prateleiras",
@@ -4184,8 +4194,8 @@
       "lead_other": "O estúdio guarda tudo o que foi avaliado: {{count}} títulos.",
       "lead_zero": "O estúdio guarda tudo o que for avaliado. Ainda não há nenhum título.",
       "trioRank": "{{rank}}ª do trio",
-      "archive_one": "Arquivo: {{count}} título de fora das prateleiras. Também aumenta a envergadura.",
-      "archive_other": "Arquivo: {{count}} títulos de fora das prateleiras. Também aumentam a envergadura."
+      "archive_one": "Arquivo: {{count}} título de fora das prateleiras. Também conta para o nível do estúdio.",
+      "archive_other": "Arquivo: {{count}} títulos de fora das prateleiras. Também contam para o nível do estúdio."
     },
     "now": {
       "stripAlways": "Sempre",
@@ -4208,7 +4218,7 @@
     },
     "guide": {
       "title": "Guia do estúdio",
-      "dialogAria": "Guia do estúdio: as evoluções, os objetos, as prateleiras e as 84 personalidades",
+      "dialogAria": "Guia do estúdio: os níveis, os lugares e os bichinhos, os objetos, as prateleiras e as 84 personalidades",
       "coverOwn": "Como o seu estúdio cresce e tudo o que há nele",
       "coverOther": "Como o estúdio de {{name}} cresce e tudo o que há nele",
       "open": "Abrir o guia",
@@ -4221,21 +4231,22 @@
       "pageAria": "Página {{no}} de {{total}}: {{title}}",
       "evolutions": {
         "title": "As evoluções",
-        "intro": "O estúdio cresce com as notas. São dez passos, do ovo ao Cinerama. A cada passo a mariposa cresce e chega um objeto novo. O número de títulos é o mínimo, para quem espalha as notas por todas as prateleiras."
+        "intro": "O estúdio cresce com as notas. Primeiro vêm o ovo e a lagarta; depois, dez níveis. Cada nível pede um número de títulos avaliados (filmes e séries, de dentro ou de fora das prateleiras), e a cada nível a mariposa cresce e chega um objeto novo."
       },
       "today": {
         "labelOwn": "Onde você está",
         "labelOther": "Onde {{name}} está",
         "egg": "Ovo. Ele choca com o primeiro título avaliado.",
         "larva": "Lagarta: {{counted}} de {{threshold}} títulos das prateleiras.",
-        "gauge": "{{gauge}}, envergadura {{g}}. Faltam {{left}} para {{next}}.",
-        "max": "Cinerama, envergadura {{g}}. Não há bitola maior."
+        "max": "Estúdio nível {{level}}: {{rated}} títulos avaliados. É o nível mais alto.",
+        "level_one": "Estúdio nível {{level}}: {{rated}} títulos avaliados. Falta {{left}} para o nível {{next}}.",
+        "level_other": "Estúdio nível {{level}}: {{rated}} títulos avaliados. Faltam {{left}} para o nível {{next}}."
       },
       "needs": {
         "egg": "O começo, antes da primeira nota.",
         "larva": "Pede 1 título avaliado.",
         "born": "Pede 10 títulos das prateleiras, em pelo menos 3 humores.",
-        "wingspan": "Envergadura {{g}}: {{n}} títulos ou mais."
+        "titles": "Pede {{n}} títulos avaliados."
       },
       "brings": {
         "egg": "O estúdio vazio, com as nove prateleiras.",
@@ -4247,20 +4258,9 @@
         "past": "Feito",
         "hereOwn": "Você está aqui",
         "hereOther": "{{name}} está aqui",
-        "left": "Faltam {{left}}",
-        "future": "Por vir"
-      },
-      "wing": {
-        "title": "A conta da asa",
-        "rule": "A envergadura é a soma dos empurrões. Cada prateleira empurra a asa com a raiz quadrada dos títulos que guarda: 4 títulos empurram 2, 9 empurram 3, 100 empurram 10.",
-        "tip": "Por isso o primeiro título de uma prateleira pouco visitada vale mais do que o centésimo de uma prateleira cheia.",
-        "ledgerOwn": "A conta da sua asa",
-        "ledgerOther": "A conta da asa de {{name}}",
-        "shelf": "Prateleira",
-        "titles": "Títulos",
-        "push": "Empurra",
-        "archive": "Arquivo (fora das prateleiras)",
-        "total": "Envergadura"
+        "future": "Por vir",
+        "left_one": "Falta {{left}} título",
+        "left_other": "Faltam {{left}} títulos"
       },
       "objects": {
         "title": "Os objetos",
@@ -4270,7 +4270,7 @@
         "poker": "A mesa",
         "pokerWhat": "Leva ao Pôster Poker. Aparece para quem tem o pôquer liberado.",
         "book": "Este guia",
-        "bookWhat": "Fica na estante ao lado da máquina.",
+        "bookWhat": "Fica em cima da estante de madeira.",
         "terror": "A caixa do Clube do Terror",
         "terrorWhat": "Uma caixa de papelão com um portal dentro. Chega com a tag Deadly Sleeping e leva ao Clube do Terror.",
         "has": "Já está no estúdio",
@@ -4307,6 +4307,23 @@
         "range": "{{from}} a {{to}} de {{total}}",
         "loading": "Buscando as personalidades…",
         "introPlain": "Cada combinação de três prateleiras tem um personagem."
+      },
+      "places": {
+        "title": "Os lugares do chão",
+        "intro": "O chão tem lugares marcados com fita, como num set de filmagem. Cada objeto mora num lugar; os vazios esperam os próximos.",
+        "howOwn": "Em Arrumar o estúdio, pegue um objeto e toque no lugar para onde ele vai. Num lugar ocupado, os dois trocam. O projetor, o abajur e o tapete não saem do lugar.",
+        "howOther": "Cada pessoa arruma o seu: em Arrumar o estúdio, pega um objeto e toca no lugar para onde ele vai. O projetor, o abajur e o tapete não saem do lugar."
+      },
+      "pets": {
+        "title": "Os bichinhos",
+        "intro": "Cada oráculo tem um bichinho. Ele chega com a tag de {{goal}} títulos avaliados da curadoria do oráculo.",
+        "frog": "O sapo",
+        "frogWhat": "Anda solto, pulando pelo estúdio. Tag {{tag}}, do Sapo Bogart.",
+        "fox": "A raposa",
+        "foxWhat": "Dorme na caminha dela. Tag {{tag}}, do Raposo Fincher.",
+        "snake": "A cobra",
+        "snakeWhat": "Mora no aquário. Tag {{tag}}, da Cobra Cypher.",
+        "progress": "{{count}} de {{goal}} títulos"
       }
     },
     "spots": {
@@ -4314,6 +4331,20 @@
       "moth": "Ver a mariposa de perto",
       "egg": "Ver o ovo de perto",
       "larva": "Ver a lagarta de perto"
+    },
+    "level": {
+      "label": "O nível do estúdio",
+      "name": "Estúdio nível {{n}}",
+      "short": "Nível {{n}}",
+      "egg": "Ovo",
+      "larva": "Lagarta",
+      "line_one": "{{rated}} títulos avaliados. Falta {{left}} para o nível {{next}}, que traz {{item}}.",
+      "line_other": "{{rated}} títulos avaliados. Faltam {{left}} para o nível {{next}}, que traz {{item}}.",
+      "max": "{{rated}} títulos avaliados. Este é o nível mais alto do estúdio.",
+      "aria": "{{pct}}% do caminho até o nível {{next}}",
+      "count": "{{rated}} de {{next}} títulos avaliados para o próximo nível",
+      "toward": "{{rated}} de {{next}} títulos",
+      "total": "{{rated}} títulos avaliados"
     }
   }
 }

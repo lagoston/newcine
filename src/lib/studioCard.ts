@@ -15,10 +15,11 @@ import type { StudioExtras } from '../components/personaWorld/studio';
 // que hoje são a Persona.
 //
 // Agora o story é o que a pessoa vê quando abre a gaveta, na mesma ordem:
-//   • o estúdio dela, inteiro (a bitola em que está, as latas nas prateleiras,
+//   • o estúdio dela, inteiro (o nível em que está, as latas nas prateleiras,
 //     os quadros do Jackpot, a máquina e a mesa), em pixels grandes;
 //   • a mariposa dela, de perto, ao lado do código, do título e do personagem;
-//   • a bitola e quantos títulos o estúdio guarda;
+//   • o nível do estúdio e quantos títulos ele guarda (desde 15/11/2026 é
+//     "Estúdio nível N"; antes era a bitola, "Super 16" etc.);
 //   • o @ e o convite, com o olho da marca.
 //
 // O estúdio e a mariposa são desenhados pelas mesmas funções da cena viva
@@ -40,8 +41,8 @@ const URL_COLOR = '#F0ABFC';
 // a cena: 180 × 158 pixels, ampliada 5×
 const SCENE_K = 5;
 // a mariposa de perto: desenhada no mesmo quadro da gaveta (96 × 84) e
-// ampliada o máximo que couber nesta caixa (a mariposa de 8 mm é bem menor
-// que a de Cinerama; no story as duas ocupam mais ou menos o mesmo espaço)
+// ampliada o máximo que couber nesta caixa (a mariposa do nível 1 é bem menor
+// que a do nível 10; no story as duas ocupam mais ou menos o mesmo espaço)
 const MOTH = { w: 96, h: 84, maxW: 360, maxH: 300 };
 
 // a parte do canvas que tem desenho
@@ -71,7 +72,7 @@ export interface StudioCardInput {
   // "Ouvinte das Estrelas" e "Ellie Arroway, em Contato (1997)"
   title: string;
   subtitle: string;
-  // "Super 16" e "266 títulos avaliados"
+  // "Estúdio nível 4" e "266 títulos avaliados"
   gauge: string;
   rated: string;
   username?: string | null;
@@ -213,7 +214,7 @@ export async function drawStudioCard(input: StudioCardInput): Promise<HTMLCanvas
   ctx.fillStyle = MIST;
   subLines.forEach((line, index) => ctx.fillText(line, textX, ty + 19 + index * 38));
 
-  // ---- a bitola e quantos títulos o estúdio guarda ----
+  // ---- o nível do estúdio e quantos títulos ele guarda ----
   ctx.font = `44px ${PIXEL_FONT_STACK}`;
   const gaugeW = ctx.measureText(input.gauge).width + 44;
   ctx.font = `500 34px ${SANS_STACK}`;

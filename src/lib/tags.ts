@@ -303,29 +303,41 @@ export interface GameTag {
   goal?: number;
 }
 
+// 15/11/2026 (tarde), pedido do Bruno: "As tags vermelhas, elas estão muito
+// fáceis de ganhar. Eu praticamente já ganhei todas só testando os jogos […]
+// elas têm que ser no nível de dificuldade de ganhar igual todas as outras
+// categorias […] manter os emojis, porém os nomes mudar ou aumentar a
+// dificuldade". Os nomes e os emojis ficaram; subiram as metas (migração
+// 20261115191000_game_tags_harder.sql, com a conta de cada uma): Gambler 10 →
+// 50 giros, High Roller 100 → 200, Lucky Charm 1 → 10 Giros da Sorte, Jackpot
+// 1 → 10 lendários, Shiny Hunter 10 → 20, Croupier 10 → 25 trocas, Curator 50
+// → 100 pôsteres, Black Market 1 → 5 contratos, Alchemist 1 → 3; All-in 1 → 5
+// vitórias, Outfoxed 1 → 5 torneios, Clean Sweep 1 → 3, High Stakes 1 → 5,
+// Card Shark 10 → 20. Poker Face, Seven Nights, Royal Flush e Full House não
+// mudaram.
 export const GAME_TAGS: GameTag[] = [
-  { id: 'jackpot-gambler', game: 'jackpot', name: 'Gambler', emoji: '🎰', requirement: 'Spin the Poster Jackpot wheel 10 times (with a regular or special chip)', requirementPt: 'Dê 10 giros na roleta do Poster Jackpot (com ficha comum ou especial)', metric: 'spins', goal: 10 },
-  { id: 'jackpot-high-roller', game: 'jackpot', name: 'High Roller', emoji: '💸', requirement: 'Spin the wheel 100 times (with a regular or special chip)', requirementPt: 'Dê 100 giros na roleta (com ficha comum ou especial)', metric: 'spins', goal: 100 },
-  { id: 'jackpot-lucky-charm', game: 'jackpot', name: 'Lucky Charm', emoji: '🍀', requirement: 'Use your first Lucky Spin', requirementPt: 'Use o seu primeiro Giro da Sorte', metric: 'lucky_spins', goal: 1 },
-  { id: 'jackpot-jackpot', game: 'jackpot', name: 'Jackpot', emoji: '💰', requirement: 'Pull your first legendary poster', requirementPt: 'Tire o seu primeiro pôster lendário', metric: 'legendary_pulls', goal: 1 },
-  { id: 'jackpot-shiny-hunter', game: 'jackpot', name: 'Shiny Hunter', emoji: '🌈', requirement: 'Have 10 posters with an effect', requirementPt: 'Tenha 10 pôsteres com efeito', metric: 'effect_posters', goal: 10 },
-  { id: 'jackpot-croupier', game: 'jackpot', name: 'Croupier', emoji: '🤝', requirement: 'Make 10 poster trades with friends', requirementPt: 'Faça 10 trocas de pôster com amigos', metric: 'trades', goal: 10 },
-  { id: 'jackpot-curator', game: 'jackpot', name: 'Curator', emoji: '🗃️', requirement: 'Have 50 posters in your collection', requirementPt: 'Tenha 50 pôsteres na coleção', metric: 'posters', goal: 50 },
+  { id: 'jackpot-gambler', game: 'jackpot', name: 'Gambler', emoji: '🎰', requirement: 'Spin the Poster Jackpot wheel 50 times (with a regular or special chip)', requirementPt: 'Dê 50 giros na roleta do Poster Jackpot (com ficha comum ou especial)', metric: 'spins', goal: 50 },
+  { id: 'jackpot-high-roller', game: 'jackpot', name: 'High Roller', emoji: '💸', requirement: 'Spin the wheel 200 times (with a regular or special chip)', requirementPt: 'Dê 200 giros na roleta (com ficha comum ou especial)', metric: 'spins', goal: 200 },
+  { id: 'jackpot-lucky-charm', game: 'jackpot', name: 'Lucky Charm', emoji: '🍀', requirement: 'Use 10 Lucky Spins', requirementPt: 'Use 10 Giros da Sorte', metric: 'lucky_spins', goal: 10 },
+  { id: 'jackpot-jackpot', game: 'jackpot', name: 'Jackpot', emoji: '💰', requirement: 'Pull 10 legendary posters on the wheel', requirementPt: 'Tire 10 pôsteres lendários na roleta', metric: 'legendary_pulls', goal: 10 },
+  { id: 'jackpot-shiny-hunter', game: 'jackpot', name: 'Shiny Hunter', emoji: '🌈', requirement: 'Have 20 posters with an effect', requirementPt: 'Tenha 20 pôsteres com efeito', metric: 'effect_posters', goal: 20 },
+  { id: 'jackpot-croupier', game: 'jackpot', name: 'Croupier', emoji: '🤝', requirement: 'Make 25 poster trades with friends', requirementPt: 'Faça 25 trocas de pôster com amigos', metric: 'trades', goal: 25 },
+  { id: 'jackpot-curator', game: 'jackpot', name: 'Curator', emoji: '🗃️', requirement: 'Have 100 posters in your collection', requirementPt: 'Tenha 100 pôsteres na coleção', metric: 'posters', goal: 100 },
   // 04/11/2026: as duas do Mercado Negro da Cobra (o contrato do Poster
   // Jackpot). Mesmos ids, nomes e textos das linhas de special_tags
   // (migração 20261104090000_jackpot_contracts.sql).
-  { id: 'jackpot-black-market', game: 'jackpot', name: 'Black Market', emoji: '🕶️', requirement: "Close a contract at the Cobra's Black Market (in the Poster Jackpot)", requirementPt: 'Feche um contrato no Mercado Negro da Cobra (no Poster Jackpot)', metric: 'contracts', goal: 1 },
-  { id: 'jackpot-alchemist', game: 'jackpot', name: 'Alchemist', emoji: '⚗️', requirement: 'Forge a legendary poster in a Black Market contract', requirementPt: 'Consiga um pôster lendário num contrato do Mercado Negro', metric: 'contract_legendaries', goal: 1 },
+  { id: 'jackpot-black-market', game: 'jackpot', name: 'Black Market', emoji: '🕶️', requirement: "Close 5 contracts at the Cobra's Black Market (in the Poster Jackpot)", requirementPt: 'Feche 5 contratos no Mercado Negro da Cobra (no Poster Jackpot)', metric: 'contracts', goal: 5 },
+  { id: 'jackpot-alchemist', game: 'jackpot', name: 'Alchemist', emoji: '⚗️', requirement: 'Forge 3 legendary posters in Black Market contracts', requirementPt: 'Consiga 3 pôsteres lendários em contratos do Mercado Negro', metric: 'contract_legendaries', goal: 3 },
 
-  { id: 'poker-first-win', game: 'poker', name: 'All-in', emoji: '♠️', requirement: 'Win your first Poster Poker tournament', requirementPt: 'Vença o seu primeiro torneio do Pôster Poker', metric: 'poker_wins', goal: 1 },
-  { id: 'poker-fox-hunter', game: 'poker', name: 'Outfoxed', emoji: '🎯', requirement: 'Knock out the Fox in a tournament', requirementPt: 'Elimine o Raposo num torneio' },
-  { id: 'poker-clean-sweep', game: 'poker', name: 'Clean Sweep', emoji: '🧹', requirement: 'Knock out all three oracles in the same tournament', requirementPt: 'Elimine os três oráculos no mesmo torneio' },
+  { id: 'poker-first-win', game: 'poker', name: 'All-in', emoji: '♠️', requirement: 'Win 5 Poster Poker tournaments', requirementPt: 'Vença 5 torneios do Pôster Poker', metric: 'poker_wins', goal: 5 },
+  { id: 'poker-fox-hunter', game: 'poker', name: 'Outfoxed', emoji: '🎯', requirement: 'Knock out the Fox in 5 tournaments', requirementPt: 'Elimine o Raposo em 5 torneios', metric: 'poker_fox', goal: 5 },
+  { id: 'poker-clean-sweep', game: 'poker', name: 'Clean Sweep', emoji: '🧹', requirement: 'Knock out all three oracles in the same tournament, 3 times', requirementPt: 'Elimine os três oráculos no mesmo torneio, 3 vezes', metric: 'poker_sweeps', goal: 3 },
   { id: 'poker-oscar-bluff', game: 'poker', name: 'Poker Face', emoji: '😐', requirement: 'Win a pot of 20+ big blinds without showdown when an opponent who folded had the better hand', requirementPt: 'Leve um pote de 20 BB ou mais sem showdown quando um oponente que desistiu tinha mão melhor' },
   { id: 'poker-seven-nights', game: 'poker', name: 'Seven Nights', emoji: '🌙', requirement: 'Play a tournament on 7 days in a row (Brasília time)', requirementPt: 'Jogue torneio 7 dias seguidos (dia de Brasília)' },
-  { id: 'poker-high-stakes', game: 'poker', name: 'High Stakes', emoji: '💎', requirement: 'Win a tournament with a poster from your collection as the stake', requirementPt: 'Vença um torneio apostando um pôster da sua coleção' },
+  { id: 'poker-high-stakes', game: 'poker', name: 'High Stakes', emoji: '💎', requirement: 'Win 5 tournaments with a poster from your collection as the stake', requirementPt: 'Vença 5 torneios apostando um pôster da sua coleção', metric: 'poker_stake_wins', goal: 5 },
   { id: 'poker-royal-flush', game: 'poker', name: 'Royal Flush', emoji: '⚜️', requirement: 'Win a legendary tournament', requirementPt: 'Vença um torneio lendário' },
   { id: 'poker-full-house', game: 'poker', name: 'Full House', emoji: '🖼️', requirement: 'Own all 9 Poster Poker posters', requirementPt: 'Tenha os 9 pôsteres do Pôster Poker', metric: 'poker_posters', goal: 9 },
-  { id: 'poker-card-shark', game: 'poker', name: 'Card Shark', emoji: '🦈', requirement: 'Win 10 tournaments', requirementPt: 'Vença 10 torneios', metric: 'poker_wins', goal: 10 },
+  { id: 'poker-card-shark', game: 'poker', name: 'Card Shark', emoji: '🦈', requirement: 'Win 20 tournaments', requirementPt: 'Vença 20 torneios', metric: 'poker_wins', goal: 20 },
 ];
 
 export const FRANCHISE_MOVIES = {

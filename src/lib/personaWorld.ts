@@ -23,40 +23,55 @@ import { parseUserPersona, type UserPersona } from './persona';
 //   • Forma vizinha: a Persona em que ela viraria se a prateleira de fora mais
 //     forte entrasse. Três graus: longe, perto (está a até 10 pontos de
 //     empatar) e quase (já passou, mas sem os 10 de vantagem: é o casulo).
-//   • Envergadura: G = Σ √n nos dez baldes (as 9 prateleiras e o Arquivo, os
-//     títulos de fora). Todo título avaliado aumenta; o primeiro de uma
-//     prateleira vale 1 inteiro, o 50º vale 0,07. G² = títulos × prateleiras
-//     vivas, isto é, volume × variedade. O valor da nota não entra (senão a
-//     conta empurraria a inflar notas).
-//   • Bitola: a envergadura em formatos de película, de 8 mm a Cinerama. Cada
-//     bitola traz um móvel para a cabine.
+//   • Nível do estúdio: quantos títulos a pessoa avaliou, em degraus com
+//     número certo (LEVEL_AT). Cada nível traz um móvel e a mariposa cresce.
 //   • Fase: os últimos 30 títulos de prateleira contra o todo. É o que as asas
 //     vestem. Só vale a partir de 45 títulos de prateleira (antes disso a
 //     janela é quase a história inteira).
 //
-// Os limiares (10 pontos, 30 títulos, 45, as bitolas) foram calibrados nas
-// contas reais de 13/11/2026 (20 com Persona); reajustar com mais gente.
+// Os limiares (10 pontos, 30 títulos, 45) foram calibrados nas contas reais de
+// 13/11/2026 (20 com Persona); reajustar com mais gente.
+//
+// 15/11/2026 (tarde), correção do Bruno: "não aquele troço de envergadura, não
+// dá nem para entender o que é aquilo. Tem que ser número real, tipo tanto
+// filme: 250, pum, já sobe para outra categoria. E vamos mudar esse nome 8
+// milímetros, 35 milímetros […] ninguém entende. Tem que ser estúdio nível 1,
+// estúdio nível 2." E: "deixe mais difícil a gamificação do próprio estúdio".
+//   • Saíram a envergadura (G = Σ √n nos dez baldes) e as bitolas (de 8 mm a
+//     Cinerama). O estúdio agora tem níveis de 1 a 10, pelo número de títulos
+//     avaliados (filmes e séries, de dentro e de fora das prateleiras).
+//   • Ficou mais difícil. Com a envergadura, quem espalhava as notas chegava
+//     ao 4º degrau (Super 16) com uns 100 títulos e ao 5º (35 mm) com 250;
+//     agora o nível 4 pede 200 e o 5, 350. Em 15/11 a conta com mais títulos
+//     (267) está no nível 4, e mais da metade das contas com Persona, no 1 ou
+//     no 2.
 
 export const PHASE_WINDOW = 30;
 export const PHASE_MIN = 45;
 export const PHASE_DISTINCT = 0.25;
 export const MARGIN = 10;
 
-// A bitola de cada estágio. 0 = ovo, 1 = lagarta; a partir de 2, a mariposa.
-export const GAUGES: { minG: number; key: string }[] = [
-  { minG: -1, key: 'egg' },
-  { minG: -1, key: 'larva' },
-  { minG: 0, key: 'g8' },
-  { minG: 12, key: 's8' },
-  { minG: 20, key: 'g16' },
-  { minG: 32, key: 's16' },
-  { minG: 50, key: 'g35' },
-  { minG: 80, key: 'g70' },
-  { minG: 125, key: 'imax' },
-  { minG: 200, key: 'cinerama' },
-];
-// O móvel que chega com cada bitola (chave de texto em personaWorld.furniture).
-export const FURNITURE: Record<number, string> = { 2: 'projector', 3: 'armchair', 4: 'rug', 5: 'lamp', 6: 'popcorn', 7: 'curtain', 8: 'bigScreen', 9: 'marquee' };
+// Os níveis do estúdio. O nível 1 chega com a Persona (10 títulos das
+// prateleiras, em 3 humores); do 2 em diante, LEVEL_AT[nível] é o número de
+// títulos avaliados que o nível pede.
+export const MAX_LEVEL = 10;
+export const LEVEL_AT: number[] = [0, 0, 50, 100, 200, 350, 500, 750, 1000, 1500, 2000];
+// O móvel que chega com cada nível (chave de texto em personaWorld.furniture).
+export const FURNITURE: Record<number, string> = { 1: 'projector', 2: 'armchair', 3: 'rug', 4: 'lamp', 5: 'popcorn', 6: 'plant', 7: 'curtain', 8: 'chair', 9: 'bigScreen', 10: 'marquee' };
+// O estágio da cena: 0 = ovo, 1 = lagarta; a partir de 2, a mariposa (nível + 1).
+export const stageOfLevel = (level: number): number => level + 1;
+
+// Os bichinhos do estúdio (15/11/2026, tarde). Pedido do Bruno: "as tags de 200
+// filmes dos três oráculos […] devem desbloquear um animalzinho de estimação
+// para o estúdio. O sapo vai liberar um sapinho de pixel que vai ficar pulando
+// ao redor do estúdio. A raposa vai liberar uma raposinha com a caminha dela.
+// E a cobra vai liberar aquele aquário que a gente tinha excluído. Agora ele
+// vai ter utilidade, vai ter a cobra dentro dele."
+// As tags são a Quick Tongue (🐸), a Keen Sense (🦊) e a Underworld King (🐍):
+// 200 títulos avaliados da curadoria de cada oráculo.
+export const PET_GOAL = 200;
+export type PetId = 'frog' | 'fox' | 'snake';
+export const PET_ORACLE: Record<PetId, 'bogart' | 'fincher' | 'cypher'> = { frog: 'bogart', fox: 'fincher', snake: 'cypher' };
 
 export const LETTERS: string[] = MOODS.map((m) => m.letter);
 
@@ -108,6 +123,15 @@ export interface PersonaWorld {
   // Jackpot, do mais novo ao mais antigo. São os quadros da parede do estúdio
   // (antes eram os títulos de nota 10). Sem nenhum, a parede fica vazia.
   posters: WorldPoster[];
+  // 15/11/2026 (tarde): em que lugar do chão a pessoa pôs cada objeto (o nome
+  // do objeto → o número do lugar; studio.ts). O que não está aqui fica no
+  // lugar de costume.
+  layout: Record<string, number>;
+  // quantos títulos da curadoria de cada oráculo a pessoa avaliou
+  oracle: { bogart: number; fincher: number; cypher: number };
+  // os bichinhos: em que nota (a contagem de títulos avaliados) cada um
+  // chegou, isto é, a 200ª da curadoria do oráculo dele (null = ainda não)
+  pets: Record<PetId, number | null>;
 }
 
 export type Neighbor = 'far' | 'near' | 'cocoon';
@@ -130,13 +154,14 @@ export interface WorldState {
   gap: number;
   nextCode: string | null;
   neighbor: Neighbor;
-  // envergadura e bitola
-  G: number;
-  shelvesAlive: number;
+  // o estágio da cena (0 = ovo, 1 = lagarta, nível + 1 depois) e o nível do estúdio (0 = sem Persona)
   stage: number;
-  gaugeKey: string;
-  nextGaugeKey: string | null;
-  gaugeBar: number;
+  level: number;
+  // quantos títulos o próximo nível pede (null = não há próximo) e quantos faltam
+  nextAt: number | null;
+  toNext: number;
+  // o caminho até o próximo nível, de 0 a 1 (antes da Persona: até os 10 títulos das prateleiras)
+  levelBar: number;
   // fase
   essence: Record<string, number>;
   now: Record<string, number>;
@@ -167,6 +192,17 @@ const parseTitle = (raw: unknown): WorldTitle | null => {
 };
 const parseTitles = (raw: unknown): WorldTitle[] => (Array.isArray(raw) ? raw.map(parseTitle).filter((x): x is WorldTitle => Boolean(x)) : []);
 
+// O arranjo salvo: { v: 1, at: { slot: 4, fox: 7 } }. Só entram números inteiros de lugar.
+export function parseLayout(raw: unknown): Record<string, number> {
+  const at = raw && typeof raw === 'object' ? (raw as Row).at : null;
+  const out: Record<string, number> = {};
+  if (!at || typeof at !== 'object') return out;
+  Object.entries(at as Row).forEach(([item, place]) => {
+    if (typeof place === 'number' && Number.isInteger(place) && place >= 0) out[item] = place;
+  });
+  return out;
+}
+
 export function parsePersonaWorld(data: unknown): PersonaWorld | null {
   if (!data || typeof data !== 'object') return null;
   const raw = data as Row;
@@ -182,6 +218,9 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
       if (MOOD_BY_LETTER[letter]) best[letter] = parseTitles(list);
     });
   }
+  const oracle = (raw.oracle && typeof raw.oracle === 'object' ? raw.oracle : {}) as Row;
+  const pets = (raw.pets && typeof raw.pets === 'object' ? raw.pets : {}) as Row;
+  const petAt = (value: unknown): number | null => (typeof value === 'number' && value > 0 ? value : null);
   return {
     persona: parseUserPersona(raw.persona),
     rated: num(raw.rated),
@@ -216,7 +255,17 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
           .filter((poster): poster is WorldPoster => Boolean(poster))
           .slice(0, 4)
       : [],
+    layout: parseLayout(raw.layout),
+    oracle: { bogart: num(oracle.bogart), fincher: num(oracle.fincher), cypher: num(oracle.cypher) },
+    pets: { frog: petAt(pets.frog), fox: petAt(pets.fox), snake: petAt(pets.snake) },
   };
+}
+
+// Grava o arranjo do próprio estúdio e devolve o que ficou guardado.
+export async function savePersonaLayout(at: Record<string, number>): Promise<Record<string, number>> {
+  const { data, error } = await supabase.rpc('set_persona_studio_layout', { p_layout: { v: 1, at } });
+  if (error) throw error;
+  return parseLayout(data);
 }
 
 // A cena de alguém (a sua, ou a de um perfil que você pode ver).
@@ -267,27 +316,15 @@ export function worldState(world: PersonaWorld): WorldState {
     }
   }
 
-  let G = Math.sqrt(world.out);
-  LETTERS.forEach((l) => {
-    G += Math.sqrt(films[l]);
-  });
-  const total = world.counted + world.out;
-  let stage = total > 0 ? 1 : 0;
+  // o nível: com a Persona, o maior degrau que os títulos avaliados já alcançaram
+  let level = 0;
   if (hasTrio) {
-    stage = 2;
-    for (let s = 3; s < GAUGES.length; s += 1) if (G >= GAUGES[s].minG) stage = s;
+    level = 1;
+    for (let l = 2; l <= MAX_LEVEL; l += 1) if (world.rated >= LEVEL_AT[l]) level = l;
   }
-  let nextGaugeKey: string | null = null;
-  let gaugeBar = 0;
-  if (stage >= 2 && stage < GAUGES.length - 1) {
-    const lo = Math.max(GAUGES[stage].minG, 0);
-    const hi = GAUGES[stage + 1].minG;
-    nextGaugeKey = GAUGES[stage + 1].key;
-    gaugeBar = Math.max(0, Math.min(1, (G - lo) / (hi - lo)));
-  } else if (stage < 2) {
-    nextGaugeKey = GAUGES[2].key;
-    gaugeBar = Math.max(0, Math.min(1, world.counted / 10));
-  }
+  const stage = hasTrio ? stageOfLevel(level) : world.rated > 0 ? 1 : 0;
+  const nextAt = level > 0 && level < MAX_LEVEL ? LEVEL_AT[level + 1] : null;
+  const levelBar = level === 0 ? Math.max(0, Math.min(1, world.counted / 10)) : nextAt ? Math.max(0, Math.min(1, (world.rated - LEVEL_AT[level]) / (nextAt - LEVEL_AT[level]))) : 1;
 
   const sumScore = LETTERS.reduce((acc, l) => acc + score[l], 0);
   const winScore: Record<string, number> = {};
@@ -330,12 +367,11 @@ export function worldState(world: PersonaWorld): WorldState {
     gap,
     nextCode,
     neighbor,
-    G,
-    shelvesAlive: total > 0 ? (G * G) / total : 0,
     stage,
-    gaugeKey: GAUGES[stage].key,
-    nextGaugeKey,
-    gaugeBar,
+    level,
+    nextAt,
+    toNext: nextAt ? Math.max(0, nextAt - world.rated) : 0,
+    levelBar,
     essence,
     now: phaseAvailable ? phase : essence,
     phaseAvailable,
@@ -344,6 +380,10 @@ export function worldState(world: PersonaWorld): WorldState {
     phaseLeft: Math.max(0, PHASE_MIN - world.counted),
   };
 }
+
+// O nome do nível, como aparece na tela: "Estúdio nível 4" (antes da Persona, "Ovo" ou "Lagarta").
+export const levelText = (t: (key: string, options?: Record<string, unknown>) => string, st: Pick<WorldState, 'level' | 'stage'>): string =>
+  st.level > 0 ? t('personaWorld.level.name', { n: st.level }) : t(st.stage === 0 ? 'personaWorld.level.egg' : 'personaWorld.level.larva');
 
 // O nome de cada forma (as mudas e a forma vizinha mostram o título da Persona
 // de outros códigos). A tabela cine_personas é pública; guarda o que já veio.

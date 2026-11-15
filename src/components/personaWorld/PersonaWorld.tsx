@@ -1,18 +1,19 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
+import { Armchair, Check, RotateCcw } from 'lucide-react';
 import { MOOD_BY_LETTER } from '../../lib/moods';
-import { GAUGES, worldState, type PersonaWorld as World, type WorldState, type WorldTitle } from '../../lib/personaWorld';
+import { FURNITURE, levelText, worldState, type PersonaWorld as World, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import type { ThemeReading } from '../../lib/personaThemes';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL, ratingTone } from '../../lib/oracleTheme';
-import { MothCloseUp, PersonaScene, type Hotspot } from './PersonaScene';
+import { MothCloseUp, PersonaScene, type Hotspot, type SceneArrange } from './PersonaScene';
 import type { StudioDoors } from './useStudioDoors';
-import type { SpotKind } from './studio';
+import { moveItem, type ItemId, type SpotKind } from './studio';
 import EvolutionBar, { type EvolutionBarProps } from './EvolutionBar';
 import ShelfPots from './ShelfPots';
 import PersonaExplained from './PersonaExplained';
 import { Bar, Heading, Note, Tile, TitleThumb } from './bits';
-import { STAGE_BG, fmtRating } from './draw';
+import { STAGE_BG, fmtRating, studioArrange } from './draw';
 
 // O corpo do modal "Sua Persona", o mesmo na home e no perfil.
 //
@@ -21,7 +22,8 @@ import { STAGE_BG, fmtRating } from './draw';
 // adaptar e fundir funções dos dois." A ordem que ele deu para o modal
 // completo, "que deve ser idêntico para os dois":
 //   1. o estúdio, como já estava;
-//   2. a barra de progresso do nível do estúdio (a bitola: "Super 16" etc.);
+//   2. a barra de progresso do nível do estúdio ("Estúdio nível 4"; até
+//      15/11 à tarde era a bitola: "Super 16" etc.);
 //   3. os "potinhos" das prateleiras, que eram do bloco do perfil: tocar num
 //      mostra quantos títulos, a nota média, os mais bem avaliados e os temas
 //      com a média de cada um (ShelfPots);
@@ -37,6 +39,28 @@ import { STAGE_BG, fmtRating } from './draw';
 // Quando a barra da Evolução sai da ponta direita, `world` é o estúdio como
 // ele estava naquela nota e `themes` são os temas daquele ponto: tudo aqui
 // mostra aquele momento.
+//
+// 15/11/2026 (tarde), correções do Bruno:
+//   • o nível do estúdio é "número real": "Estúdio nível 4", quantos títulos
+//     foram avaliados e quantos faltam para o próximo nível (saíram a
+//     envergadura e as bitolas);
+//   • "deixe o usuário posicionar os itens que ele já tem": embaixo da cena,
+//     no seu estúdio, o botão "Arrumar o estúdio". Arrumando, toca-se num
+//     objeto para pegá-lo e depois num lugar do chão (num lugar ocupado, os
+//     dois trocam). Salvar grava; Cancelar desfaz.
+
+// Arrumar o estúdio: o que a gaveta entrega para a página (PersonaWorldSheet).
+export interface ArrangeControls {
+  active: boolean;
+  saving: boolean;
+  onStart: () => void;
+  // o arranjo depois de uma mudança: cada objeto e o lugar dele
+  onChange: (at: Partial<Record<ItemId, number>>) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  // todos os objetos de volta ao lugar de costume
+  onReset: () => void;
+}
 
 interface PersonaWorldProps {
   world: World;
@@ -58,9 +82,13 @@ interface PersonaWorldProps {
   onOpenGuide?: () => void;
   // sair do modal (ao seguir um link para outra página)
   onLeave?: () => void;
+  // arrumar o estúdio (só no seu, e com a barra da Evolução em hoje)
+  arrange?: ArrangeControls | null;
 }
 
-const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName, onOpenTitle, openingKey = null, doors, evolution = null, themes, themesFailed, onShare, onOpenGuide, onLeave }) => {
+const GHOST = `inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition disabled:opacity-50 ${FOCUS_RING}`;
+
+const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName, onOpenTitle, openingKey = null, doors, evolution = null, themes, themesFailed, onShare, onOpenGuide, onLeave, arrange = null }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const st: WorldState = useMemo(() => worldState(world), [world]);
@@ -70,8 +98,40 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
 
   const moodName = (letter: string | null) => (letter && MOOD_BY_LETTER[letter] ? t(MOOD_BY_LETTER[letter].labelKey) : '');
   const titleName = (title: WorldTitle) => (pt ? title.titlePt || title.titleEn : title.titleEn || title.titlePt) || t('personaWorld.untitled');
-  const gaugeName = (key: string | null) => (key ? t(`personaWorld.gauges.${key}`) : '');
-  const one = (value: number) => value.toLocaleString(pt ? 'pt-BR' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const whole = (value: number) => value.toLocaleString(pt ? 'pt-BR' : 'en-US');
+
+  // ---- arrumar o estúdio: o objeto pego e o que cada toque faz ----
+  const arranging = Boolean(arrange?.active);
+  const [picked, setPicked] = useState<ItemId | null>(null);
+  useEffect(() => {
+    if (!arranging) setPicked(null);
+  }, [arranging]);
+  const extras = doors?.extras;
+  const sceneArrange = useMemo((): SceneArrange | null => {
+    if (!arrange?.active) return null;
+    const { at } = studioArrange(world, st, extras);
+    const itemName = (id: ItemId) => t(`studio.items.${id}`);
+    return {
+      picked,
+      onItem: (id) => {
+        if (picked === null) setPicked(id);
+        else if (picked === id) setPicked(null);
+        else {
+          // tocar em outro objeto com um na mão: os dois trocam de lugar
+          const to = at[id];
+          if (to !== undefined) arrange.onChange(moveItem(at, picked, to));
+          setPicked(null);
+        }
+      },
+      onPlace: (place) => {
+        if (picked === null) return;
+        arrange.onChange(moveItem(at, picked, place));
+        setPicked(null);
+      },
+      itemLabel: (id, mine) => t(mine ? 'studio.arrange.itemPicked' : picked ? 'studio.arrange.itemSwap' : 'studio.arrange.itemPick', { item: itemName(id) }),
+      placeLabel: (place, free) => t(free ? 'studio.arrange.placeFree' : 'studio.arrange.placeTaken', { no: place + 1 }),
+    };
+  }, [arrange, world, st, extras, picked, t]);
 
   // Na cena daqui, a tela desce até a Persona (no fim) e a mariposa, até a mariposa de perto.
   const hotspots = useMemo(() => {
@@ -116,43 +176,89 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
 
   const threshold = world.persona?.threshold || 10;
   const creatureLabel = st.hasTrio ? t('personaWorld.mothLabel') : world.rated === 0 ? t('personaWorld.eggLabel') : t('personaWorld.larvaLabel');
-  // a linha embaixo da barra da bitola: onde está e quanto falta
-  const gaugeLine =
+  // a linha embaixo da barra do nível: quantos títulos, quantos faltam e o que o próximo nível traz
+  const levelLine =
     st.stage === 0
       ? t('personaWorld.now.egg')
       : st.stage === 1
         ? st.counted >= threshold
           ? t('personaWorld.plate.needShelves')
           : t('personaWorld.plate.progress', { counted: st.counted, threshold })
-        : st.nextGaugeKey
-          ? t('personaWorld.gauge.line', { g: one(st.G), left: one(Math.max(0.1, GAUGES[st.stage + 1].minG - st.G)), next: gaugeName(st.nextGaugeKey) })
-          : t('personaWorld.gauge.max', { g: one(st.G) });
+        : st.nextAt
+          ? t('personaWorld.level.line', { count: st.toNext, rated: whole(st.rated), left: whole(st.toNext), next: st.level + 1, item: t(`personaWorld.furniture.${FURNITURE[st.level + 1]}`) })
+          : t('personaWorld.level.max', { rated: whole(st.rated) });
 
   return (
     <div className="space-y-6">
       {/* 1. O estúdio. No celular a cena vai de borda a borda da gaveta (o -mx-5
           desfaz o px-5 do corpo da OracleSheet): numa tela de 320 px ela ainda
           cabe em escala 2; com a margem, cairia para escala 1 e ficaria miúda. */}
-      <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
-        <PersonaScene world={world} state={st} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} extras={doors?.extras} hotspots={hotspots} />
+      <div className="space-y-2.5">
+        <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
+          <PersonaScene world={world} state={st} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} extras={extras} hotspots={hotspots} arrange={sceneArrange} />
+        </div>
+        {/* Arrumar o estúdio: o convite e, arrumando, o passo de agora e os botões */}
+        {arrange &&
+          (arranging ? (
+            <div className="rounded-2xl p-3.5" style={{ background: 'rgba(244,196,84,0.08)', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45)' }}>
+              <p className="text-[14px] leading-snug" style={{ color: PAPER }} aria-live="polite">
+                {picked ? t('studio.arrange.stepPlace', { item: t(`studio.items.${picked}`) }) : t('studio.arrange.stepPick')}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={arrange.onSave}
+                  disabled={arrange.saving}
+                  className={`inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition disabled:opacity-60 ${FOCUS_RING}`}
+                  style={{ background: '#F4C454', color: INK }}
+                >
+                  <Check className="w-[18px] h-[18px]" aria-hidden />
+                  {arrange.saving ? t('studio.arrange.saving') : t('studio.arrange.save')}
+                </button>
+                <button type="button" onClick={arrange.onCancel} disabled={arrange.saving} className={GHOST} style={{ color: PAPER }}>
+                  {t('studio.arrange.cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPicked(null);
+                    arrange.onReset();
+                  }}
+                  disabled={arrange.saving}
+                  className={GHOST}
+                  style={{ color: PAPER }}
+                >
+                  <RotateCcw className="w-[16px] h-[16px] text-violet-300" aria-hidden />
+                  {t('studio.arrange.reset')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button type="button" onClick={arrange.onStart} className={GHOST} style={{ color: PAPER }}>
+                <Armchair className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+                {t('studio.arrange.start')}
+              </button>
+            </div>
+          ))}
       </div>
 
-      {/* 2. O nível do estúdio: a bitola de agora, a barra e a próxima */}
-      <section className="space-y-1.5" aria-label={t('personaWorld.gauge.label')}>
+      {/* 2. O nível do estúdio: o de agora, a barra e o próximo */}
+      <section className="space-y-1.5" aria-label={t('personaWorld.level.label')}>
         <div className="flex items-center gap-2.5">
           <span style={{ ...PIXEL, background: PAPER, color: INK }} className="shrink-0 px-2 py-[5px] rounded-md text-[13px] leading-none">
-            {gaugeName(st.gaugeKey)}
+            {levelText(t, st)}
           </span>
-          {st.nextGaugeKey && (
+          {(st.nextAt || st.level === 0) && (
             <>
-              <Bar value={st.gaugeBar} tall label={t('personaWorld.plate.gaugeAria', { pct: Math.floor(st.gaugeBar * 100), next: gaugeName(st.nextGaugeKey) })} />
+              <Bar value={st.levelBar} tall label={t('personaWorld.level.aria', { pct: Math.floor(st.levelBar * 100), next: st.level + 1 })} />
               <span style={{ ...PIXEL, color: MIST }} className="shrink-0 text-[13px] leading-none">
-                {gaugeName(st.nextGaugeKey)}
+                {t('personaWorld.level.short', { n: st.level + 1 })}
               </span>
             </>
           )}
         </div>
-        <Note>{gaugeLine}</Note>
+        <Note>{levelLine}</Note>
       </section>
 
       {/* 3. Os potinhos: as nove prateleiras e os dados de cada uma */}

@@ -18,10 +18,14 @@ import type { MovieWithRating } from '../hooks/useProfileData';
 // manda só o que a conta precisa (get_persona_themes: para cada título
 // avaliado, a prateleira, a nota e os temas) e a conta é feita aqui, a mesma
 // do perfil (keywordAffinity, em lib/tasteStats.ts):
-//   • numa prateleira: os temas com 2 títulos ou mais, os 6 de maior média;
-//   • no geral: os temas com 3 títulos ou mais, os 10 de maior média.
+// numa prateleira, os temas com 2 títulos ou mais, os 6 de maior média.
 // Como a conta é feita aqui, ela vale para qualquer ponto da barra da
 // Evolução: basta dizer quais títulos já tinham sido avaliados até ali.
+//
+// 15/11/2026 (tarde), correção do Bruno: os temas "só devem aparecer quando a
+// caixinha é clicada. Porque elas já estão aparecendo automaticamente." Saiu a
+// lista geral (os temas de tudo o que a pessoa avaliou, que aparecia sem
+// nenhum potinho escolhido): só existem os temas de cada prateleira.
 
 export interface ThemeTitle {
   type: 'movie' | 'tv';
@@ -40,9 +44,8 @@ export interface PersonaThemes {
   names: Map<number, string>;
 }
 
-// O que a gaveta mostra: os temas de tudo e os de cada prateleira.
+// O que a gaveta mostra: os temas de cada prateleira.
 export interface ThemeReading {
-  all: Affinity[];
   byLetter: Record<string, Affinity[]>;
 }
 
@@ -93,5 +96,5 @@ export function readThemes(themes: PersonaThemes, rated?: { type: 'movie' | 'tv'
     const mine = titles.filter((title) => title.letter === letter);
     byLetter[letter] = keywordAffinity(mine.map(asMovie), average(mine) ?? prior, { minCount: 2, limit: 6 });
   });
-  return { all: keywordAffinity(titles.map(asMovie), prior, { minCount: 3, limit: 10 }), byLetter };
+  return { byLetter };
 }

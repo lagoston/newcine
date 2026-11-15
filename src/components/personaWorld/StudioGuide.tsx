@@ -8,12 +8,13 @@ import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { mapPersonaEntry, personaText, PERSONA_THRESHOLD, type PersonaEntry } from '../../lib/persona';
-import { FURNITURE, GAUGES, LETTERS, worldState, type PersonaWorld, type WorldState } from '../../lib/personaWorld';
+import { FURNITURE, LEVEL_AT, LETTERS, MAX_LEVEL, PET_GOAL, levelText, worldState, type PersonaWorld, type PetId, type WorldState } from '../../lib/personaWorld';
+import { ORACLE_TAGS } from '../../lib/tags';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL } from '../../lib/oracleTheme';
 import PersonasModal from '../PersonasModal';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
-import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioSpots, type MothSpec } from './draw';
-import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
+import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioItemRect, studioSpots, type MothSpec } from './draw';
+import { hasPet, hasTerrorBox, NO_EXTRAS, PET_ITEMS, type SpotKind, type StudioExtras } from './studio';
 
 // O guia do estúdio: o livro da estante.
 //
@@ -35,10 +36,13 @@ import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './stu
 // Então o livro continua sendo um livro (a capa, a folha que vira), mas por
 // dentro é um manual, como o que vinha na caixa de um jogo: quadros de itens
 // com o desenho de cada um, tabelas e frases curtas. Seis aberturas:
-//   1. As evoluções: do ovo ao Cinerama, o que cada passo pede e o objeto que
-//      chega, com onde a pessoa está.
-//   2. A conta da asa (a envergadura, com as prateleiras de quem é o estúdio)
-//      e os objetos do estúdio (o que cada um abre e o que se conquista).
+//   1. As evoluções: do ovo ao nível 10, quantos títulos cada nível pede e o
+//      objeto que chega, com onde a pessoa está.
+//   2. Os lugares do chão e os bichinhos (como arrumar o estúdio; o sapo, a
+//      raposa e a cobra, com quanto falta para cada um) e os objetos do
+//      estúdio (o que cada um abre e o que se conquista). Até 15/11/2026 à
+//      tarde a página da esquerda era "A conta da asa" (a envergadura), que
+//      o Bruno mandou tirar: "não dá nem para entender o que é aquilo".
 //   3. As prateleiras (a estante de perto e a legenda das latas) e "O estúdio
 //      guarda tudo o que foi avaliado", com o gráfico das nove prateleiras.
 //   4. As três letras (como o código nasce e muda) e o começo das 84
@@ -46,8 +50,8 @@ import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './stu
 //   5 a 7. O resto das 84 personalidades. Tocar numa abre a ficha dela.
 //
 // Os desenhos não são imagens prontas: são recortes do estúdio de quem é o
-// livro, desenhado como ele fica em cada bitola. Para destacar o objeto que
-// chega, a sala é desenhada duas vezes (com e sem a bitola) e comparada: o que
+// livro, desenhado como ele fica em cada nível. Para destacar o objeto que
+// chega, a sala é desenhada duas vezes (com e sem o nível) e comparada: o que
 // mudou fica aceso, o resto na penumbra.
 //
 // No computador o livro abre em duas páginas e a folha vira em 3D em volta da
@@ -90,7 +94,24 @@ const canvasOf = (w: number, h: number): HTMLCanvasElement => {
 };
 
 // um estúdio sem nada avaliado
-const EMPTY: PersonaWorld = { persona: null, rated: 0, out: 0, counted: 0, window: [], recent: {}, first: [], eyes: [], last: [], best: {}, molts: [], tags: [], posters: [] };
+const EMPTY: PersonaWorld = {
+  persona: null,
+  rated: 0,
+  out: 0,
+  counted: 0,
+  window: [],
+  recent: {},
+  first: [],
+  eyes: [],
+  last: [],
+  best: {},
+  molts: [],
+  tags: [],
+  posters: [],
+  layout: {},
+  oracle: { bogart: 0, fincher: 0, cypher: 0 },
+  pets: { frog: null, fox: null, snake: null },
+};
 
 interface GuideData {
   world: PersonaWorld;
@@ -176,8 +197,11 @@ function whatChanged(now: HTMLCanvasElement, before: HTMLCanvasElement): { lit: 
   return { lit, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
 }
 
-// O quadrinho de cada passo da evolução: 40 × 28 pixels do estúdio.
+// O quadrinho de cada passo da evolução: 40 × 28 pixels do estúdio (o ovo, a
+// lagarta e o nível 1) e um menor para os níveis de 2 a 10, que dividem uma
+// página só.
 const ITEM = { w: 40, h: 28 };
+const ROW = { w: 32, h: 22 };
 // A estante de perto.
 const SHELVES = { w: 78, h: 80 };
 
@@ -215,11 +239,25 @@ function makeArt(data: GuideData): (key: string) => HTMLCanvasElement {
       const h = Math.min(52, Math.round(spot.h) + 6);
       return crop(scene, spot.x + spot.w / 2, spot.y + spot.h / 2, w, h);
     }
-    // uma bitola: a sala com ela e sem ela; o objeto que chegou fica aceso
+    if (key.startsWith('pet:')) {
+      // Um bichinho, recortado do estúdio de hoje (parado). Aparece aqui mesmo
+      // para quem ainda não o tem: é o guia.
+      const pet = key.slice(4) as PetId;
+      const entry = PET_ITEMS.find((item) => item.pet === pet);
+      const shown = hasPet(world, pet) ? world : { ...world, pets: { ...world.pets, [pet]: 1 } };
+      const scene = canvasOf(RW, RH);
+      const ctx = scene.getContext('2d', { willReadFrequently: true });
+      if (ctx) paintFrame(ctx, roomOf(st, shown, extras), st, shown, data.spec, 0, true, extras);
+      const rect = entry ? studioItemRect(shown, st, extras, entry.item) : null;
+      if (!rect) return crop(scene, 120, 100, ITEM.w, ITEM.h);
+      return crop(scene, rect.x + rect.w / 2, rect.y + rect.h / 2, Math.max(26, Math.min(46, Math.round(rect.w) + 8)), Math.max(22, Math.min(40, Math.round(rect.h) + 8)));
+    }
+    // um nível: a sala com ele e sem ele; o objeto que chegou fica aceso
     const stage = Number(key);
+    const size = stage >= 3 ? ROW : ITEM;
     const now = roomOf({ ...st, stage }, world, extras);
     const changed = whatChanged(now, roomOf({ ...st, stage: stage - 1 }, world, extras));
-    return changed ? crop(now, changed.cx, changed.cy, ITEM.w, ITEM.h, changed.lit) : crop(now, 72, 80, ITEM.w, ITEM.h);
+    return changed ? crop(now, changed.cx, changed.cy, size.w, size.h, changed.lit) : crop(now, 72, 80, size.w, size.h);
   };
   return (key) => {
     const hit = made.get(key);
@@ -550,7 +588,6 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
 
   // ---- números ----
   const lang = pt ? 'pt-BR' : 'en-US';
-  const one = (value: number) => value.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const whole = (value: number) => value.toLocaleString(lang);
   const moodName = (letter: string | null) => (letter && MOOD_BY_LETTER[letter] ? t(MOOD_BY_LETTER[letter].labelKey) : '');
   const g = (key: string, options?: Record<string, unknown>) => t(`personaWorld.guide.${key}`, options) as string;
@@ -579,35 +616,36 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     </span>
   );
 
-  // ---- 1. as evoluções ----
+  // ---- 1. as evoluções: o ovo, a lagarta e os dez níveis do estúdio ----
+  // (estágio 0 = ovo, 1 = lagarta; do 2 em diante, o nível é o estágio − 1)
   const statusOf = (stage: number): Status => (st.stage > stage ? 'past' : st.stage === stage ? 'here' : 'future');
   const stageRow = (stage: number) => {
-    const key = GAUGES[stage].key;
+    const level = stage - 1;
+    const key = stage === 0 ? 'egg' : stage === 1 ? 'larva' : `level${level}`;
     const status = statusOf(stage);
     const color = status === 'past' ? PAST : status === 'here' ? HERE : FUTURE;
     const Icon = status === 'past' ? Check : status === 'here' ? MapPin : Hourglass;
-    const needs =
-      stage === 0 ? g('needs.egg') : stage === 1 ? g('needs.larva') : stage === 2 ? g('needs.born') : g('needs.wingspan', { g: whole(GAUGES[stage].minG), n: whole(Math.ceil((GAUGES[stage].minG * GAUGES[stage].minG) / 10)) });
-    const brings = stage === 0 ? g('brings.egg') : stage === 1 ? g('brings.larva') : g(stage === 2 ? 'brings.born' : 'brings.item', { item: t(`personaWorld.furniture.${FURNITURE[stage]}`) });
-    const left = status === 'future' && st.hasTrio && stage >= 3 ? one(Math.max(0.1, GAUGES[stage].minG - st.G)) : null;
-    const state = status === 'past' ? g('status.past') : status === 'here' ? (isOwn ? g('status.hereOwn') : g('status.hereOther', { name })) : left ? g('status.left', { left }) : g('status.future');
+    const needs = stage === 0 ? g('needs.egg') : stage === 1 ? g('needs.larva') : level === 1 ? g('needs.born') : g('needs.titles', { n: whole(LEVEL_AT[level]) });
+    const brings = stage === 0 ? g('brings.egg') : stage === 1 ? g('brings.larva') : g(level === 1 ? 'brings.born' : 'brings.item', { item: t(`personaWorld.furniture.${FURNITURE[level]}`) });
+    const left = status === 'future' && st.hasTrio && level >= 2 ? Math.max(1, LEVEL_AT[level] - st.rated) : null;
+    const state = status === 'past' ? g('status.past') : status === 'here' ? (isOwn ? g('status.hereOwn') : g('status.hereOther', { name })) : left ? g('status.left', { count: left, left: whole(left) }) : g('status.future');
     return (
-      <li key={key} className="flex items-center gap-3 rounded-[6px] p-[5px]" style={status === 'here' ? { background: 'rgba(181,23,158,0.09)', boxShadow: `inset 0 0 0 1.5px ${HERE}` } : undefined}>
+      <li key={key} className={`flex items-center gap-3 rounded-[6px] ${level >= 2 ? 'p-[3px]' : 'p-[5px]'}`} style={status === 'here' ? { background: 'rgba(181,23,158,0.09)', boxShadow: `inset 0 0 0 1.5px ${HERE}` } : undefined}>
         {frame(stage >= 2 ? String(stage) : key)}
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-[17px] leading-tight" style={PIXEL}>
-              {t(`personaWorld.gauges.${key}`)}
+            <span className={`${level >= 2 ? 'text-[16px]' : 'text-[17px]'} leading-tight`} style={PIXEL}>
+              {level >= 2 ? t('personaWorld.level.short', { n: level }) : levelText(t, { level: Math.max(0, level), stage })}
             </span>
             <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold leading-tight" style={{ color }}>
               <Icon className="h-[13px] w-[13px] shrink-0" aria-hidden />
               {state}
             </span>
           </p>
-          <p className="mt-[2px] text-[13px] leading-snug" style={{ color: INK_SOFT }}>
+          <p className={`${level >= 2 ? 'text-[12.5px]' : 'mt-[2px] text-[13px]'} leading-snug`} style={{ color: INK_SOFT }}>
             {needs}
           </p>
-          <p className="text-[13.5px] font-semibold leading-snug">{brings}</p>
+          <p className={`${level >= 2 ? 'text-[13px]' : 'text-[13.5px]'} font-semibold leading-snug`}>{brings}</p>
         </div>
       </li>
     );
@@ -619,10 +657,10 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
         ? g('today.egg')
         : st.stage === 1
           ? g('today.larva', { counted: world.counted, threshold })
-          : st.nextGaugeKey
-            ? g('today.gauge', { gauge: t(`personaWorld.gauges.${st.gaugeKey}`), g: one(st.G), left: one(Math.max(0.1, GAUGES[st.stage + 1].minG - st.G)), next: t(`personaWorld.gauges.${st.nextGaugeKey}`) })
-            : g('today.max', { g: one(st.G) });
-    const bar = st.stage === 0 ? 0 : st.stage === 1 ? clamp(world.counted / threshold, 0, 1) : st.nextGaugeKey ? st.gaugeBar : 1;
+          : st.nextAt
+            ? g('today.level', { count: st.toNext, level: st.level, rated: whole(st.rated), left: whole(st.toNext), next: st.level + 1 })
+            : g('today.max', { level: st.level, rated: whole(st.rated) });
+    const bar = st.stage === 0 ? 0 : st.levelBar;
     return (
       <div className="mt-3 rounded-[6px] px-3 py-2.5" style={{ background: 'rgba(34,27,54,0.07)' }}>
         <p className="text-[12.5px] font-semibold" style={{ color: HERE }}>
@@ -636,66 +674,28 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     );
   };
 
-  // ---- 2. a conta da asa e os objetos ----
-  const ledger = () => {
-    const rows = LETTERS.map((letter) => ({ letter, n: st.films[letter] ?? 0 }));
-    const top = Math.max(1, ...rows.map((row) => Math.sqrt(row.n)), Math.sqrt(st.out));
-    const line = (key: string, letter: string | null, label: string, n: number, color: string) => (
-      <tr key={key} style={{ opacity: n > 0 ? 1 : 0.5 }}>
-        <th scope="row" className="py-[3px] pr-2 text-left font-normal">
-          <span className="flex min-w-0 items-center gap-2">
-            {tile(letter)}
-            <span className="min-w-0 truncate">{label}</span>
-          </span>
-        </th>
-        <td className="py-[3px] pr-3 text-right tabular-nums">{whole(n)}</td>
-        <td className="py-[3px] text-right tabular-nums">
-          <span className="flex items-center justify-end gap-2">
-            <span aria-hidden className="hidden h-[7px] w-14 overflow-hidden rounded-[2px] min-[380px]:block" style={{ background: 'rgba(34,27,54,0.12)' }}>
-              <span className="block h-full" style={{ width: `${(Math.sqrt(n) / top) * 100}%`, background: color, boxShadow: 'inset 0 0 0 1px rgba(34,27,54,0.45)' }} />
-            </span>
-            <span className="w-9 font-semibold">{n > 0 ? one(Math.sqrt(n)) : '–'}</span>
-          </span>
-        </td>
-      </tr>
-    );
+  // ---- 2. os lugares do chão, os bichinhos e os objetos ----
+  const petRow = (pet: PetId, tagId: string) => {
+    const entry = PET_ITEMS.find((item) => item.pet === pet);
+    const tag = ORACLE_TAGS.find((item) => item.id === tagId);
+    const has = hasPet(world, pet);
+    const count = entry ? world.oracle[entry.oracle] : 0;
     return (
-      <table className="mt-3 w-full table-fixed border-collapse text-[13.5px]">
-        <caption className="sr-only">{isOwn ? g('wing.ledgerOwn') : g('wing.ledgerOther', { name })}</caption>
-        <colgroup>
-          <col />
-          <col className="w-[52px]" />
-          <col className="w-[44px] min-[380px]:w-[108px]" />
-        </colgroup>
-        <thead>
-          <tr className="text-[12px]" style={{ color: INK_SOFT }}>
-            <th scope="col" className="pb-1 text-left font-normal">
-              {g('wing.shelf')}
-            </th>
-            <th scope="col" className="pb-1 pr-3 text-right font-normal">
-              {g('wing.titles')}
-            </th>
-            <th scope="col" className="pb-1 text-right font-normal">
-              {g('wing.push')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => line(row.letter, row.letter, moodName(row.letter), row.n, MOOD_BY_LETTER[row.letter]?.color ?? MIST))}
-          {line('archive', null, g('wing.archive'), st.out, PAPER)}
-        </tbody>
-        <tfoot>
-          <tr className="border-t" style={{ borderColor: 'rgba(34,27,54,0.4)' }}>
-            <th scope="row" className="pt-2 text-left text-[15px]" style={PIXEL}>
-              {g('wing.total')}
-            </th>
-            <td className="pt-2 pr-3 text-right tabular-nums">{whole(st.rated)}</td>
-            <td className="pt-2 text-right text-[17px] tabular-nums" style={{ ...PIXEL, color: HERE }}>
-              {one(st.G)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+      <li key={pet} className="flex items-center gap-3">
+        <span className="grid w-[98px] shrink-0 place-items-center">{frame(`pet:${pet}`)}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] leading-tight" style={PIXEL}>
+            {g(`pets.${pet}`)}
+          </p>
+          <p className="mt-[2px] text-[13px] leading-snug" style={{ color: INK_SOFT }}>
+            {g(`pets.${pet}What`, { tag: tag ? `${tag.emoji} ${tag.name}` : '' })}
+          </p>
+          <p className="mt-[2px] inline-flex items-center gap-1 text-[12.5px] font-semibold" style={{ color: has ? PAST : FUTURE }}>
+            {has ? <Check className="h-[13px] w-[13px] shrink-0" aria-hidden /> : <Hourglass className="h-[13px] w-[13px] shrink-0" aria-hidden />}
+            {has ? g('objects.has') : g('pets.progress', { count: whole(Math.min(count, PET_GOAL)), goal: PET_GOAL })}
+          </p>
+        </div>
+      </li>
     );
   };
   const objectRow = (kind: SpotKind, label: string, what: string, state?: { has: boolean }) => (
@@ -837,7 +837,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   };
 
   // ---- as duas metades de cada abertura ----
-  const titles = [g('evolutions.title'), g('wing.title'), g('shelves.title'), g('letters.title'), ...Array.from({ length: spreads - 4 }, () => g('personas.title'))];
+  const titles = [g('evolutions.title'), g('places.title'), g('shelves.title'), g('letters.title'), ...Array.from({ length: spreads - 4 }, () => g('personas.title'))];
   // as personalidades: a 1ª página fica na 4ª abertura (à direita); depois, duas por abertura
   const personaRange = (first: number) => note(g('personas.range', { from: first * PER_PAGE + 1, to: Math.min(personaTotal, (first + 2) * PER_PAGE), total: personaTotal }), 'mt-1 mb-3');
   const leftOf = (index: number): React.ReactNode => {
@@ -854,10 +854,18 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     if (index === 1) {
       return (
         <>
-          {heading(g('wing.title'))}
-          {body(g('wing.rule'), 'mt-2')}
-          {ledger()}
-          {note(g('wing.tip'), 'mt-3')}
+          {heading(g('places.title'))}
+          {body(g('places.intro'), 'mt-2')}
+          {body(g(isOwn ? 'places.howOwn' : 'places.howOther'), 'mt-2')}
+          <h4 className="mt-4 text-[19px] leading-tight" style={PIXEL}>
+            {g('pets.title')}
+          </h4>
+          {body(g('pets.intro', { goal: PET_GOAL }), 'mt-1.5')}
+          <ul className="mt-3 grid gap-[7px]">
+            {petRow('frog', 'quick-tongue')}
+            {petRow('fox', 'keen-sense')}
+            {petRow('snake', 'underworld-king')}
+          </ul>
         </>
       );
     }
@@ -917,7 +925,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     );
   };
   const rightOf = (index: number): React.ReactNode => {
-    if (index === 0) return <ul className="grid gap-[6px]">{[3, 4, 5, 6, 7, 8, 9].map(stageRow)}</ul>;
+    if (index === 0) return <ul className="grid gap-[3px]">{Array.from({ length: MAX_LEVEL - 1 }, (_, i) => i + 3).map(stageRow)}</ul>;
     if (index === 1) {
       const has = hasTerrorBox(world);
       return (

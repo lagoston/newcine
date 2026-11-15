@@ -22,9 +22,10 @@ import { ModuleTitle } from './observatoryKit';
 // tinha.
 //
 // Agora o bloco é o cartão (personaWorld/StudioCard): o nome, o código e o
-// título, o estúdio vivo e, no computador, as três prateleiras do código e a
-// bitola ao lado. Tudo o que o bloco antigo tinha a mais foi para dentro do
-// modal completo, que é o mesmo nos dois lugares (PersonaWorldSheet):
+// título, o estúdio vivo e, no computador, as três prateleiras do código e o
+// nível do estúdio ao lado (até 15/11/2026 era a bitola). Tudo o que o bloco
+// antigo tinha a mais foi para dentro do modal completo, que é o mesmo nos
+// dois lugares (PersonaWorldSheet):
 //   • as plaquinhas das prateleiras com os dados de cada uma → os potinhos;
 //   • a mariposa grande → a mariposa de perto;
 //   • os temas que a pessoa mais ama → embaixo dos potinhos;
@@ -122,7 +123,17 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ persona, isOwn, ownerName, ow
       )}
       {worldMounted && (
         <Suspense fallback={null}>
-          <PersonaWorldSheet open={showWorld} onClose={() => setShowWorld(false)} ownerId={ownerId} isOwn={isOwn} ownerName={ownerName} persona={persona} initialWorld={world} username={shareName} />
+          <PersonaWorldSheet
+            open={showWorld}
+            onClose={() => setShowWorld(false)}
+            ownerId={ownerId}
+            isOwn={isOwn}
+            ownerName={ownerName}
+            persona={persona}
+            initialWorld={world}
+            username={shareName}
+            onLayoutSaved={(layout) => setWorld((current) => (current ? { ...current, layout } : current))}
+          />
         </Suspense>
       )}
     </>

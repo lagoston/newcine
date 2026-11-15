@@ -3,9 +3,9 @@ import { useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import type { PersonaWorld, WorldState, WorldTitle } from '../../lib/personaWorld';
 import { FOCUS_RING, NIGHT, PAPER } from '../../lib/oracleTheme';
-import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, studioSpots, NO_IMAGES, RH, RW, type EyeHit, type SceneImages } from './draw';
+import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, studioArrange, studioPick, studioSpots, NO_IMAGES, RH, RW, type EyeHit, type SceneImages } from './draw';
 import { loadSceneImages, sceneImagesKey } from './sceneImages';
-import { NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
+import { NO_EXTRAS, type ItemId, type SpotKind, type StudioExtras } from './studio';
 
 // As duas telas da Persona viva (13/11/2026): a cabine inteira (PersonaScene) e
 // a mariposa de perto (MothCloseUp). As duas são um canvas pequeno ampliado em
@@ -106,6 +106,27 @@ export interface Hotspot {
 
 const HOTSPOT_CLASS = `group/spot absolute block min-w-0 min-h-0 cursor-pointer rounded-md ${FOCUS_RING}`;
 
+// Arrumar o estúdio (15/11/2026, tarde). Pedido do Bruno: "deixe o usuário
+// posicionar os itens que ele já tem". Com isto a cena troca os botões de
+// sempre por dois tipos: um por objeto que pode mudar de lugar e um por lugar
+// do chão. Quem decide o que cada toque faz é quem monta a cena (pegar um
+// objeto, levá-lo a um lugar vazio, trocar dois de lugar).
+//
+// O toque e o mouse são conferidos no desenho, pixel a pixel (studioPick): em
+// isométrico o retângulo de um objeto cobre o chão dos lugares de trás, e um
+// botão retangular por objeto roubava o toque do lugar. Os botões continuam
+// existindo para o teclado e o leitor de tela, sem receber o toque.
+export interface SceneArrange {
+  // o objeto que a pessoa pegou
+  picked: ItemId | null;
+  onItem: (id: ItemId) => void;
+  onPlace: (place: number) => void;
+  // os nomes, para o leitor de tela e para quem passa o mouse
+  itemLabel: (id: ItemId, picked: boolean) => string;
+  placeLabel: (place: number, free: boolean) => string;
+}
+const ARRANGE_BUTTON = `absolute block min-w-0 min-h-0 pointer-events-none rounded-md ${FOCUS_RING}`;
+
 export const PersonaScene: React.FC<{
   world: PersonaWorld;
   state: WorldState;
@@ -120,7 +141,9 @@ export const PersonaScene: React.FC<{
   extras?: StudioExtras;
   // o que pode ser tocado (sem isto, a cena é só desenho)
   hotspots?: Partial<Record<SpotKind, Hotspot>>;
-}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, label, className = '', extras = NO_EXTRAS, hotspots }) => {
+  // arrumando o estúdio: no lugar dos hotspots, os objetos e os lugares do chão
+  arrange?: SceneArrange | null;
+}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, label, className = '', extras = NO_EXTRAS, hotspots, arrange = null }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roomRef = useRef<HTMLCanvasElement | null>(null);
@@ -136,6 +159,8 @@ export const PersonaScene: React.FC<{
     .map(([kind]) => kind)
     .sort()
     .join(',');
+  const arranging = Boolean(arrange);
+  const picked = arrange?.picked ?? null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -148,20 +173,23 @@ export const PersonaScene: React.FC<{
     const roomCtx = room.getContext('2d');
     if (!roomCtx) return;
     const lounge: StudioExtras = { jackpot, poker };
-    drawRoom(roomCtx, state, world, images, lounge);
+    const moving = arranging ? { picked } : null;
+    drawRoom(roomCtx, state, world, images, lounge, moving);
     const still = !animated || Boolean(reduceMotion);
     const glow = new Set(glowKey ? (glowKey.split(',') as SpotKind[]) : []);
     const paint = () => {
-      paintFrame(ctx, room, state, world, spec, tickRef.current, still, lounge, glow);
+      paintFrame(ctx, room, state, world, spec, tickRef.current, still, lounge, glow, moving);
     };
     paint();
     if (still) return;
     return runFrames(canvas, tickRef, paint);
-  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker, glowKey]);
+  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker, glowKey, arranging, picked]);
 
   // os objetos tocáveis: um botão (ou link) de verdade por cima de cada um,
   // para o teclado e o leitor de tela também chegarem neles
-  const spots = useMemo(() => (hotspots ? studioSpots(world, state, { jackpot, poker }).filter((spot) => hotspots[spot.kind]) : []), [hotspots, world, state, jackpot, poker]);
+  const spots = useMemo(() => (hotspots && !arranging ? studioSpots(world, state, { jackpot, poker }).filter((spot) => hotspots[spot.kind]) : []), [hotspots, arranging, world, state, jackpot, poker]);
+  // arrumando: os lugares do chão e, por cima, os objetos (de trás para a frente)
+  const targets = useMemo(() => (arranging ? studioArrange(world, state, { jackpot, poker }) : null), [arranging, world, state, jackpot, poker]);
 
   return (
     // place-content-center: quando a cena é mais larga que a tela (celular
@@ -179,6 +207,42 @@ export const PersonaScene: React.FC<{
           className="block"
           style={{ width: RW * k, height: RH * k, imageRendering: 'pixelated' }}
         />
+        {arrange && (
+          // o toque: o que estiver desenhado no ponto tocado
+          <div
+            className="absolute inset-0 cursor-pointer"
+            onClick={(event) => {
+              const box = event.currentTarget.getBoundingClientRect();
+              const hit = studioPick(world, state, { jackpot, poker }, ((event.clientX - box.left) / box.width) * RW, ((event.clientY - box.top) / box.height) * RH);
+              if (!hit) return;
+              if ('item' in hit) arrange.onItem(hit.item);
+              else arrange.onPlace(hit.place);
+            }}
+          />
+        )}
+        {arrange &&
+          targets?.places.map((place) => (
+            <button
+              key={`place-${place.index}`}
+              type="button"
+              className={ARRANGE_BUTTON}
+              style={{ left: place.rect.x * k, top: place.rect.y * k, width: place.rect.w * k, height: place.rect.h * k }}
+              aria-label={arrange.placeLabel(place.index, place.free)}
+              onClick={() => arrange.onPlace(place.index)}
+            />
+          ))}
+        {arrange &&
+          targets?.items.map((item) => (
+            <button
+              key={`item-${item.id}`}
+              type="button"
+              className={ARRANGE_BUTTON}
+              style={{ left: item.rect.x * k, top: item.rect.y * k, width: item.rect.w * k, height: item.rect.h * k }}
+              aria-pressed={arrange.picked === item.id}
+              aria-label={arrange.itemLabel(item.id, arrange.picked === item.id)}
+              onClick={() => arrange.onItem(item.id)}
+            />
+          ))}
         {spots.map((spot) => {
           const hotspot = hotspots?.[spot.kind];
           if (!hotspot) return null;
