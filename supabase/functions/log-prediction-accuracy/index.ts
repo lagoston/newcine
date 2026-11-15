@@ -12,10 +12,12 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 //
 // 15/11/2026 (pedido do Bruno: previsão também para os filmes fora das
 // prateleiras): o gatilho passou a mandar também os filmes de fora com nota
-// do público e 20+ votos. Essas linhas já chegam com model_version 'fora-v1'
-// e são calculadas com a fórmula paralela, predict_ratings_outside (ver a
-// migração 20261115233000_prediction_outside_shelves.sql). É o placar que vai
-// dizer se ela segura com notas de verdade.
+// do público (até a noite do mesmo dia, só com 20+ votos). Essas linhas já
+// chegam com model_version 'fora-v1' e são calculadas com a fórmula paralela,
+// predict_ratings_outside (ver as migrações
+// 20261115233000_prediction_outside_shelves.sql e
+// 20261115234500_prediction_outside_few_votes.sql). É o placar que vai dizer
+// se ela segura com notas de verdade.
 
 const MODEL_VERSION = 'v4';
 const OUTSIDE_VERSION = 'fora-v1';
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
       await supabase.from('prediction_accuracy_log').update({
         prediction_status: 'error',
         error_message: outside
-          ? 'Title not found in movie_cache, without TMDB score, under 20 votes or on a shelf'
+          ? 'Title not found in movie_cache, without TMDB score or on a shelf'
           : 'Title not found in movie_cache or without TMDB score',
         model_version: version,
       }).eq('id', logId);

@@ -849,9 +849,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // Nota Prevista para Você — mesmo modelo usado nas prateleiras da
   // Biblioteca dos Oráculos e no Match Movie. Fica vazia quando o usuário
   // ainda não completou o questionário de personalidade, quando já avaliou,
-  // em séries fora das prateleiras e em filmes sem nota do público ou com
-  // menos de 20 votos. Enquanto a previsão carrega, o medidor fica apagado
-  // com a fagulha esperando (sem empurrar nada).
+  // em séries fora das prateleiras e em filmes ainda sem nota do público.
+  // Enquanto a previsão carrega, o medidor fica apagado com a fagulha
+  // esperando (sem empurrar nada).
   //
   // 15/11/2026 (pedidos do Bruno): a previsão vem direto do banco
   // (get_title_prediction, ~0,6 s, em vez dos 4 a 5,5 s da função de borda
@@ -1591,8 +1591,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // das colunas.
   //
   // 15/11/2026: filmes fora das prateleiras também reservam o aparelho (a
-  // fórmula paralela), desde que tenham nota do público e 20+ votos. A dica
-  // do aparelho diz que a previsão é de fora (e o espectro sai mais aberto).
+  // fórmula paralela), desde que tenham nota do público. A dica do aparelho
+  // diz que a previsão é de fora (e o espectro sai mais aberto). Até a noite
+  // do mesmo dia era preciso ter 20+ votos no TMDB, e os lançamentos de
+  // Popular Agora ficavam sem (pedido do Bruno: "The Beast" e "Sem
+  // Desistir"); agora a nota de poucos votos é puxada para a média do
+  // catálogo no banco (20261115234500_prediction_outside_few_votes.sql).
   type ScoreCell = {
     key: string;
     value?: React.ReactNode;
@@ -1607,8 +1611,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     labelIcon?: React.ReactNode;
   };
   const loggedIn = !!session?.user;
-  // Série fora das prateleiras dos oráculos (ou filme sem nota do público,
-  // ou com menos de 20 votos): não existe previsão para ela, então o placar
+  // Série fora das prateleiras dos oráculos (ou filme ainda sem nota do
+  // público): não existe previsão para ela, então o placar
   // já abre só com a nota do público (ou sua nota + público), sem reservar o
   // lugar da previsão. Por isso o placar espera também a consulta da
   // prateleira (rápida) antes de entrar.
@@ -1617,8 +1621,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     moodLoaded &&
     movieMoodKey === null &&
     movie.media_type !== 'tv' &&
-    movie.vote_average > 0 &&
-    (typeof movie.vote_count !== 'number' || movie.vote_count >= 20);
+    movie.vote_average > 0;
   const predictable = inOraclePools || outsidePredictable;
   const scoreReady = !loggedIn || (userRatingLoaded && moodLoaded);
   const scoreCols = !loggedIn ? 1 : hasRated ? 2 : predictable ? 3 : 1;

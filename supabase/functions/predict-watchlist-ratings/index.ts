@@ -13,10 +13,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 // migração 20261003200000_prediction_v4.sql.
 //
 // 15/11/2026 (pedido do Bruno: previsão também para os filmes fora das
-// prateleiras): filmes de fora com nota do público e 20+ votos entram pela
-// fórmula paralela, predict_ratings_outside (mais aberta, sem o selo 9/10 —
-// ver 20261115233000_prediction_outside_shelves.sql). Séries de fora
-// continuam sem previsão.
+// prateleiras): filmes de fora com nota do público entram pela fórmula
+// paralela, predict_ratings_outside (mais aberta, sem o selo 9/10 — ver
+// 20261115233000_prediction_outside_shelves.sql; desde a noite do mesmo dia,
+// sem o corte de 20 votos: 20261115234500_prediction_outside_few_votes.sql).
+// Séries de fora continuam sem previsão.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

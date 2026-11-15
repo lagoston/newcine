@@ -326,8 +326,8 @@ export default function Library() {
   // "movie:id" / "tv:id" -> nota prevista, buscado em lote quando ativado.
   // Títulos das prateleiras dos oráculos têm previsão (filmes e, desde
   // 03/10/2026, séries); desde 15/11/2026, filmes de fora delas também, pela
-  // fórmula paralela (com nota do público e 20+ votos — ver
-  // predict-watchlist-ratings). Sem previsão vai pro fim.
+  // fórmula paralela (com nota do público — ver predict-watchlist-ratings).
+  // Sem previsão vai pro fim.
   const [oracleFilterActive, setOracleFilterActive] = useState(false);
   const [predictedRatings, setPredictedRatings] = useState<Record<string, number>>({});
 
