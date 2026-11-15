@@ -14,6 +14,14 @@
 // A máquina do Jackpot usa os três anéis, em ouro e com a respiração mais
 // rápida: é ela que mais chama. O resto usa um anel forte e um fraco, em luz
 // clara. Com "reduzir movimento" o brilho fica parado.
+//
+// 14/11/2026 (noite), correção do Bruno: "o brilho do canto de trás da
+// máquina caça níquel está atravessando a estante que está na frente". O
+// brilho é pintado por cima da sala inteira, então o anel do lado direito da
+// máquina passava por cima da estante do guia, que fica na frente dela. Agora
+// quem pede o brilho diz também o que fica na frente do objeto (`cover`): os
+// pixels do anel que caem em cima dessas coisas são tirados, e o brilho passa
+// por trás delas, como a própria máquina.
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -24,23 +32,34 @@ export interface Glow {
 
 const cache = new Map<string, Glow>();
 
-// Desenha a coisa sozinha (draw) num canvas de w × h e devolve os anéis dela.
-// key: o nome para guardar (null = quem chama guarda por conta própria).
-export function glowOf(key: string | null, w: number, h: number, draw: (ctx: Ctx) => void): Glow {
-  const hit = key ? cache.get(key) : undefined;
-  if (hit) return hit;
+// A silhueta de um desenho: 1 onde ele pinta, 0 onde fica vazio.
+const silhouette = (w: number, h: number, draw: (ctx: Ctx) => void): Uint8Array | null => {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  draw(ctx);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const shape = new Uint8Array(w * h);
+  for (let p = 0; p < w * h; p += 1) shape[p] = data[p * 4 + 3] > 40 ? 1 : 0;
+  return shape;
+};
+
+// Desenha a coisa sozinha (draw) num canvas de w × h e devolve os anéis dela.
+// key: o nome para guardar (null = quem chama guarda por conta própria); ele
+// precisa mudar quando muda o que fica na frente.
+// cover: desenha o que fica na frente da coisa; o anel some onde isso pinta.
+export function glowOf(key: string | null, w: number, h: number, draw: (ctx: Ctx) => void, cover?: (ctx: Ctx) => void): Glow {
+  const hit = key ? cache.get(key) : undefined;
+  if (hit) return hit;
   const found: number[][] = [[], [], []];
-  if (ctx) {
-    draw(ctx);
-    const data = ctx.getImageData(0, 0, w, h).data;
-    let reached = new Uint8Array(w * h);
-    for (let p = 0; p < w * h; p += 1) reached[p] = data[p * 4 + 3] > 40 ? 1 : 0;
+  const shape = silhouette(w, h, draw);
+  const front = shape && cover ? silhouette(w, h, cover) : null;
+  if (shape) {
+    let reached: Uint8Array = shape;
     for (let ring = 0; ring < 3; ring += 1) {
-      const next = reached.slice();
+      const next: Uint8Array = reached.slice();
       for (let y = 0; y < h; y += 1) {
         for (let x = 0; x < w; x += 1) {
           const p = y * w + x;
@@ -48,7 +67,8 @@ export function glowOf(key: string | null, w: number, h: number, draw: (ctx: Ctx
           // encostado pelos lados (sem as diagonais: o canto fica redondo)
           if ((x > 0 && reached[p - 1]) || (x < w - 1 && reached[p + 1]) || (y > 0 && reached[p - w]) || (y < h - 1 && reached[p + w])) {
             next[p] = 1;
-            found[ring].push(x, y);
+            // o anel continua crescendo por trás do que está na frente, mas ali não é pintado
+            if (!front || !front[p]) found[ring].push(x, y);
           }
         }
       }

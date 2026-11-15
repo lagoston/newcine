@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ratingBarColor, ratingTone } from '../lib/oracleTheme';
@@ -27,6 +27,15 @@ import { ratingBarColor, ratingTone } from '../lib/oracleTheme';
 // Não é uma barra de progresso: não há trecho preenchido, só o fio inteiro
 // bem apagado e a centelha com um rastro curto. O número continua no texto
 // para leitores de tela. Com "reduzir movimento" a centelha não corre.
+//
+// 14/11/2026 (noite), correção do Bruno: "alguns […] já estão no ponto
+// máximo, e dão um estalo zerando e fazendo o efeito. Todos os filmes tem que
+// começar da base". A centelha ficava parada na posição da nota desde o
+// primeiro desenho e só voltava ao zero quando a corrida começava (a capa
+// chegava na tela e ainda esperava o atraso sorteado). Agora, enquanto a
+// corrida não aconteceu, ela espera na base (data-armed); a corrida sai dali
+// e, quando termina, a centelha fica na nota. Quem não vai correr (já correu
+// nesta visita, ou "reduzir movimento") aparece direto na nota.
 
 // Os títulos cuja centelha já correu nesta visita.
 const alreadyRan = new Set<string>();
@@ -79,12 +88,17 @@ const FateThread: React.FC<FateThreadProps> = ({ rating, quiet = false, lift = 0
   const sparkRef = useRef<HTMLSpanElement>(null);
   const stop = Math.min(10, Math.max(0, rating)) * 10;
   const band = Math.round(Math.min(10, Math.max(0, rating)));
+  // A centelha ainda vai correr: espera na base. Decidido já no primeiro
+  // desenho, para ela nunca aparecer na nota antes de correr.
+  const [armed, setArmed] = useState(() => !reduceMotion && typeof IntersectionObserver !== 'undefined' && !(runKey && alreadyRan.has(runKey)));
 
   // A corrida: uma vez, na primeira vez em que a capa aparece na tela.
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || reduceMotion) return;
-    if (runKey && alreadyRan.has(runKey)) return;
+    if (!root || reduceMotion || (runKey && alreadyRan.has(runKey))) {
+      setArmed(false);
+      return;
+    }
     let delay: number | undefined;
     const unwatch = watchArrival(root, () => {
       if (runKey) alreadyRan.add(runKey);
@@ -92,11 +106,15 @@ const FateThread: React.FC<FateThreadProps> = ({ rating, quiet = false, lift = 0
       delay = window.setTimeout(() => {
         const runner = runnerRef.current;
         const spark = sparkRef.current;
-        if (!runner || !spark || typeof runner.animate !== 'function') return;
-        // mais longe, um pouco mais de tempo
-        const duration = 260 + stop * 3.6;
-        runner.animate([{ transform: 'translateX(0%)' }, { transform: `translateX(${stop}%)` }], { duration, easing: 'cubic-bezier(0.2, 0.75, 0.25, 1)' });
-        spark.animate([{ transform: 'rotate(45deg) scale(0.7)' }, { transform: 'rotate(45deg) scale(1.9)', offset: 0.78 }, { transform: 'rotate(45deg) scale(1)' }], { duration: duration + 240, easing: 'ease-out' });
+        if (runner && spark && typeof runner.animate === 'function') {
+          // mais longe, um pouco mais de tempo
+          const duration = 260 + stop * 3.6;
+          runner.animate([{ transform: 'translateX(0%)' }, { transform: `translateX(${stop}%)` }], { duration, easing: 'cubic-bezier(0.2, 0.75, 0.25, 1)' });
+          spark.animate([{ transform: 'rotate(45deg) scale(0.7)' }, { transform: 'rotate(45deg) scale(1.9)', offset: 0.78 }, { transform: 'rotate(45deg) scale(1)' }], { duration: duration + 240, easing: 'ease-out' });
+        }
+        // A corrida já segura a centelha desde a base; o lugar de descanso
+        // dela passa a ser a nota, onde ela fica quando a corrida termina.
+        setArmed(false);
       }, Math.random() * 380);
     });
     return () => {
@@ -112,6 +130,7 @@ const FateThread: React.FC<FateThreadProps> = ({ rating, quiet = false, lift = 0
       ref={rootRef}
       className="fate-thread"
       data-quiet={quiet || undefined}
+      data-armed={armed || undefined}
       style={
         {
           '--fate-color': ratingTone(band).color,

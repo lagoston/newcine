@@ -224,14 +224,24 @@ export function drawLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: Studio
 export function paintLounge(k: Kit, ctx: Ctx, world: PersonaWorld, extras: StudioExtras, tick: number, still: boolean, glow: ReadonlySet<SpotKind>) {
   const [w, h] = k.size;
   const soft = glowAlphas(tick, still, false);
-  if (glow.has('book')) paintGlow(ctx, glowOf('book', w, h, (c) => drawBookcase(k, c)), 0, 0, GLOW_SOFT, soft);
-  if (glow.has('poker') && extras.poker) paintGlow(ctx, glowOf('poker', w, h, (c) => drawTable(k, c)), 0, 0, GLOW_SOFT, soft);
   const terror = hasTerrorBox(world);
+  const { poker } = extras;
+  // O brilho de cada objeto passa por trás do que fica na frente dele (glow.ts):
+  // a ordem de drawLounge é a de trás para a frente (máquina, estante do guia,
+  // mesa, caixa). Os brilhos também são pintados de trás para a frente.
+  const ahead = (c: Ctx, from: number) => {
+    if (from <= 1) drawBookcase(k, c);
+    if (from <= 2 && poker) drawTable(k, c);
+    if (from <= 3 && terror) drawTerrorBox(k, c);
+  };
+  const tail = `${poker ? 'p' : ''}${terror ? 't' : ''}`;
+  // a máquina: o brilho mais forte da sala, em ouro
+  if (extras.jackpot !== 'off' && glow.has('jackpot')) paintGlow(ctx, glowOf(`jackpot:${tail}`, w, h, (c) => drawSlot(k, c), (c) => ahead(c, 1)), 0, 0, GLOW_GOLD, glowAlphas(tick, still, true));
+  if (glow.has('book')) paintGlow(ctx, glowOf(`book:${tail}`, w, h, (c) => drawBookcase(k, c), (c) => ahead(c, 2)), 0, 0, GLOW_SOFT, soft);
+  if (glow.has('poker') && poker) paintGlow(ctx, glowOf(`poker:${tail}`, w, h, (c) => drawTable(k, c), (c) => ahead(c, 3)), 0, 0, GLOW_SOFT, soft);
   if (glow.has('terror') && terror) paintGlow(ctx, glowOf('terror', w, h, (c) => drawTerrorBox(k, c)), 0, 0, GLOW_SOFT, soft);
 
   if (extras.jackpot !== 'off') {
-    // a máquina: o brilho mais forte da sala, em ouro
-    if (glow.has('jackpot')) paintGlow(ctx, glowOf('jackpot', w, h, (c) => drawSlot(k, c)), 0, 0, GLOW_GOLD, glowAlphas(tick, still, true));
     // as lâmpadas do letreiro correm (paradas: todas acesas)
     const sign = SLOT_SIGN(k);
     for (let i = 1, n = 0; i < 13; i += 2, n += 1) {

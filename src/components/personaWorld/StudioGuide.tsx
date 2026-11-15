@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -11,7 +11,7 @@ import { mapPersonaEntry, personaText, PERSONA_THRESHOLD, type PersonaEntry } fr
 import { FURNITURE, GAUGES, LETTERS, worldState, type PersonaWorld, type WorldState } from '../../lib/personaWorld';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL } from '../../lib/oracleTheme';
 import PersonasModal from '../PersonasModal';
-import { PersonaCode } from '../PersonaBits';
+import { PersonaCard, PersonaCode } from '../PersonaBits';
 import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioSpots, type MothSpec } from './draw';
 import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
 
@@ -43,7 +43,7 @@ import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './stu
 //      guarda tudo o que foi avaliado", com o gráfico das nove prateleiras.
 //   4. As três letras (como o código nasce e muda) e o começo das 84
 //      personalidades.
-//   5 e 6. O resto das 84 personalidades. Tocar numa abre a ficha dela.
+//   5 a 7. O resto das 84 personalidades. Tocar numa abre a ficha dela.
 //
 // Os desenhos não são imagens prontas: são recortes do estúdio de quem é o
 // livro, desenhado como ele fica em cada bitola. Para destacar o objeto que
@@ -53,6 +53,19 @@ import { hasTerrorBox, NO_EXTRAS, type SpotKind, type StudioExtras } from './stu
 // No computador o livro abre em duas páginas e a folha vira em 3D em volta da
 // lombada. No celular é uma página por vez e a folha vira para a esquerda. Com
 // "reduzir movimento" nada gira e o livro não abre sozinho.
+//
+// 14/11/2026 (noite), mais duas correções do Bruno:
+//   • "O guia do estúdio deve ter um botão de fechar, atualmente não tem como
+//     sair dele." O X existia, mas era um círculo apagado no alto da tela e,
+//     no celular com o site instalado (ou no app), ficava embaixo da barra do
+//     relógio e da bateria: não dava para tocar. Agora o topo respeita essa
+//     barra (safe-area), o botão diz "Fechar" com todas as letras e tocar fora
+//     do livro também fecha.
+//   • "As 84 personas dentro do livro devem aparecer com a foto dos
+//     personagens, e não um amontoado de 3 letras." Cada personalidade virou o
+//     retrato do personagem (o mesmo cartão da ficha, PersonaCard), com o
+//     código por cima da foto e o título embaixo. Cabem 12 por página (eram
+//     18 blocos de letras), e o livro ganhou uma abertura: sete no total.
 
 // as tintas sobre o papel (todas com contraste de leitura sobre o creme)
 const INK_SOFT = '#5B4F6E';
@@ -282,10 +295,13 @@ const Can: React.FC<{ body: string; lid: string; base: string; band?: string }> 
 
 type Status = 'past' | 'here' | 'future';
 type CatalogEntry = PersonaEntry & { userCount: number };
-const SPREADS = 6;
-const LAST = SPREADS - 1;
-// quantas personalidades cabem numa página
-const PER_PAGE = 18;
+// Quantas personalidades cabem numa página (os retratos: 4 por linha no
+// computador, 3 no celular) e quantas são.
+const PER_PAGE = 12;
+const PERSONAS = 84;
+// As quatro primeiras aberturas são o manual; a 1ª página das personalidades
+// fica na direita da 4ª e as outras vão de duas em duas.
+const spreadsFor = (personas: number) => 4 + Math.ceil((Math.ceil(personas / PER_PAGE) - 1) / 2);
 
 const useViewport = () => {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
@@ -359,6 +375,8 @@ const Paper: React.FC<{ side: Side; pad: number; number: number | null; children
 };
 
 const NAV_BUTTON = `grid place-items-center w-11 h-11 rounded-full border border-white/15 hover:border-white/40 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-white/15 transition ${FOCUS_RING}`;
+// o fechar: um botão com nome, bem à vista (o X sozinho passava despercebido)
+const CLOSE_BUTTON = `inline-flex shrink-0 items-center gap-2 h-11 pl-3.5 pr-4 rounded-full border text-[15px] font-semibold hover:bg-white/10 transition ${FOCUS_RING}`;
 
 interface StudioGuideProps {
   world: PersonaWorld;
@@ -387,7 +405,22 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   // ---- as medidas ----
   const spread = vw >= 860 && vh >= 600;
   const pageW = spread ? Math.min(440, Math.floor((vw - 64) / 2)) : Math.min(430, vw - 20);
-  const pageH = Math.max(220, spread ? Math.min(640, vh - 148) : Math.min(720, vh - 140));
+  // A altura vem do espaço que sobra entre o topo e os botões de baixo (medido:
+  // no celular com o site instalado as barras do sistema também comem altura).
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [areaH, setAreaH] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const measure = () => setAreaH(el.clientHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const room = areaH ?? vh - 120;
+  const pageH = Math.max(220, spread ? Math.min(640, room - 28) : Math.min(720, room - 20));
   const pad = spread ? 28 : vw < 360 ? 14 : 18;
   const inner = pageW - pad * 2;
 
@@ -414,6 +447,9 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     const entry = code ? catalog.find((item) => item.code === code) : null;
     return entry ? personaText(entry, i18n.language).title : '';
   };
+  const personaTotal = catalog.length || PERSONAS;
+  const spreads = spreadsFor(personaTotal);
+  const last = spreads - 1;
 
   // ---- as páginas ----
   // -1 = o livro fechado (a capa); depois, uma abertura por assunto
@@ -421,12 +457,12 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   const [turn, setTurn] = useState<{ from: number; to: number } | null>(null);
   const go = useCallback(
     (to: number) => {
-      const target = clamp(to, -1, LAST);
+      const target = clamp(to, -1, last);
       if (turn || target === page) return;
       if (reduce) setPage(target);
       else setTurn({ from: page, to: target });
     },
-    [turn, page, reduce],
+    [turn, page, reduce, last],
   );
   const finishTurn = () => {
     if (!turn) return;
@@ -474,11 +510,11 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
       if (!next && !previous && event.key !== 'Home' && event.key !== 'End') return;
       event.preventDefault();
       touched.current = true;
-      go(event.key === 'Home' ? 0 : event.key === 'End' ? LAST : page + (next ? 1 : -1));
+      go(event.key === 'Home' ? 0 : event.key === 'End' ? last : page + (next ? 1 : -1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, page, onClose, personaCode]);
+  }, [go, page, onClose, personaCode, last]);
 
   // ---- o toque: metade direita avança, metade esquerda volta; arrastar também ----
   const drag = useRef<{ x: number; y: number } | null>(null);
@@ -753,34 +789,43 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     );
   };
 
-  // ---- as 84 personalidades (18 por página) ----
+  // ---- as 84 personalidades (12 por página): o retrato de cada personagem ----
   const personaPage = (index: number) => {
     const slice = catalog.slice(index * PER_PAGE, (index + 1) * PER_PAGE);
     if (catalog.length === 0) return note(g('personas.loading'));
     if (slice.length === 0) return null;
     return (
-      <ul className="grid grid-cols-3 gap-[6px]">
+      <ul className={`grid ${spread ? 'grid-cols-4' : 'grid-cols-3'} gap-x-2 gap-y-3`}>
         {slice.map((entry) => {
           const mine = entry.code === st.code;
           const text = personaText(entry, i18n.language);
-          const label = `${entry.code}: ${text.title}`;
+          const label = `${entry.code}: ${text.title} (${text.character})${mine && isOwn ? ` · ${t('oracle.persona.yours')}` : ''}`;
           const inside = (
             <>
-              <PersonaCode code={entry.code} className="block text-[16px] leading-none tracking-[0.06em]" />
-              <span className="mt-[5px] block text-[11.5px] leading-[1.2]" style={{ color: PAPER, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <span className="relative block transition-transform duration-200 group-hover:-translate-y-0.5">
+                <PersonaCard persona={entry} compact ring={mine ? HERE : undefined} alt="" className="shadow-[0_8px_16px_-10px_rgba(20,12,40,0.75)]" />
+                {/* o código por cima da foto (no pé dela fica o fio das três prateleiras) */}
+                <span aria-hidden className="absolute left-1 top-1 rounded-[4px] px-[5px] py-[3px]" style={{ background: 'rgba(18,13,34,0.86)' }}>
+                  <PersonaCode code={entry.code} className="block text-[13px] leading-none tracking-[0.06em]" />
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className="mt-[5px] block text-[11.5px] font-semibold leading-[1.22]"
+                style={{ color: mine ? HERE : INK, minHeight: '2.44em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+              >
                 {text.title}
               </span>
             </>
           );
-          const style: React.CSSProperties = { background: INK, boxShadow: mine ? `0 0 0 2px ${HERE}` : undefined };
           return (
             <li key={entry.code} className="min-w-0">
               {viewerId ? (
-                <button type="button" onClick={() => setPersonaCode(entry.code)} aria-label={label} className={`block h-[58px] w-full min-w-0 rounded-[6px] px-2 py-[7px] text-left transition hover:brightness-125 ${FOCUS_RING}`} style={style}>
+                <button type="button" onClick={() => setPersonaCode(entry.code)} aria-label={label} className={`group block w-full min-w-0 rounded-[10px] text-left ${FOCUS_RING}`}>
                   {inside}
                 </button>
               ) : (
-                <span className="block h-[58px] rounded-[6px] px-2 py-[7px]" style={style}>
+                <span role="img" aria-label={label} className="group block min-w-0">
                   {inside}
                 </span>
               )}
@@ -792,9 +837,9 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   };
 
   // ---- as duas metades de cada abertura ----
-  const titles = [g('evolutions.title'), g('wing.title'), g('shelves.title'), g('letters.title'), g('personas.title'), g('personas.title')];
+  const titles = [g('evolutions.title'), g('wing.title'), g('shelves.title'), g('letters.title'), ...Array.from({ length: spreads - 4 }, () => g('personas.title'))];
   // as personalidades: a 1ª página fica na 4ª abertura (à direita); depois, duas por abertura
-  const personaRange = (first: number) => note(g('personas.range', { from: first * PER_PAGE + 1, to: Math.min(catalog.length || 84, (first + 2) * PER_PAGE), total: catalog.length || 84 }), 'mt-1 mb-3');
+  const personaRange = (first: number) => note(g('personas.range', { from: first * PER_PAGE + 1, to: Math.min(personaTotal, (first + 2) * PER_PAGE), total: personaTotal }), 'mt-1 mb-3');
   const leftOf = (index: number): React.ReactNode => {
     if (index === 0) {
       return (
@@ -973,7 +1018,13 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   const ease: [number, number, number, number] = [0.45, 0.05, 0.2, 1];
   const closed = shown === -1;
   const FACE: React.CSSProperties = { position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' };
-  const position = shown < 0 ? g('cover') : g('pageOf', { no: shown + 1, total: SPREADS });
+  const position = shown < 0 ? g('cover') : g('pageOf', { no: shown + 1, total: spreads });
+  // Tocar fora do livro (no escuro em volta dele) fecha o guia. Só quando o
+  // toque começou e terminou ali: arrastar a folha e soltar fora do livro não fecha.
+  const pressedOn = useRef<EventTarget | null>(null);
+  const closeOnBackdrop = (event: React.MouseEvent) => {
+    if (event.target === event.currentTarget && pressedOn.current === event.currentTarget) onClose();
+  };
 
   return createPortal(
     <div
@@ -985,17 +1036,26 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
       className="fixed inset-0 z-[9996] flex flex-col items-center outline-none"
       style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(46,30,84,0.92), rgba(8,5,18,0.96) 70%)' }}
     >
-      <motion.div className="flex h-full w-full flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
-        <header className="flex h-14 w-full max-w-[960px] shrink-0 items-center justify-between gap-3 px-3 sm:px-5">
-          <p className="min-w-0 truncate text-[17px]" style={{ ...PIXEL, color: PAPER }}>
-            {g('title')}
-          </p>
-          <button type="button" onClick={onClose} className={NAV_BUTTON} style={{ color: PAPER }} aria-label={g('close')}>
-            <X className="h-5 w-5" aria-hidden />
-          </button>
+      <motion.div className="flex h-full w-full flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}
+        onPointerDownCapture={(event) => {
+          pressedOn.current = event.target;
+        }}
+        onClick={closeOnBackdrop}
+      >
+        {/* o topo desce abaixo da barra do relógio no celular (site instalado e app) */}
+        <header className="w-full max-w-[960px] shrink-0 px-3 sm:px-5" style={{ paddingTop: 'env(safe-area-inset-top)' }} onClick={closeOnBackdrop}>
+          <div className="flex h-14 items-center justify-between gap-3" onClick={closeOnBackdrop}>
+            <p className="min-w-0 truncate text-[17px]" style={{ ...PIXEL, color: PAPER }}>
+              {g('title')}
+            </p>
+            <button type="button" onClick={onClose} className={CLOSE_BUTTON} style={{ color: PAPER, borderColor: 'rgba(244,196,84,0.7)', background: 'rgba(43,26,74,0.85)' }} aria-label={g('close')}>
+              <X className="h-[18px] w-[18px]" aria-hidden />
+              {g('closeShort')}
+            </button>
+          </div>
         </header>
 
-        <div className="grid min-h-0 w-full flex-1 place-items-center overflow-hidden">
+        <div ref={areaRef} className="grid min-h-0 w-full flex-1 place-items-center overflow-hidden" onClick={closeOnBackdrop}>
           <motion.div
             className="relative cursor-pointer select-none"
             style={{ width: spread ? pageW * 2 : pageW, height: pageH, perspective: spread ? 2400 : 1500, touchAction: 'pan-y' }}
@@ -1072,12 +1132,12 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
           <p className="min-w-[92px] text-center text-[15px]" style={{ ...PIXEL, color: PAPER }} aria-hidden>
             {position}
           </p>
-          <button type="button" onClick={() => act(page + 1)} disabled={shown >= LAST} className={NAV_BUTTON} style={{ color: PAPER }} aria-label={g('next')}>
+          <button type="button" onClick={() => act(page + 1)} disabled={shown >= last} className={NAV_BUTTON} style={{ color: PAPER }} aria-label={g('next')}>
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
         </footer>
         <p className="sr-only" aria-live="polite">
-          {shown < 0 ? g('cover') : g('pageAria', { no: shown + 1, total: SPREADS, title: titles[shown] })}
+          {shown < 0 ? g('cover') : g('pageAria', { no: shown + 1, total: spreads, title: titles[shown] })}
         </p>
       </motion.div>
 

@@ -1018,6 +1018,13 @@ img[loading="lazy"] {
   inset: 0;
   transform: translateX(var(--fate-stop));
 }
+/* antes de correr, a centelha espera na base (sem o rastro) */
+.fate-thread[data-armed] .fate-thread__runner {
+  transform: translateX(0%);
+}
+.fate-thread[data-armed] .fate-thread__tail {
+  opacity: 0;
+}
 .fate-thread__tail {
   position: absolute;
   top: 0;
