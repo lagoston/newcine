@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Image as ImageIcon, Layout, Crown, Lock, Unlock, Check, User, Film, Type, Palette } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { useDirector } from '../contexts/DirectorContext';
+import { DIRECTOR_REVIEW_PASS } from '../lib/director';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId, getFrameClass, frameUsesComponent } from '../lib/frames';
@@ -119,6 +121,9 @@ const getUnlockTagInfo = (requiredTagName: string | null | undefined): UnlockTag
 const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave }) => {
   const { t } = useTranslation();
   const { session, isPremium } = useAuth();
+  // Conta Diretor (16/11/2026): tudo destrancado na tela; o banco libera igual
+  // (is_cosmetic_unlocked), sem gravar posse.
+  const { isDirector } = useDirector();
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [loading, setLoading] = useState(true);
   // Progresso das tags que desbloqueiam itens (a carta Horror exige a tag
@@ -131,6 +136,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
   const [selectedTextEffect, setSelectedTextEffect] = useState<TextEffectId>('default');
   const [realReviewCount, setRealReviewCount] = useState(0);
+  const reviewCount = isDirector ? DIRECTOR_REVIEW_PASS : realReviewCount;
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [frozenAvatarUrl, setFrozenAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>('');
@@ -285,7 +291,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   // a ficha especial; até lá fica trancado com a faixa "Kit da Cobra".
   const lockState = (item: { isPremium: boolean; requiredTag?: string | null; kit?: string }, grantKey?: string) => {
     const kit = Boolean(item.kit);
-    if (grantKey && grants.has(grantKey)) {
+    if (isDirector || (grantKey && grants.has(grantKey))) {
       return { isPremiumLocked: false, unlockInfo: null, progress: 0, required: 0, tagMet: true, isLocked: false, kit };
     }
     if (kit) {
@@ -549,11 +555,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {ordered.map((effect) => {
           const isDefault = effect.id === 'default';
-          const unlocked = meetsTextEffectRequirement(effect.id, isPremium, realReviewCount);
+          const unlocked = meetsTextEffectRequirement(effect.id, isPremium, reviewCount);
           const isLocked = !unlocked;
           const isPremiumLocked = effect.isPremium && !isPremium;
           const unlockInfo = getUnlockTagInfo(effect.requiredTag);
-          const reviewProgress = Math.min(realReviewCount, effect.requiredReviewCount);
+          const reviewProgress = Math.min(reviewCount, effect.requiredReviewCount);
           const selected = selectedTextEffect === effect.id;
           const busy = savingKey === `text_effect:${effect.id}`;
           const isLockedNow = isLocked;
@@ -602,10 +608,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   // texto escolhidos agora — pra ver as três peças juntas.
   const livePreview = () => {
     // Prêmio da mesa vale como Premium só para o item ganho.
-    const bannerClass = getBannerClass(selectedBanner, isPremium || grants.has(`banner:${selectedBanner}`));
-    const rawFrame = getFrameClass(selectedFrame, isPremium || grants.has(`frame:${selectedFrame}`));
+    const bannerClass = getBannerClass(selectedBanner, isPremium || isDirector || grants.has(`banner:${selectedBanner}`));
+    const rawFrame = getFrameClass(selectedFrame, isPremium || isDirector || grants.has(`frame:${selectedFrame}`));
     const frameClass = !rawFrame || rawFrame === 'ring-0' ? 'ring-2 ring-white/15' : rawFrame;
-    const nameClass = getTextEffectNameClass(selectedTextEffect, isPremium, realReviewCount);
+    const nameClass = getTextEffectNameClass(selectedTextEffect, isPremium, reviewCount);
     return (
       <section aria-label={t('customize.preview')} className="mb-5">
         <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: MIST }}>
@@ -616,7 +622,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           style={bannerClass ? undefined : { background: `radial-gradient(ellipse 70% 90% at 100% 0%, rgba(139,92,246,0.22), transparent 65%), ${VELVET}` }}
         >
           <div className="relative z-10 flex items-center gap-4 px-4 sm:px-6 py-5">
-            {frameUsesComponent(selectedFrame, isPremium || grants.has(`frame:${selectedFrame}`)) && frozenAvatarUrl ? (
+            {frameUsesComponent(selectedFrame, isPremium || isDirector || grants.has(`frame:${selectedFrame}`)) && frozenAvatarUrl ? (
               <FlipFrame frameId={selectedFrame} src={frozenAvatarUrl} alt="" size={64} className="shrink-0" />
             ) : (
               <span className={`block w-16 h-16 shrink-0 rounded-full overflow-hidden ${frameClass}`} style={{ background: NIGHT }}>

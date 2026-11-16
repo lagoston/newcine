@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useDirector } from './DirectorContext';
 import {
   SEASONAL_THEMES,
   PREVIEW_ALIASES,
@@ -48,24 +49,14 @@ export const requestSeasonalRefresh = () => {
   window.dispatchEvent(new Event(REFRESH_EVENT));
 };
 
-// ?evento=natal liga a prévia (guardada na aba); ?evento=off desliga.
-function readPreview(search: string): SeasonalEventId | null {
+// Prévia de um evento fora da época. Desde 16/11/2026 (Conta Diretor) é só do
+// diretor: o banco ignora p_preview de qualquer outra conta. ?evento=natal liga
+// a prévia na tela do diretor (guardada no aparelho, como a escolha feita no
+// painel /diretor); ?evento=off desliga. Para os outros, o parâmetro não faz nada.
+function previewFromUrl(search: string): SeasonalEventId | null | undefined {
   const raw = new URLSearchParams(search).get('evento');
-  const wanted = raw === null ? undefined : PREVIEW_ALIASES[raw.toLowerCase()] ?? null;
-  try {
-    if (wanted === null) {
-      sessionStorage.removeItem(PREVIEW_KEY);
-      return null;
-    }
-    if (wanted) {
-      sessionStorage.setItem(PREVIEW_KEY, wanted);
-      return wanted;
-    }
-    const stored = sessionStorage.getItem(PREVIEW_KEY);
-    return isSeasonalEventId(stored) ? stored : null;
-  } catch {
-    return wanted ?? null;
-  }
+  if (raw === null) return undefined;
+  return PREVIEW_ALIASES[raw.toLowerCase()] ?? null;
 }
 
 export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -73,7 +64,8 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const userId = session?.user?.id ?? null;
   const location = useLocation();
 
-  const [preview, setPreview] = useState<SeasonalEventId | null>(() => readPreview(location.search));
+  const director = useDirector();
+  const preview = director.isDirector ? director.prefs.eventPreview : null;
   const [event, setEvent] = useState<SeasonalEventState | null>(null);
   const [loading, setLoading] = useState(true);
   const [celebration, setCelebration] = useState<SeasonalStep[]>([]);
@@ -81,9 +73,17 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const requestId = useRef(0);
   const seenInMemory = useRef<string[]>([]);
 
+  const { isDirector, setPref } = director;
   useEffect(() => {
-    setPreview(readPreview(location.search));
-  }, [location.search]);
+    // a prévia antiga ficava na aba, para qualquer um: some
+    try {
+      sessionStorage.removeItem(PREVIEW_KEY);
+    } catch {
+      // sem armazenamento
+    }
+    const wanted = previewFromUrl(location.search);
+    if (wanted !== undefined && isDirector) setPref('eventPreview', wanted);
+  }, [location.search, isDirector, setPref]);
 
   const refresh = useCallback(async () => {
     const id = ++requestId.current;
@@ -192,6 +192,7 @@ export function useTagDecoration(
 ): SeasonalEventId | null {
   const { event } = useSeasonalEvent();
   const { session } = useAuth();
+  const { isDirector } = useDirector();
   const signedIn = Boolean(session?.user?.id);
   const decoration = decorationForActiveTag(activeTag);
   const wanted = decoration?.eventId ?? null;
@@ -219,6 +220,8 @@ export function useTagDecoration(
 
   if (isOwn && event?.is_preview) return event.id;
   if (!wanted) return null;
+  // Conta Diretor (16/11/2026): veste a tag sem tê-la para ver a decoração no próprio perfil
+  if (isOwn && isDirector) return wanted;
   if (!signedIn) return wanted;
   return verified?.key === key && verified.owned ? wanted : null;
 }

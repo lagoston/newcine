@@ -21,6 +21,8 @@ import { useProfileData } from '../hooks/useProfileData';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
+import { useDirector } from '../contexts/DirectorContext';
+import { DIRECTOR_REVIEW_PASS } from '../lib/director';
 
 interface Profile {
   id: string;
@@ -112,6 +114,8 @@ const getImageDimensions = (file: File): Promise<{ width: number; height: number
 export default function Profile() {
   const navigate = useNavigate();
   const { session, isPremium, checkPremiumStatus } = useAuth();
+  // Conta Diretor (16/11/2026): os efeitos de nome que pedem resenhas aparecem
+  const { isDirector } = useDirector();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -555,7 +559,7 @@ export default function Profile() {
           banner={profile?.banner}
           textEffect={profile?.text_effect}
           isPremium={isPremium}
-          realReviewCount={realReviewCount}
+          realReviewCount={isDirector ? DIRECTOR_REVIEW_PASS : realReviewCount}
           activeTag={profile?.active_tag}
           bio={bio}
           friendsCount={friendsCount}

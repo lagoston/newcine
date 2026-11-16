@@ -9,6 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
 import MobileDock from './MobileDock';
 import { WhispersBell, WhispersHost } from './WhispersBell';
+import DirectorNavButton from './DirectorNavButton';
 import { FOCUS_RING } from '../lib/oracleTheme';
 // Carregado sob demanda: a Navbar aparece em TODAS as páginas, então um
 // import direto aqui colocava o modal inteiro (~100 KB com as frases do
@@ -158,6 +159,8 @@ function Navbar() {
                 </Link>
               </div>
               <div className="lg:hidden flex items-center">
+                {/* Conta Diretor (16/11/2026): a claquete só aparece para ela */}
+                <DirectorNavButton />
                 <WhispersBell />
               </div>
             </>
@@ -211,6 +214,7 @@ function Navbar() {
 
           <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
             <NavbarSearch onMovieSelect={handleMovieSelect} />
+            {user && <DirectorNavButton />}
             {user && <WhispersBell />}
             <LanguageSwitcher />
             {user ? (

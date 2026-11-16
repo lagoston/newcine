@@ -8,6 +8,7 @@ import StreamingFilterModal from '../components/StreamingFilterModal';
 import LibraryEditModal from '../components/LibraryEditModal';
 import UserReviewsModal from '../components/UserReviewsModal';
 import { useAuth } from '../lib/auth';
+import { useDirector } from '../contexts/DirectorContext';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import WatchListDuelModal from '../components/WatchListDuelModal';
@@ -53,6 +54,8 @@ const sameTitle = (row: LibraryRow, movieId: number, mediaType?: TitleMediaType)
 
 export default function Library() {
   const { session } = useAuth();
+  // Conta Diretor (16/11/2026): Melhores da Década liberado (o banco libera igual)
+  const { isDirector } = useDirector();
   const { t } = useTranslation();
   const location = useLocation();
   const [rows, setRows] = useState<LibraryRow[]>([]);
@@ -251,7 +254,7 @@ export default function Library() {
 
   const handleRatedLayoutChange = (layout: RatedLayout) => {
     // Melhores da Década só com a Cine Elite (o modal já mostra trancado).
-    if (layout === 'decades' && !hasCineElite(stats.rated)) return;
+    if (layout === 'decades' && !isDirector && !hasCineElite(stats.rated)) return;
     const previous = ratedLayout;
     setRatedLayout(layout);
     if (!session?.user?.id) return;
@@ -436,8 +439,9 @@ export default function Library() {
   // Cine Elite (200 títulos avaliados) libera Melhores da Década. Se a
   // pessoa cai abaixo disso (tirou notas), a organização volta para Notas —
   // o banco faz o mesmo no perfil (reconcile_user_cosmetics).
-  const eliteUnlocked = hasCineElite(stats.rated);
-  const shownLayout = effectiveLayout(ratedLayout, stats.rated);
+  const eliteRated = isDirector ? Math.max(stats.rated, CINE_ELITE.min) : stats.rated;
+  const eliteUnlocked = hasCineElite(eliteRated);
+  const shownLayout = effectiveLayout(ratedLayout, eliteRated);
   const hadEliteRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (!initialLoadComplete) return;
@@ -641,7 +645,7 @@ export default function Library() {
         }}
         ratedLayout={shownLayout}
         onRatedLayoutChange={handleRatedLayoutChange}
-        ratedCount={stats.rated}
+        ratedCount={eliteRated}
         onTvOrderChange={setTvOrder}
       />
 

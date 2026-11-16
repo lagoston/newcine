@@ -268,11 +268,32 @@ export async function savePersonaLayout(at: Record<string, number>): Promise<Rec
   return parseLayout(data);
 }
 
+// Conta Diretor (16/11/2026): "estúdio completo" na tela do diretor mostra, só
+// na cena da própria conta e só neste aparelho, os três bichinhos e a caixa do
+// Clube do Terror, para ver como ficam sem precisar ganhá-los. O banco não muda.
+let studioPreviewOwner: string | null = null;
+export function setStudioPreviewOwner(userId: string | null): void {
+  studioPreviewOwner = userId;
+}
+
+function withStudioPreview(world: PersonaWorld): PersonaWorld {
+  const first = Math.max(1, world.rated);
+  const tags = world.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id))
+    ? world.tags
+    : [...world.tags, { id: 'deadly-sleeping', at: new Date().toISOString() }];
+  return {
+    ...world,
+    tags,
+    pets: { frog: world.pets.frog ?? first, fox: world.pets.fox ?? first, snake: world.pets.snake ?? first },
+  };
+}
+
 // A cena de alguém (a sua, ou a de um perfil que você pode ver).
 export async function fetchPersonaWorld(userId: string): Promise<PersonaWorld | null> {
   const { data, error } = await supabase.rpc('get_persona_world', { p_user_id: userId });
   if (error) throw error;
-  return parsePersonaWorld(data);
+  const world = parsePersonaWorld(data);
+  return world && studioPreviewOwner === userId ? withStudioPreview(world) : world;
 }
 
 const sortByMoodOrder = (letters: string[]): string => letters.slice().sort((a, b) => LETTERS.indexOf(a) - LETTERS.indexOf(b)).join('');

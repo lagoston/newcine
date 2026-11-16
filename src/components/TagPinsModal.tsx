@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useDirector } from '../contexts/DirectorContext';
 import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS } from '../lib/tags';
 import {
@@ -67,6 +68,11 @@ const GAME_SECTIONS: GameId[] = ['jackpot', 'poker'];
 const pokerEnabled = (): Promise<boolean> => sharedHome().then((h) => !!h?.enabled, () => false);
 const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, onSave }) => {
   const { session } = useAuth();
+  // Conta Diretor (16/11/2026): no próprio perfil, toda tag aparece liberada e
+  // pode ser vestida (só para ver como fica). Os avisos de tag nova continuam
+  // vindo só das conquistas de verdade: syncUnlockedTagsAndNotify recebe a lista real.
+  const { isDirector } = useDirector();
+  const directorAll = isDirector && userId === session?.user?.id;
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const [loading, setLoading] = useState(true);
@@ -169,6 +175,10 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
 
   // ---- Linhas de cada categoria, no formato único TagRow ----
   const rowsFor = (category: TagCategoryId): TagRow[] => {
+    const rows = realRowsFor(category);
+    return directorAll ? rows.map((row) => ({ ...row, isUnlocked: true })) : rows;
+  };
+  const realRowsFor = (category: TagCategoryId): TagRow[] => {
     switch (category) {
       case 'basic':
         return PROGRESSION_TAGS.map((tag) => {

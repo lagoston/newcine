@@ -11,6 +11,8 @@ import { useAuth } from '../lib/auth';
 import { cache } from '../lib/cache';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
 import { useTagDecorations } from '../contexts/SeasonalEventContext';
+import { useDirector } from '../contexts/DirectorContext';
+import { DIRECTOR_REVIEW_PASS } from '../lib/director';
 import { AvatarSeasonalAccessory, CardSeasonalScene, SeasonalCountdownMini } from '../components/seasonal/SeasonalDecor';
 import UserAvatar from '../components/UserAvatar';
 import FollowersModal from '../components/FollowersModal';
@@ -61,6 +63,8 @@ const KINDRED_MIN = 2;
 export default function Community() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
+  // Conta Diretor (16/11/2026): o próprio cartão (só ela se vê) com o efeito de nome liberado
+  const { isDirector } = useDirector();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -376,7 +380,7 @@ export default function Community() {
 
   const memberCard = (profile: Profile) => {
     const premium = profile.is_premium ?? profile.plan_type === 'premium';
-    const reviews = profile.real_review_count || 0;
+    const reviews = isDirector && profile.id === session?.user?.id ? DIRECTOR_REVIEW_PASS : profile.real_review_count || 0;
     const bannerClass = getBannerClass(profile.banner, premium);
     const nameClass = getTextEffectNameClass(profile.text_effect, premium, reviews);
     const secondaryClass = getTextEffectSecondaryClass(profile.text_effect, premium, reviews);

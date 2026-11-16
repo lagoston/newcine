@@ -13,6 +13,7 @@ import InstallPrompt from './components/InstallPrompt';
 import GlassLoader from './components/GlassLoader';
 import PageBackground from './components/PageBackground';
 import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
+import { DirectorProvider } from './contexts/DirectorContext';
 import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
 import { registerSW } from 'virtual:pwa-register';
 import { IS_NATIVE_APP } from './lib/platform';
@@ -46,6 +47,9 @@ const Blefe = lazy(() => import('./pages/Blefe'));
 // quem escolhe os pôsteres (só testadores; o banco recusa os outros com 'forbidden').
 // Página interna, sem link no menu, carregada só quando alguém abre a URL.
 const PosterCuration = lazy(() => import('./pages/PosterCuration'));
+// Sala do Diretor (16/11/2026): o painel da Conta Diretor. Só abre para ela (o
+// banco confere cada ação); para os outros, a rota volta para o Início.
+const DirectorPanel = lazy(() => import('./pages/DirectorPanel'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -76,6 +80,8 @@ function App() {
 
   return (
     <AuthProvider>
+      {/* Conta Diretor (16/11/2026): o papel vem do banco; ver lib/director.ts. */}
+      <DirectorProvider>
       <ThemeProvider>
         <BrowserRouter future={{ v7_relativeSplatPath: true }}>
           {/* WhispersProvider precisa estar DENTRO do BrowserRouter agora —
@@ -128,6 +134,7 @@ function App() {
                   <Route path="/blefe/*" element={<ProtectedRoute><Blefe /></ProtectedRoute>} />
                   {/* Curadoria do catálogo de pôsteres (04/11/2026): ver pages/PosterCuration.tsx. */}
                   <Route path="/curadoria/posteres" element={<ProtectedRoute><PosterCuration /></ProtectedRoute>} />
+                  <Route path="/diretor" element={<ProtectedRoute><DirectorPanel /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
@@ -166,6 +173,7 @@ function App() {
           toastOptions={{ style: { zIndex: 99999 } }}
         />
       </ThemeProvider>
+      </DirectorProvider>
     </AuthProvider>
   );
 }
