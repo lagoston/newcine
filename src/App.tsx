@@ -50,6 +50,10 @@ const PosterCuration = lazy(() => import('./pages/PosterCuration'));
 // Sala do Diretor (16/11/2026): o painel da Conta Diretor. Só abre para ela (o
 // banco confere cada ação); para os outros, a rota volta para o Início.
 const DirectorPanel = lazy(() => import('./pages/DirectorPanel'));
+// As ferramentas da Sala (16/11/2026): prateleiras, pôsteres da roleta e o diário.
+const DirectorShelves = lazy(() => import('./pages/DirectorShelves'));
+const DirectorPosters = lazy(() => import('./pages/DirectorPosters'));
+const DirectorDiary = lazy(() => import('./pages/DirectorDiary'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -135,6 +139,9 @@ function App() {
                   {/* Curadoria do catálogo de pôsteres (04/11/2026): ver pages/PosterCuration.tsx. */}
                   <Route path="/curadoria/posteres" element={<ProtectedRoute><PosterCuration /></ProtectedRoute>} />
                   <Route path="/diretor" element={<ProtectedRoute><DirectorPanel /></ProtectedRoute>} />
+                  <Route path="/diretor/prateleiras" element={<ProtectedRoute><DirectorShelves /></ProtectedRoute>} />
+                  <Route path="/diretor/posteres" element={<ProtectedRoute><DirectorPosters /></ProtectedRoute>} />
+                  <Route path="/diretor/diario" element={<ProtectedRoute><DirectorDiary /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />

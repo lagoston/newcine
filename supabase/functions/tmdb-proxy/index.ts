@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2.39.0';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.39.0';
 
 // tmdb-proxy — o caminho do site até o TMDB, sem expor a chave (reescrito
 // em 12/10/2026; ver o doc "Base de filmes" do Project).
@@ -79,6 +79,22 @@ const RULES: Rule[] = [
   { re: /^\/person\/\d+\/movie_credits$/, ttl: 0 },
 ];
 
+// Conta Diretor (16/11/2026): as imagens de um título, para escolher a arte de
+// um pôster novo da roleta na Sala do Diretor. Só para a conta diretor,
+// conferida no banco a cada pedido que não está guardado (o token é validado
+// pelo Auth, não só lido).
+const DIRECTOR_RULES: Rule[] = [{ re: /^\/(movie|tv)\/\d+\/images$/, ttl: 7 * DAY }];
+
+async function isDirector(req: Request, supabase: SupabaseClient): Promise<boolean> {
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return false;
+  const { data } = await supabase.auth.getUser(token);
+  const uid = data?.user?.id;
+  if (!uid) return false;
+  const { data: ok } = await supabase.rpc('is_director_user', { p_uid: uid });
+  return ok === true;
+}
+
 const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extra } });
 
@@ -132,7 +148,11 @@ Deno.serve(async (req: Request) => {
       internal = data === true;
     }
 
-    const rule = RULES.find((r) => r.re.test(target.path));
+    let rule = RULES.find((r) => r.re.test(target.path));
+    if (!rule && !internal) {
+      const directorRule = DIRECTOR_RULES.find((r) => r.re.test(target.path));
+      if (directorRule && (await isDirector(req, supabase))) rule = directorRule;
+    }
     if (!rule && !internal) return json({ error: 'endpoint_not_allowed' }, 403);
 
     // 1) guardado e dentro do prazo

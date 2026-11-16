@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Clapperboard, Ghost, KeyRound, Loader2, LogOut, Sparkles } from 'lucide-react';
+import { Clapperboard, Ghost, Loader2, LogOut, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -10,6 +10,7 @@ import { useDirector } from '../contexts/DirectorContext';
 import { directorSelfRevoke } from '../lib/director';
 import { SEASONAL_THEMES, type SeasonalEventId } from '../lib/seasonalEvents';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, NIGHT_BACKGROUND } from '../lib/oracleTheme';
+import DirectorMfaCard from '../components/director/DirectorMfaCard';
 
 // Sala do Diretor (/diretor, 16/11/2026).
 //
@@ -59,9 +60,13 @@ const COPY = {
     ghostTitle: 'O fantasma',
     ghost:
       'Para os outros esta conta não existe: some da Comunidade, da busca, do /perfil, das contagens das Personas, das salas, dos convites e de "quantas pessoas têm" um pôster. As notas dela não mexem na previsão de ninguém nem no placar. Amizade, sussurro, troca e convite com ela não nascem.',
-    mfaTitle: 'App autenticador',
-    mfaOn: 'Cadastrado. Ferramentas que mudam o site para todos pedem o código.',
-    mfaOff: 'Ainda não cadastrado. As ferramentas que mudam o site para todos (prateleiras, pôsteres novos) vão pedir o código de um app autenticador.',
+    toolsTitle: 'Ferramentas',
+    toolsLead: 'Mudam o site para todo mundo, na hora (inclusive no app). Pedem o código do app autenticador, e cada mudança fica no diário, com desfazer.',
+    tools: [
+      { to: '/diretor/prateleiras', label: 'Prateleiras dos oráculos', hint: 'Pôr, mudar de prateleira e tirar títulos' },
+      { to: '/diretor/posteres', label: 'Pôsteres da roleta', hint: 'Escolher a arte, a raridade e pôr no sorteio' },
+      { to: '/diretor/diario', label: 'Diário', hint: 'Tudo o que esta conta mudou, com desfazer' },
+    ],
     panicTitle: 'Largar o papel',
     panic: 'Tira o papel de diretor desta conta e sai de todos os aparelhos. A conta continua escondida. O papel só volta pelo banco.',
     panicButton: 'Largar o papel de diretor',
@@ -101,9 +106,13 @@ const COPY = {
     ghostTitle: 'The ghost',
     ghost:
       'To everyone else this account does not exist: it is gone from the Community, search, /profile, Persona counts, rooms, invites and "how many people own" a poster. Its ratings do not move anyone else\'s prediction or the scoreboard. Friendships, whispers, trades and invites with it are never created.',
-    mfaTitle: 'Authenticator app',
-    mfaOn: 'Set up. Tools that change the site for everyone ask for the code.',
-    mfaOff: 'Not set up yet. Tools that change the site for everyone (shelves, new posters) will ask for a code from an authenticator app.',
+    toolsTitle: 'Tools',
+    toolsLead: 'They change the site for everyone, right away (the app too). They ask for the authenticator code, and every change goes to the diary, with undo.',
+    tools: [
+      { to: '/diretor/prateleiras', label: 'Oracle shelves', hint: 'Add, move and remove titles' },
+      { to: '/diretor/posteres', label: 'Wheel posters', hint: 'Pick the artwork, the rarity and put it in the draw' },
+      { to: '/diretor/diario', label: 'Diary', hint: 'Everything this account changed, with undo' },
+    ],
     panicTitle: 'Give up the role',
     panic: 'Removes the director role from this account and signs out on every device. The account stays hidden. The role only comes back through the database.',
     panicButton: 'Give up the director role',
@@ -137,7 +146,6 @@ export default function DirectorPanel() {
   const director = useDirector();
   const userId = session?.user?.id ?? null;
   const [username, setUsername] = useState<string | null>(null);
-  const [mfaReady, setMfaReady] = useState<boolean | null>(null);
   const [panicArmed, setPanicArmed] = useState(false);
   const [panicBusy, setPanicBusy] = useState(false);
 
@@ -152,12 +160,6 @@ export default function DirectorPanel() {
       .then(({ data }) => {
         if (alive) setUsername((data?.username as string | undefined) ?? null);
       });
-    supabase.auth.mfa
-      .listFactors()
-      .then(({ data }) => {
-        if (alive) setMfaReady(Boolean(data?.totp?.some((factor) => factor.status === 'verified')));
-      })
-      .catch(() => alive && setMfaReady(false));
     return () => {
       alive = false;
     };
@@ -252,8 +254,36 @@ export default function DirectorPanel() {
           </div>
         </section>
 
+        {/* ---------- Ferramentas ---------- */}
+        <section aria-labelledby="director-tools" className="mt-8 rounded-2xl p-5 sm:p-6" style={{ ...panel, borderColor: 'rgba(245,196,81,0.28)' }}>
+          <h2 id="director-tools" className="text-lg font-semibold" style={{ color: PAPER }}>
+            {c.toolsTitle}
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed max-w-prose" style={{ color: MIST }}>
+            {c.toolsLead}
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+            {c.tools.map((tool) => (
+              <li key={tool.to}>
+                <Link
+                  to={tool.to}
+                  className={`flex h-full flex-col items-start justify-start gap-1 rounded-xl p-4 transition-colors hover:bg-white/[0.04] ${FOCUS_RING}`}
+                  style={{ background: VELVET, border: '1px solid rgba(243,234,211,0.1)' }}
+                >
+                  <span className="text-sm font-semibold" style={{ color: BRASS }}>
+                    {tool.label}
+                  </span>
+                  <span className="text-xs leading-relaxed" style={{ color: MIST }}>
+                    {tool.hint}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* ---------- Ver o site de outro jeito ---------- */}
-        <section aria-labelledby="director-see" className="mt-8 rounded-2xl p-5 sm:p-6" style={panel}>
+        <section aria-labelledby="director-see" className="mt-6 rounded-2xl p-5 sm:p-6" style={panel}>
           <h2 id="director-see" className="text-lg font-semibold" style={{ color: PAPER }}>
             {c.seeTitle}
           </h2>
@@ -362,15 +392,7 @@ export default function DirectorPanel() {
               {c.ghost}
             </p>
           </div>
-          <div className="rounded-2xl p-5 sm:col-span-2" style={panel}>
-            <h2 className="flex items-center gap-2 text-base font-semibold" style={{ color: PAPER }}>
-              <KeyRound className="w-4 h-4" style={{ color: BRASS }} aria-hidden />
-              {c.mfaTitle}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
-              {mfaReady === null ? '…' : mfaReady ? c.mfaOn : c.mfaOff}
-            </p>
-          </div>
+          <DirectorMfaCard lang={lang} className="sm:col-span-2" style={{ ...panel }} />
         </section>
 
         {/* ---------- Pânico ---------- */}
