@@ -17,7 +17,7 @@ import StoryViewer from './feed/StoryViewer';
 import JackpotInviteCard from './posterJackpot/JackpotInviteCard';
 import PokerInviteActions from './poker/friends/PokerInviteActions';
 import { StatusPill, TradeCard } from './posterJackpot/PosterTradesPanel';
-import { getMyTrades, respondTrade, tradeErrorCode, type PosterTrade } from '../lib/posterTrades';
+import { acceptedToast, getMyTrades, respondTrade, tradeErrorCode, type PosterTrade } from '../lib/posterTrades';
 
 interface WhispersModalProps {
   isOpen: boolean;
@@ -319,8 +319,10 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     try {
       const status = await respondTrade(trade.id, accept);
       setTrades((prev) => new Map(prev).set(trade.id, { ...trade, status }));
-      if (status === 'accepted') toast.success(t('trades.acceptedToast'));
-      else if (status === 'declined') toast(t('trades.declinedToast'));
+      if (status === 'accepted') {
+        const done = acceptedToast(trade);
+        toast.success(t(done.key, { count: done.count }));
+      } else if (status === 'declined') toast(t('trades.declinedToast'));
       else toast.error(t('trades.voidToast'));
     } catch (error) {
       console.error('Error responding to trade:', error);

@@ -20,10 +20,11 @@ export const EFFECTS: PosterEffect[] = ['holo', 'negative', 'ultra_red'];
 // Cor de cada raridade (o cinza, o azul, o roxo e o dourado pedidos pelo
 // Bruno) e a chance num ticket (a mesma do banco).
 export const RARITY_META: Record<PosterRarity, { color: string; glow: string; odds: number }> = {
-  common: { color: '#B9B4AE', glow: 'rgba(185,180,174,0.5)', odds: 55 },
+  // 16/11/2026 (pedido do Bruno): comum 56% e lendário 3% (antes 55% e 4%).
+  common: { color: '#B9B4AE', glow: 'rgba(185,180,174,0.5)', odds: 56 },
   rare: { color: '#5EA8FF', glow: 'rgba(94,168,255,0.6)', odds: 28 },
   epic: { color: '#C77DFF', glow: 'rgba(199,125,255,0.65)', odds: 13 },
-  legendary: { color: '#FFC83D', glow: 'rgba(255,200,61,0.7)', odds: 4 },
+  legendary: { color: '#FFC83D', glow: 'rgba(255,200,61,0.7)', odds: 3 },
 };
 
 export const EFFECT_META: Record<Exclude<PosterEffect, 'none'>, { color: string; odds: number }> = {
@@ -171,9 +172,9 @@ export interface CatalogPoster {
 export type PullKind = 'normal' | 'special' | 'lucky';
 
 export const LUCKY_GOAL = 10;
-// O Giro da Sorte: meio a meio entre épico e lendário (os efeitos seguem o
-// giro com ficha comum).
-export const LUCKY_ODDS: Partial<Record<PosterRarity, number>> = { epic: 50, legendary: 50 };
+// O Giro da Sorte (16/11/2026, pedido do Bruno): raro 20%, épico 50%, lendário
+// 30%, nunca comum (os efeitos seguem o giro com ficha comum). As mesmas do banco.
+export const LUCKY_ODDS: Partial<Record<PosterRarity, number>> = { rare: 20, epic: 50, legendary: 30 };
 
 export interface PullResult {
   item: PosterItem;

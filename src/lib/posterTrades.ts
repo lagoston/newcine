@@ -5,12 +5,23 @@ import { notifyPostersChanged, type PosterEffect, type PosterItem } from './post
 // pôster Y": quem propõe tem X (e o amigo não), o amigo tem Y (e quem propõe
 // não). Tudo é conferido no banco (migração 20261031020000); as propostas e
 // as respostas viram sussurros.
+//
+// 16/11/2026 (pedido do Bruno): até 3 pôsteres de cada lado (3 por 1, 2 por 3...).
+// O banco guarda o 1º de cada lado nas colunas de sempre e o 2º e o 3º à parte
+// (migração 20261116230000); aqui chegam todos em 'offers' e 'asks'. Um pôster
+// oferecido fica reservado: não entra em outra proposta enquanto esta estiver
+// aberta (erro 'offer_pending'), para ninguém aceitar e receber "anulada".
 
 export interface TradePoster extends PosterItem {
   effect: PosterEffect;
   // Na mesa da troca: o outro lado já tem esta versão (não pode receber).
   other_has?: boolean;
+  // Só nos meus: já está oferecido numa proposta minha que espera resposta.
+  reserved?: boolean;
 }
+
+// Quantos pôsteres cabem em cada lado de uma troca.
+export const TRADE_SLOTS = 3;
 
 export interface TradeFriend {
   id: string;
@@ -29,14 +40,22 @@ export interface PosterTrade {
   created_at: string;
   responded_at: string | null;
   friend: { id: string; username: string; avatar_url: string | null };
-  // offer: o que quem propôs dá; ask: o que quem propôs pede
+  // offer: o que quem propôs dá; ask: o que quem propôs pede (o 1º de cada lado)
   offer: TradePoster;
   ask: TradePoster;
+  // todos os pôsteres de cada lado, na ordem (16/11/2026)
+  offers?: TradePoster[];
+  asks?: TradePoster[];
 }
 
-// Do meu ponto de vista: o que eu dou e o que eu recebo.
-export const tradeSides = (trade: PosterTrade) =>
-  trade.incoming ? { give: trade.ask, get: trade.offer } : { give: trade.offer, get: trade.ask };
+const lines = (all: TradePoster[] | undefined, first: TradePoster) => (all && all.length ? all : [first]);
+
+// Do meu ponto de vista: os pôsteres que eu dou e os que eu recebo.
+export const tradeSides = (trade: PosterTrade): { give: TradePoster[]; get: TradePoster[] } => {
+  const offers = lines(trade.offers, trade.offer);
+  const asks = lines(trade.asks, trade.ask);
+  return trade.incoming ? { give: asks, get: offers } : { give: offers, get: asks };
+};
 
 export async function getTradeFriends(): Promise<TradeFriend[]> {
   const { data, error } = await supabase.rpc('get_trade_friends');
@@ -75,26 +94,28 @@ export async function getMyTrades(ids?: number[]): Promise<PosterTrade[]> {
 export const tradeErrorCode = (error: unknown): string => {
   const message = (error as { message?: string })?.message || '';
   return (
-    ['their_daily_trades', 'daily_proposals', 'daily_trades', 'not_friends', 'not_owned', 'they_have', 'not_theirs', 'you_have', 'duplicate', 'too_many', 'jackpot_closed'].find((code) =>
+    ['their_daily_trades', 'daily_proposals', 'daily_trades', 'not_friends', 'not_owned', 'they_have', 'not_theirs', 'you_have', 'duplicate', 'too_many', 'jackpot_closed', 'offer_pending', 'bad_slots'].find((code) =>
       message.includes(code)
     ) || 'error'
   );
 };
 
-export async function proposeTrade(friendId: string, give: TradePoster, get: TradePoster): Promise<number> {
-  const { data, error } = await supabase.rpc('propose_poster_trade', {
+const slots = (posters: TradePoster[]) => posters.map((poster) => ({ item_id: poster.id, effect: poster.effect }));
+
+export async function proposeTrade(friendId: string, give: TradePoster[], get: TradePoster[]): Promise<number> {
+  const { data, error } = await supabase.rpc('propose_poster_trade_multi', {
     p_friend: friendId,
-    p_offer_item: give.id,
-    p_offer_effect: give.effect,
-    p_ask_item: get.id,
-    p_ask_effect: get.effect,
+    p_offer: slots(give),
+    p_ask: slots(get),
   });
   if (error) throw error;
   return Number((data as { id?: number })?.id) || 0;
 }
 
 export async function respondTrade(tradeId: number, accept: boolean): Promise<TradeStatus> {
-  const { data, error } = await supabase.rpc('respond_poster_trade', { p_trade: tradeId, p_accept: accept });
+  // 16/11/2026: a v2 move todos os pôsteres da troca de uma vez (a antiga, que o
+  // app instalado ainda chama, recusa aceitar trocas de vários pôsteres).
+  const { data, error } = await supabase.rpc('respond_poster_trade_v2', { p_trade: tradeId, p_accept: accept });
   if (error) throw error;
   const status = (data as { status?: TradeStatus })?.status || 'void';
   if (status === 'accepted') notifyPostersChanged();
@@ -106,3 +127,9 @@ export async function cancelTrade(tradeId: number): Promise<TradeStatus> {
   if (error) throw error;
   return (data as { status?: TradeStatus })?.status || 'cancelled';
 }
+
+// O aviso de troca feita, no singular ou no plural (16/11/2026).
+export const acceptedToast = (trade: PosterTrade) => {
+  const count = tradeSides(trade).get.length;
+  return count > 1 ? { key: 'trades.acceptedManyToast', count } : { key: 'trades.acceptedToast', count };
+};

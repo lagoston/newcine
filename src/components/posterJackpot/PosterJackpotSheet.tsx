@@ -93,7 +93,7 @@ const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
 
 // Monta o sorteador da fita: só versões que ainda podem sair para a pessoa
 // (com esta ficha ou no Giro da Sorte), nas mesmas chances do banco. No Giro
-// da Sorte a fita só mostra épicos e lendários, meio a meio.
+// da Sorte a fita só mostra raros, épicos e lendários (20/50/30, sem comuns).
 const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: PullKind) => {
   const versions: PosterEffect[] = kind === 'special' ? EFFECTS : ['none', ...EFFECTS];
   const open = (item: CatalogPoster) => versions.filter((effect) => !owned.has(`${item.id}:${effect}`));
@@ -409,7 +409,7 @@ const Machine: React.FC<{
 
   // As chances no letreiro: as do giro com ficha ou as do Giro da Sorte.
   const odds: { rarity: PosterRarity; odds: number }[] = luckyRun
-    ? (['epic', 'legendary'] as PosterRarity[]).map((rarity) => ({ rarity, odds: LUCKY_ODDS[rarity] || 0 }))
+    ? (['rare', 'epic', 'legendary'] as PosterRarity[]).map((rarity) => ({ rarity, odds: LUCKY_ODDS[rarity] || 0 }))
     : RARITY_ASC.map((rarity) => ({ rarity, odds: RARITY_META[rarity].odds }));
 
   return (
