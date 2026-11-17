@@ -111,8 +111,8 @@ const EDGE = '#150E26';
 // ---------------------------------------------------------------------------
 // Onde um objeto pode ficar, em ladrilhos (x ao longo da parede da direita, y
 // ao longo da parede da esquerda; o canto do fundo é 0, 0). Cada lugar é um
-// quadrado de PLACE_SIZE de lado, marcado no chão com fita quando está vazio,
-// como as marcas de um set de filmagem.
+// quadrado de PLACE_SIZE de lado, marcado no chão com fita (como as marcas de
+// um set de filmagem) só enquanto a pessoa arruma o estúdio (17/11/2026).
 //
 // A sala tem 9 × 6 ladrilhos. Ficam livres de lugares: a frente da tela e da
 // estante das latas (para nada tapar a capa do filme nem as latas), o facho
@@ -881,13 +881,14 @@ export interface Arranging {
 // O chão dos lugares e os objetos, de trás para a frente. Arrumando, todos os
 // lugares acendem: os vazios em ouro (é para onde o objeto pode ir) e os
 // ocupados em luz clara (tocar num troca os dois de lugar).
+// 17/11/2026 (pedido do Bruno): "remova as marcas de locais de itens dentro do
+// estúdio do usuário, elas só devem aparecer quando o usuário está editando
+// seu ambiente". Fora do Arrumar, o chão fica limpo (antes os lugares vazios
+// ficavam sempre à vista, bem apagados).
 export function drawLounge(k: Kit, ctx: Ctx, layout: StudioLayout, arranging: Arranging | null = null) {
   PLACES.forEach((place, index) => {
+    if (!arranging) return;
     const free = layout.empty.includes(index);
-    if (!arranging) {
-      if (free) tapeMarks(k, ctx, place, 'rgba(243,234,211,0.2)');
-      return;
-    }
     const mine = arranging.picked !== null && layout.at[arranging.picked] === index;
     const [a, b, c, d] = placeCorners(k, place);
     const holding = arranging.picked !== null || Boolean(arranging.carrying);

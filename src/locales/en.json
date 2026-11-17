@@ -4366,8 +4366,8 @@
       },
       "places": {
         "title": "The places on the floor",
-        "intro": "The floor has places marked with tape, like a film set. Each object lives in a place; the empty ones wait for the next arrivals.",
-        "howOwn": "In Arrange the studio, pick up an object and tap the place it should go to. On a taken place, the two swap. The projector, the lamp and the rug stay where they are.",
+        "intro": "The floor has places, which show up marked with tape when you arrange the studio, like a film set. Each object lives in a place; the empty ones wait for the next arrivals.",
+        "howOwn": "In Arrange the studio, pick up an object and tap the place it should go to. On a taken place, the two swap. There you can also turn objects and put them in the inventory. The projector, the lamp and the rug stay where they are.",
         "howOther": "Everyone arranges their own: in Arrange the studio, you pick up an object and tap the place it should go to. The projector, the lamp and the rug stay where they are."
       },
       "pets": {

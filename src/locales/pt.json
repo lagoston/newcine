@@ -4365,8 +4365,8 @@
       },
       "places": {
         "title": "Os lugares do chão",
-        "intro": "O chão tem lugares marcados com fita, como num set de filmagem. Cada objeto mora num lugar; os vazios esperam os próximos.",
-        "howOwn": "Em Arrumar o estúdio, pegue um objeto e toque no lugar para onde ele vai. Num lugar ocupado, os dois trocam. O projetor, o abajur e o tapete não saem do lugar.",
+        "intro": "O chão tem lugares, que aparecem marcados com fita quando você arruma o estúdio, como num set de filmagem. Cada objeto mora num lugar; os vazios esperam os próximos.",
+        "howOwn": "Em Arrumar o estúdio, pegue um objeto e toque no lugar para onde ele vai. Num lugar ocupado, os dois trocam. Lá também dá para girar os objetos e guardar no inventário. O projetor, o abajur e o tapete não saem do lugar.",
         "howOther": "Cada pessoa arruma o seu: em Arrumar o estúdio, pega um objeto e toca no lugar para onde ele vai. O projetor, o abajur e o tapete não saem do lugar."
       },
       "pets": {
