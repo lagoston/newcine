@@ -127,6 +127,12 @@ export interface PersonaWorld {
   // do objeto → o número do lugar; studio.ts). O que não está aqui fica no
   // lugar de costume.
   layout: Record<string, number>;
+  // 17/11/2026 (o inventário): os objetos que a pessoa guardou (não aparecem
+  // na sala) e os que ela girou (o número de quartos de volta; hoje só 0 ou 1)
+  stored: string[];
+  turn: Record<string, number>;
+  // Conta Diretor: o "estúdio completo" (nível máximo, todos os objetos), só na tela dela
+  preview?: boolean;
   // quantos títulos da curadoria de cada oráculo a pessoa avaliou
   oracle: { bogart: number; fincher: number; cypher: number };
   // os bichinhos: em que nota (a contagem de títulos avaliados) cada um
@@ -192,7 +198,8 @@ const parseTitle = (raw: unknown): WorldTitle | null => {
 };
 const parseTitles = (raw: unknown): WorldTitle[] => (Array.isArray(raw) ? raw.map(parseTitle).filter((x): x is WorldTitle => Boolean(x)) : []);
 
-// O arranjo salvo: { v: 1, at: { slot: 4, fox: 7 } }. Só entram números inteiros de lugar.
+// O arranjo salvo: { v: 2, at: { slot: 4, fox: 7 }, off: ['plant'], rot: { chair: 1 } }.
+// Só entram números inteiros de lugar. O v1 (até 17/11/2026) só tinha o `at`.
 export function parseLayout(raw: unknown): Record<string, number> {
   const at = raw && typeof raw === 'object' ? (raw as Row).at : null;
   const out: Record<string, number> = {};
@@ -202,6 +209,29 @@ export function parseLayout(raw: unknown): Record<string, number> {
   });
   return out;
 }
+// os guardados (no inventário, fora da sala)
+export function parseStored(raw: unknown): string[] {
+  const off = raw && typeof raw === 'object' ? (raw as Row).off : null;
+  return Array.isArray(off) ? Array.from(new Set(off.filter((item): item is string => typeof item === 'string' && /^[a-z]{2,16}$/.test(item)))) : [];
+}
+// os girados: objeto → quartos de volta (0 a 3)
+export function parseTurn(raw: unknown): Record<string, number> {
+  const rot = raw && typeof raw === 'object' ? (raw as Row).rot : null;
+  const out: Record<string, number> = {};
+  if (!rot || typeof rot !== 'object') return out;
+  Object.entries(rot as Row).forEach(([item, turn]) => {
+    if (typeof turn === 'number' && Number.isInteger(turn) && turn > 0 && turn < 4) out[item] = turn;
+  });
+  return out;
+}
+
+// O arranjo inteiro: onde cada objeto está, o que está guardado e o que está girado.
+export interface StudioArrangement {
+  at: Record<string, number>;
+  off: string[];
+  rot: Record<string, number>;
+}
+export const arrangementOf = (world: Pick<PersonaWorld, 'layout' | 'stored' | 'turn'>): StudioArrangement => ({ at: { ...world.layout }, off: [...world.stored], rot: { ...world.turn } });
 
 export function parsePersonaWorld(data: unknown): PersonaWorld | null {
   if (!data || typeof data !== 'object') return null;
@@ -256,21 +286,28 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
           .slice(0, 4)
       : [],
     layout: parseLayout(raw.layout),
+    stored: parseStored(raw.layout),
+    turn: parseTurn(raw.layout),
     oracle: { bogart: num(oracle.bogart), fincher: num(oracle.fincher), cypher: num(oracle.cypher) },
     pets: { frog: petAt(pets.frog), fox: petAt(pets.fox), snake: petAt(pets.snake) },
   };
 }
 
-// Grava o arranjo do próprio estúdio e devolve o que ficou guardado.
-export async function savePersonaLayout(at: Record<string, number>): Promise<Record<string, number>> {
-  const { data, error } = await supabase.rpc('set_persona_studio_layout', { p_layout: { v: 1, at } });
+// Grava o arranjo do próprio estúdio e devolve o que ficou guardado. Desde
+// 17/11/2026 vai também o inventário (off) e o giro (rot); o app antigo, que só
+// manda o `at`, não apaga os dois (o banco mantém o que estava).
+export async function savePersonaLayout(arrangement: StudioArrangement): Promise<StudioArrangement> {
+  const { data, error } = await supabase.rpc('set_persona_studio_layout', { p_layout: { v: 2, at: arrangement.at, off: arrangement.off, rot: arrangement.rot } });
   if (error) throw error;
-  return parseLayout(data);
+  return { at: parseLayout(data), off: parseStored(data), rot: parseTurn(data) };
 }
 
 // Conta Diretor (16/11/2026): "estúdio completo" na tela do diretor mostra, só
 // na cena da própria conta e só neste aparelho, os três bichinhos e a caixa do
 // Clube do Terror, para ver como ficam sem precisar ganhá-los. O banco não muda.
+// 17/11/2026 (Bruno: "o estúdio 'completo' não está de fato completo em seu
+// nível máximo, não tem nem a cadeira nem o tapete"): agora é o nível máximo,
+// com todos os móveis (worldState lê `preview`), e a caixa do Arquivo.
 let studioPreviewOwner: string | null = null;
 export function setStudioPreviewOwner(userId: string | null): void {
   studioPreviewOwner = userId;
@@ -284,6 +321,7 @@ function withStudioPreview(world: PersonaWorld): PersonaWorld {
   return {
     ...world,
     tags,
+    preview: true,
     pets: { frog: world.pets.frog ?? first, fox: world.pets.fox ?? first, snake: world.pets.snake ?? first },
   };
 }
@@ -342,6 +380,8 @@ export function worldState(world: PersonaWorld): WorldState {
   if (hasTrio) {
     level = 1;
     for (let l = 2; l <= MAX_LEVEL; l += 1) if (world.rated >= LEVEL_AT[l]) level = l;
+    // o estúdio completo do diretor: o nível máximo, com todos os móveis
+    if (world.preview) level = MAX_LEVEL;
   }
   const stage = hasTrio ? stageOfLevel(level) : world.rated > 0 ? 1 : 0;
   const nextAt = level > 0 && level < MAX_LEVEL ? LEVEL_AT[level + 1] : null;

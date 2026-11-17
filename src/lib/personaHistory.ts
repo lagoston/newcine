@@ -202,6 +202,8 @@ export function worldAt(history: PersonaHistory, k: number, today: PersonaWorld,
     posters: today.posters,
     // o arranjo é o de hoje (não há história dele); os bichinhos, só os que já tinham chegado naquela nota
     layout: today.layout,
+    stored: today.stored,
+    turn: today.turn,
     oracle: today.oracle,
     pets: {
       frog: today.pets.frog !== null && today.pets.frog <= rows.length ? today.pets.frog : null,

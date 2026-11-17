@@ -7,6 +7,7 @@ import {
   drawLounge,
   frogHome,
   hasPet,
+  itemPortrait,
   loungeSpots,
   NO_EXTRAS,
   paintFrog,
@@ -479,10 +480,34 @@ export function studioPick(world: PersonaWorld, st: WorldState, extras: StudioEx
   return pickAt(KIT, studioLayout(KIT, world, st, extras), x, y);
 }
 
-// Arrumando o estúdio: os objetos que podem ser pegos, os lugares do chão e o lugar de cada objeto.
-export function studioArrange(world: PersonaWorld, st: WorldState, extras: StudioExtras = NO_EXTRAS): ArrangeTargets & { at: Partial<Record<ItemId, number>> } {
+// Arrumando o estúdio: os objetos que podem ser pegos, os lugares do chão, o
+// lugar de cada objeto e (17/11/2026) o inventário: o que a pessoa tem, o que
+// está guardado.
+export function studioArrange(
+  world: PersonaWorld,
+  st: WorldState,
+  extras: StudioExtras = NO_EXTRAS,
+): ArrangeTargets & { at: Partial<Record<ItemId, number>>; owned: ItemId[]; stored: ItemId[] } {
   const layout = studioLayout(KIT, world, st, extras);
-  return { ...arrangeTargets(KIT, layout), at: layout.at };
+  return { ...arrangeTargets(KIT, layout), at: layout.at, owned: layout.owned, stored: layout.stored };
+}
+
+// O desenho de um objeto sozinho (o inventário), em data URL, com o tamanho em pixels da cena.
+export interface Portrait {
+  src: string;
+  w: number;
+  h: number;
+}
+const portraits = new Map<string, Portrait | null>();
+export function studioPortrait(world: PersonaWorld, st: WorldState, extras: StudioExtras, id: ItemId, turned: boolean): Portrait | null {
+  const layout = studioLayout(KIT, world, st, extras);
+  const key = `${id}|${turned ? 1 : 0}|${layout.env.tints.join('')}|${st.out > 0 || world.preview ? 1 : 0}`;
+  if (!portraits.has(key)) {
+    if (portraits.size > 120) portraits.clear();
+    const canvas = itemPortrait(KIT, layout, id, turned);
+    portraits.set(key, canvas ? { src: canvas.toDataURL(), w: canvas.width, h: canvas.height } : null);
+  }
+  return portraits.get(key) ?? null;
 }
 
 // ---------- o brilho do que pode ser tocado (glow.ts) ----------

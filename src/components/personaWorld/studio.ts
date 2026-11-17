@@ -42,6 +42,23 @@ import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from 
 // quadro; se houver outro objeto na frente, ele é pintado de novo por cima,
 // só naquele pedaço (redrawFront).
 //
+// 17/11/2026, três pedidos do Bruno:
+//   • "Adicione um inventário quando clicamos em arrumar estúdio, para que seja
+//     possível revisar os itens que temos, trocá-los e inseri-los." Um objeto
+//     pode ficar guardado (world.stored): fora da sala, no inventário. A
+//     máquina do Jackpot e a estante do guia não se guardam (são as portas de
+//     sempre: a coisa mais importante da sala e o guia de quem chega).
+//   • "Adicione uma opção para poder girar os objetos do estúdio também." Um
+//     objeto girado (world.turn) troca a largura pela profundidade e é desenhado
+//     espelhado em volta do meio do seu lugar: em isométrico, espelhar na
+//     horizontal é o mesmo que trocar os eixos x e y, ou seja, virar o objeto de
+//     frente para a outra parede (as faces que se veem continuam as mesmas, só
+//     trocam de lado). São dois sentidos; as costas dos objetos nunca aparecem.
+//   • "O item poltrona está bugado, com o braço direito dela passando por trás
+//     das costas do móvel." O braço do fundo era pintado depois do encosto e
+//     saía 0,08 ladrilho para fora da base; agora os braços ficam rentes à base
+//     e o encosto, que está na frente deles, é pintado por último.
+//
 // Aqui só mora o desenho, a posição e o retângulo de cada coisa. O que cada
 // uma abre é assunto de useStudioDoors.
 
@@ -381,17 +398,22 @@ const paintTerrorBox: Paint = (k, ctx, x, y, _env, tick, still) => {
 const drawArchive: Draw = (k, ctx, x, y, env) => {
   k.box(ctx, x, y, 0, 0.8, 0.8, 7, '#6B5B4A');
   const ap = k.iso(x + 0.4, y + 0.4, 7);
-  for (let a = 0; a < Math.min(env.st.out, 9); a += 1) k.px(ctx, ap[0] - 4 + (a % 3) * 3, ap[1] - 3 - Math.floor(a / 3) * 2, PAPER, 2, 1);
+  const cards = env.st.out || (env.world.preview ? 9 : 0);
+  for (let a = 0; a < Math.min(cards, 9); a += 1) k.px(ctx, ap[0] - 4 + (a % 3) * 3, ap[1] - 3 - Math.floor(a / 3) * 2, PAPER, 2, 1);
 };
 
-// ----- A poltrona (nível 2), virada para a tela.
+// ----- A poltrona (nível 2), virada para a tela. De trás para a frente: a
+// base, o braço do fundo, o assento, o braço da frente e, por último, o
+// encosto (17/11/2026: antes o braço do fundo vinha depois do encosto e passava
+// por cima dele, e os dois braços saíam um pouco para fora da base).
 const drawArmchair: Draw = (k, ctx, x, y, env) => {
   const vel = k.mix(env.tints[1], '#3A1D4F', 0.45);
+  const arm = k.dark(vel, 0.15);
   k.box(ctx, x, y, 0, 1.2, 1.3, 5, vel);
-  k.box(ctx, x + 0.05, y + 0.25, 5, 0.85, 0.8, 1, k.light(vel, 0.18));
+  k.box(ctx, x, y, 5, 0.9, 0.24, 4, arm);
+  k.box(ctx, x + 0.04, y + 0.26, 5, 0.86, 0.78, 1, k.light(vel, 0.18));
+  k.box(ctx, x, y + 1.06, 5, 0.9, 0.24, 4, arm);
   k.box(ctx, x + 0.9, y, 5, 0.3, 1.3, 10, vel);
-  k.box(ctx, x, y - 0.08, 5, 0.9, 0.22, 3, k.dark(vel, 0.15));
-  k.box(ctx, x, y + 1.16, 5, 0.9, 0.22, 3, k.dark(vel, 0.15));
 };
 
 // ----- A pipoqueira (nível 5).
@@ -645,7 +667,7 @@ const ITEMS: ItemDef[] = [
   { id: 'book', w: BOOKCASE.w, d: BOOKCASE.d, h: BOOKCASE.h + 9, home: 2, owned: () => true, draw: drawBookcase, paint: paintBookcase, spot: 'book' },
   { id: 'table', w: TABLE.r * 2, d: TABLE.r * 2, h: TABLE.h + 2, home: 8, owned: (env) => env.extras.poker, draw: drawTable, spot: 'poker', pad: 0 },
   { id: 'terror', w: TERROR_BOX.w, d: TERROR_BOX.d, h: TERROR_BOX.h + 8, home: 11, owned: (env) => hasTerrorBox(env.world), draw: drawTerrorBox, paint: paintTerrorBox, spot: 'terror', pad: 3 },
-  { id: 'archive', w: 0.8, d: 0.8, h: 10, home: 0, owned: (env) => env.st.out > 0, draw: drawArchive },
+  { id: 'archive', w: 0.8, d: 0.8, h: 10, home: 0, owned: (env) => env.st.out > 0 || Boolean(env.world.preview), draw: drawArchive },
   { id: 'armchair', w: 1.2, d: 1.3, h: 16, home: 6, owned: (env) => levelOf(env) >= 2, draw: drawArmchair },
   { id: 'popcorn', w: 0.8, d: 0.8, h: 18, home: 10, owned: (env) => levelOf(env) >= 5, draw: drawPopcorn },
   { id: 'plant', w: 0.7, d: 0.7, h: 17, home: 7, owned: (env) => levelOf(env) >= 6, draw: drawPlant, pad: 3 },
@@ -657,6 +679,9 @@ const ITEMS: ItemDef[] = [
 ];
 // os que a pessoa pode mudar de lugar, na ordem em que disputam um lugar
 export const MOVABLE: ItemId[] = ITEMS.filter((item) => item.home !== undefined).map((item) => item.id as ItemId);
+// os que podem ir para o inventário (a máquina do Jackpot e o guia ficam sempre na sala)
+export const KEEP_IN_ROOM: ItemId[] = ['slot', 'book'];
+export const canStore = (id: ItemId): boolean => !KEEP_IN_ROOM.includes(id);
 // o lugar de costume de cada um
 export const HOME: Record<ItemId, number> = Object.fromEntries(ITEMS.filter((item) => item.home !== undefined).map((item) => [item.id, item.home])) as Record<ItemId, number>;
 // a lente do projetor (de onde sai o facho; draw.ts)
@@ -670,6 +695,11 @@ export interface Solid {
   def: ItemDef;
   // o lugar (null = fixo)
   place: number | null;
+  // girado (17/11/2026): a largura e a profundidade trocam e o desenho espelha
+  turned: boolean;
+  // o chão que ocupa na sala (já com o giro)
+  fw: number;
+  fd: number;
   // o canto de trás
   x: number;
   y: number;
@@ -683,6 +713,10 @@ export interface StudioLayout {
   solids: Solid[];
   // o lugar de cada objeto que tem lugar
   at: Partial<Record<ItemId, number>>;
+  // os objetos de lugar que a pessoa tem (na sala ou guardados), na ordem de ITEMS
+  owned: ItemId[];
+  // os guardados no inventário
+  stored: ItemId[];
   // os lugares vazios
   empty: number[];
   // o que identifica este arranjo (para guardar brilhos e rotas)
@@ -702,9 +736,11 @@ const overlaps = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a
 // Os lugares de cada objeto: primeiro o que a pessoa escolheu (se o lugar
 // existe e ninguém pegou antes), depois o de costume; se o de costume está
 // ocupado por outro que ela pôs ali, o lugar vazio mais perto dele.
-export function resolvePlaces(owned: ItemId[], saved: Record<string, number>): Partial<Record<ItemId, number>> {
+export function resolvePlaces(all: ItemId[], saved: Record<string, number>, stored: readonly string[] = []): Partial<Record<ItemId, number>> {
   const at: Partial<Record<ItemId, number>> = {};
   const taken = new Set<number>();
+  // os guardados (17/11/2026) não ocupam lugar
+  const owned = all.filter((id) => !(stored.includes(id) && canStore(id)));
   owned.forEach((id) => {
     const place = saved[id];
     if (place === undefined || place >= PLACES.length || taken.has(place)) return;
@@ -729,7 +765,7 @@ const DEFAULT_TINTS: [string, string, string] = ['#6B5FA0', '#5A5390', '#8B7FC0'
 // O arranjo do estúdio de alguém, como quem olha vê (a máquina e a mesa dependem de quem olha).
 export function studioLayout(k: Kit, world: PersonaWorld, st: WorldState, extras: StudioExtras): StudioLayout {
   const tints: [string, string, string] = st.hasTrio ? [k.moodColor(st.trio[0]), k.moodColor(st.trio[1]), k.moodColor(st.trio[2])] : DEFAULT_TINTS;
-  const variant = `${st.stage}|${st.out > 0 ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}`;
+  const variant = `${st.stage}|${st.out > 0 || world.preview ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}`;
   let byVariant = layouts.get(world);
   if (!byVariant) {
     byVariant = new Map();
@@ -740,16 +776,18 @@ export function studioLayout(k: Kit, world: PersonaWorld, st: WorldState, extras
 
   const env: ItemEnv = { world, st, extras, tints };
   const owned = ITEMS.filter((item) => item.owned(env));
-  const at = resolvePlaces(
-    owned.filter((item) => item.home !== undefined).map((item) => item.id as ItemId),
-    world.layout,
-  );
+  const movable = owned.filter((item) => item.home !== undefined).map((item) => item.id as ItemId);
+  const stored = movable.filter((id) => world.stored.includes(id) && canStore(id));
+  const at = resolvePlaces(movable, world.layout, stored);
   const solids: Solid[] = [];
   owned.forEach((def) => {
     let place: number | null = null;
     let x: number;
     let y: number;
     let depth: number;
+    let turned = false;
+    let fw = def.w;
+    let fd = def.d;
     if (def.fixed) {
       x = def.fixed.x;
       y = def.fixed.y;
@@ -758,20 +796,27 @@ export function studioLayout(k: Kit, world: PersonaWorld, st: WorldState, extras
       const index = at[def.id as ItemId];
       if (index === undefined) return;
       place = index;
+      turned = (world.turn[def.id] ?? 0) % 2 === 1;
+      if (turned) {
+        fw = def.d;
+        fd = def.w;
+      }
       const spot = PLACES[index];
-      x = spot.x - def.w / 2;
-      y = spot.wall ? WALL_GAP : spot.y - def.d / 2;
+      x = spot.x - fw / 2;
+      y = spot.wall ? WALL_GAP : spot.y - fd / 2;
       depth = spot.x + spot.y;
     }
-    solids.push({ id: def.id, def, place, x, y, depth, rect: rectOf(k, x, y, def.w, def.d, def.h, def.pad ?? 1) });
+    solids.push({ id: def.id, def, place, turned, fw, fd, x, y, depth, rect: rectOf(k, x, y, fw, fd, def.h, def.pad ?? 1) });
   });
   solids.sort((a, b) => a.depth - b.depth || a.y - b.y);
   const taken = new Set(Object.values(at));
   const layout: StudioLayout = {
     solids,
     at,
+    owned: movable,
+    stored,
     empty: PLACES.map((_, index) => index).filter((index) => !taken.has(index)),
-    key: `${variant}|${solids.map((solid) => `${solid.id}${solid.place ?? 'f'}`).join(',')}|${hasPet(world, 'frog') ? 'frog' : ''}`,
+    key: `${variant}|${solids.map((solid) => `${solid.id}${solid.place ?? 'f'}${solid.turned ? 't' : ''}`).join(',')}|${hasPet(world, 'frog') ? 'frog' : ''}`,
     env,
   };
   byVariant.set(variant, layout);
@@ -803,9 +848,34 @@ const tapeMarks = (k: Kit, ctx: Ctx, place: Place, color: string) => {
   });
 };
 
+// O desenho de um objeto no lugar dele. Girado, o desenho de sempre é feito
+// com o chão de sempre centrado no mesmo ponto e espelhado em volta da coluna
+// de pixels do meio do lugar: em isométrico, (cx + u, cy + v) → (cx + v, cy + u)
+// é exatamente o espelho horizontal em volta de iso(cx, cy). O eixo vai
+// arredondado ao meio pixel para os pixels continuarem inteiros.
+const withTurn = (k: Kit, ctx: Ctx, solid: Solid, run: (x: number, y: number) => void) => {
+  if (!solid.turned) {
+    run(solid.x, solid.y);
+    return;
+  }
+  const cx = solid.x + solid.fw / 2;
+  const cy = solid.y + solid.fd / 2;
+  const axis = Math.round(k.iso(cx, cy)[0] * 2);
+  ctx.save();
+  ctx.translate(axis, 0);
+  ctx.scale(-1, 1);
+  run(cx - solid.def.w / 2, cy - solid.def.d / 2);
+  ctx.restore();
+};
+const drawSolid = (k: Kit, ctx: Ctx, solid: Solid, env: ItemEnv) => withTurn(k, ctx, solid, (x, y) => solid.def.draw(k, ctx, x, y, env));
+const paintSolid = (k: Kit, ctx: Ctx, solid: Solid, env: ItemEnv, tick: number, still: boolean) =>
+  withTurn(k, ctx, solid, (x, y) => solid.def.paint?.(k, ctx, x, y, env, tick, still));
+
 // Quando a pessoa está arrumando o estúdio: o objeto que ela pegou.
 export interface Arranging {
   picked: ItemId | null;
+  // 17/11/2026: há um objeto do inventário na mão (fora da sala)
+  carrying?: boolean;
 }
 
 // O chão dos lugares e os objetos, de trás para a frente. Arrumando, todos os
@@ -820,10 +890,11 @@ export function drawLounge(k: Kit, ctx: Ctx, layout: StudioLayout, arranging: Ar
     }
     const mine = arranging.picked !== null && layout.at[arranging.picked] === index;
     const [a, b, c, d] = placeCorners(k, place);
-    k.poly(ctx, [a, b, c, d], mine ? 'rgba(244,196,84,0.3)' : free ? (arranging.picked ? 'rgba(244,196,84,0.2)' : 'rgba(243,234,211,0.1)') : 'rgba(243,234,211,0.07)');
+    const holding = arranging.picked !== null || Boolean(arranging.carrying);
+    k.poly(ctx, [a, b, c, d], mine ? 'rgba(244,196,84,0.3)' : free ? (holding ? 'rgba(244,196,84,0.2)' : 'rgba(243,234,211,0.1)') : 'rgba(243,234,211,0.07)');
     tapeMarks(k, ctx, place, free || mine ? GOLD : 'rgba(243,234,211,0.6)');
   });
-  layout.solids.forEach((solid) => solid.def.draw(k, ctx, solid.x, solid.y, layout.env));
+  layout.solids.forEach((solid) => drawSolid(k, ctx, solid, layout.env));
 }
 
 // ---------------------------------------------------------------------------
@@ -837,7 +908,7 @@ function redrawFront(k: Kit, ctx: Ctx, layout: StudioLayout, depth: number, rect
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
-  fronts.forEach((solid) => solid.def.draw(k, ctx, solid.x, solid.y, layout.env));
+  fronts.forEach((solid) => drawSolid(k, ctx, solid, layout.env));
   ctx.restore();
 }
 
@@ -849,8 +920,8 @@ const solidGlow = (k: Kit, layout: StudioLayout, solid: Solid) => {
     `${solid.id}|${layout.key}`,
     w,
     h,
-    (c) => solid.def.draw(k, c, solid.x, solid.y, layout.env),
-    (c) => layout.solids.slice(index + 1).forEach((front) => front.def.draw(k, c, front.x, front.y, layout.env)),
+    (c) => drawSolid(k, c, solid, layout.env),
+    (c) => layout.solids.slice(index + 1).forEach((front) => drawSolid(k, c, front, layout.env)),
   );
 };
 
@@ -873,7 +944,7 @@ export function paintLounge(k: Kit, ctx: Ctx, layout: StudioLayout, tick: number
       paintGlow(ctx, solidGlow(k, layout, solid), 0, 0, gold ? GLOW_GOLD : GLOW_SOFT, gold ? strong : soft);
     }
     if (def.paint) {
-      def.paint(k, ctx, solid.x, solid.y, layout.env, tick, still);
+      paintSolid(k, ctx, solid, layout.env, tick, still);
       redrawFront(k, ctx, layout, solid.depth, solid.rect);
     }
   });
@@ -1102,8 +1173,8 @@ export function pickAt(k: Kit, layout: StudioLayout, px: number, py: number): { 
       masks.set(
         key,
         silhouette(w, h, (c) => {
-          solid.def.draw(k, c, solid.x, solid.y, layout.env);
-          solid.def.paint?.(k, c, solid.x, solid.y, layout.env, 0, true);
+          drawSolid(k, c, solid, layout.env);
+          paintSolid(k, c, solid, layout.env, 0, true);
         }),
       );
     }
@@ -1131,6 +1202,51 @@ export function pickAt(k: Kit, layout: StudioLayout, px: number, py: number): { 
   return place >= 0 ? { place } : null;
 }
 
+// O desenho de um objeto sozinho, para o inventário (17/11/2026): feito num
+// lugar do meio da sala, parado, e recortado nos pixels que ele pinta.
+export function itemPortrait(k: Kit, layout: StudioLayout, id: ItemId, turned: boolean): HTMLCanvasElement | null {
+  const def = ITEMS.find((item) => item.id === id);
+  if (!def || typeof document === 'undefined') return null;
+  const fw = turned ? def.d : def.w;
+  const fd = turned ? def.w : def.d;
+  const x = 4.5 - fw / 2;
+  const y = 3 - fd / 2;
+  const solid: Solid = { id, def, place: null, turned, fw, fd, x, y, depth: 0, rect: rectOf(k, x, y, fw, fd, def.h, 6) };
+  const [w, h] = k.size;
+  const full = document.createElement('canvas');
+  full.width = w;
+  full.height = h;
+  const c = full.getContext('2d');
+  if (!c) return null;
+  drawSolid(k, c, solid, layout.env);
+  paintSolid(k, c, solid, layout.env, 0, true);
+  const r = solid.rect;
+  const x0 = Math.max(0, r.x);
+  const y0 = Math.max(0, r.y);
+  const x1 = Math.min(w, r.x + r.w);
+  const y1 = Math.min(h, r.y + r.h);
+  const data = c.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -1;
+  let maxY = -1;
+  for (let py = 0; py < y1 - y0; py += 1) {
+    for (let qx = 0; qx < x1 - x0; qx += 1) {
+      if (data[(py * (x1 - x0) + qx) * 4 + 3] < 24) continue;
+      minX = Math.min(minX, qx);
+      maxX = Math.max(maxX, qx);
+      minY = Math.min(minY, py);
+      maxY = Math.max(maxY, py);
+    }
+  }
+  if (maxX < 0) return null;
+  const out = document.createElement('canvas');
+  out.width = maxX - minX + 1;
+  out.height = maxY - minY + 1;
+  out.getContext('2d')?.drawImage(full, x0 + minX, y0 + minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
 // O retângulo de um objeto no arranjo (o guia recorta o desenho dele dali).
 export const solidRect = (layout: StudioLayout, id: ItemId): Rect | null => layout.solids.find((solid) => solid.id === id)?.rect ?? null;
 
@@ -1142,6 +1258,45 @@ export function moveItem(at: Partial<Record<ItemId, number>>, id: ItemId, place:
   const other = (Object.keys(at) as ItemId[]).find((key) => key !== id && at[key] === place);
   if (other) next[other] = from;
   return next;
+}
+
+// O inventário (17/11/2026). O arranjo inteiro: onde cada objeto está (o `at`
+// já resolvido, com os de costume), o que está guardado e o que está girado.
+export interface ArrangeState {
+  at: Partial<Record<ItemId, number>>;
+  off: string[];
+  rot: Record<string, number>;
+}
+const occupantOf = (at: Partial<Record<ItemId, number>>, place: number): ItemId | undefined => (Object.keys(at) as ItemId[]).find((key) => at[key] === place);
+
+// Levar um objeto (da sala ou do inventário) para um lugar. Na sala, num lugar
+// ocupado os dois trocam; vindo do inventário, quem estava ali vai para o
+// inventário. Devolve null quando não pode (quem estava ali não se guarda).
+export function placeItem(state: ArrangeState, id: ItemId, place: number): ArrangeState | null {
+  if (state.at[id] !== undefined) return { ...state, at: moveItem(state.at, id, place) };
+  const other = occupantOf(state.at, place);
+  if (other && !canStore(other)) return null;
+  const at = { ...state.at, [id]: place };
+  if (other) delete at[other];
+  const off = state.off.filter((item) => item !== id);
+  if (other) off.push(other);
+  return { ...state, at, off };
+}
+
+// Guardar no inventário (a máquina do Jackpot e o guia não se guardam).
+export function storeItem(state: ArrangeState, id: ItemId): ArrangeState {
+  if (!canStore(id) || state.at[id] === undefined) return state;
+  const at = { ...state.at };
+  delete at[id];
+  return { ...state, at, off: state.off.includes(id) ? state.off : [...state.off, id] };
+}
+
+// Girar: dois sentidos (0 e 1).
+export function turnItem(state: ArrangeState, id: ItemId): ArrangeState {
+  const rot = { ...state.rot };
+  if ((rot[id] ?? 0) % 2 === 1) delete rot[id];
+  else rot[id] = 1;
+  return { ...state, rot };
 }
 
 // qual oráculo libera cada bichinho (para o guia)

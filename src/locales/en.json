@@ -4135,8 +4135,9 @@
     },
     "arrange": {
       "start": "Arrange the studio",
-      "stepPick": "Tap the object you want to move.",
+      "stepPick": "Tap an object, in the room or in the inventory, to pick it up.",
       "stepPlace": "You picked up {{item}}. Now tap the place on the floor where it goes. Tapping another object swaps the two.",
+      "stepPlaceStored": "You took {{item}} out of the inventory. Tap a place on the floor to put it in the room. On a taken place, whatever was there goes to the inventory.",
       "save": "Save",
       "saving": "Saving…",
       "cancel": "Cancel",
@@ -4148,6 +4149,42 @@
       "itemSwap": "Swap places with {{item}}",
       "placeFree": "Place {{no}}, empty",
       "placeTaken": "Place {{no}}, taken"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "objects_one": "{{count}} object",
+      "objects_other": "{{count}} objects",
+      "storedCount_one": "{{count}} stored",
+      "storedCount_other": "{{count}} stored",
+      "place": "Place {{no}}",
+      "stored": "Stored",
+      "turned": "turned",
+      "turn": "Turn",
+      "store": "Put in the inventory",
+      "drop": "Put down",
+      "keep": "The Jackpot machine and the guide's bookcase always stay in the room.",
+      "cantStore": "That place belongs to the Jackpot machine or the guide's bookcase, which don't go to the inventory. Pick another place.",
+      "fixed": "Fixed in the cinema:",
+      "names": {
+        "slot": "Jackpot machine",
+        "book": "Guide's bookcase",
+        "table": "Poker table",
+        "terror": "Terror Club",
+        "archive": "Archive",
+        "armchair": "Armchair",
+        "popcorn": "Popcorn cart",
+        "plant": "Plant",
+        "chair": "Director's chair",
+        "fox": "Fox",
+        "tank": "Snake's tank",
+        "projector": "projector",
+        "rug": "rug",
+        "lamp": "lamp",
+        "curtain": "screen curtain",
+        "bigScreen": "big screen",
+        "marquee": "light-bulb marquee",
+        "frog": "the frog (roams free)"
+      }
     }
   },
   "personaWorld": {

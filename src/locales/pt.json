@@ -4134,8 +4134,9 @@
     },
     "arrange": {
       "start": "Arrumar o estúdio",
-      "stepPick": "Toque no objeto que você quer mudar de lugar.",
+      "stepPick": "Toque num objeto, na sala ou no inventário, para pegá-lo.",
       "stepPlace": "Você pegou {{item}}. Agora toque no lugar do chão para onde vai. Tocar em outro objeto troca os dois de lugar.",
+      "stepPlaceStored": "Você pegou {{item}} do inventário. Toque num lugar do chão para pôr na sala. Num lugar ocupado, quem estava lá vai para o inventário.",
       "save": "Salvar",
       "saving": "Salvando…",
       "cancel": "Cancelar",
@@ -4147,6 +4148,42 @@
       "itemSwap": "Trocar de lugar com {{item}}",
       "placeFree": "Lugar {{no}}, vazio",
       "placeTaken": "Lugar {{no}}, ocupado"
+    },
+    "inventory": {
+      "title": "Inventário",
+      "objects_one": "{{count}} objeto",
+      "objects_other": "{{count}} objetos",
+      "storedCount_one": "{{count}} guardado",
+      "storedCount_other": "{{count}} guardados",
+      "place": "Lugar {{no}}",
+      "stored": "Guardado",
+      "turned": "girado",
+      "turn": "Girar",
+      "store": "Guardar no inventário",
+      "drop": "Soltar",
+      "keep": "A máquina do Jackpot e a estante do guia ficam sempre na sala.",
+      "cantStore": "Esse lugar é da máquina do Jackpot ou da estante do guia, que não vão para o inventário. Escolha outro lugar.",
+      "fixed": "Fixos do cinema:",
+      "names": {
+        "slot": "Máquina do Jackpot",
+        "book": "Estante do guia",
+        "table": "Mesa de pôquer",
+        "terror": "Clube do Terror",
+        "archive": "Arquivo",
+        "armchair": "Poltrona",
+        "popcorn": "Pipoqueira",
+        "plant": "Planta",
+        "chair": "Cadeira de diretor",
+        "fox": "Raposa",
+        "tank": "Aquário da cobra",
+        "projector": "projetor",
+        "rug": "tapete",
+        "lamp": "abajur",
+        "curtain": "cortina da tela",
+        "bigScreen": "tela grande",
+        "marquee": "letreiro de lâmpadas",
+        "frog": "o sapo (anda solto)"
+      }
     }
   },
   "personaWorld": {

@@ -119,6 +119,8 @@ const HOTSPOT_CLASS = `group/spot absolute block min-w-0 min-h-0 cursor-pointer 
 export interface SceneArrange {
   // o objeto que a pessoa pegou
   picked: ItemId | null;
+  // 17/11/2026: há um objeto do inventário na mão (não está na sala)
+  carrying?: boolean;
   onItem: (id: ItemId) => void;
   onPlace: (place: number) => void;
   // os nomes, para o leitor de tela e para quem passa o mouse
@@ -161,6 +163,7 @@ export const PersonaScene: React.FC<{
     .join(',');
   const arranging = Boolean(arrange);
   const picked = arrange?.picked ?? null;
+  const carrying = Boolean(arrange?.carrying);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -173,7 +176,7 @@ export const PersonaScene: React.FC<{
     const roomCtx = room.getContext('2d');
     if (!roomCtx) return;
     const lounge: StudioExtras = { jackpot, poker };
-    const moving = arranging ? { picked } : null;
+    const moving = arranging ? { picked, carrying } : null;
     drawRoom(roomCtx, state, world, images, lounge, moving);
     const still = !animated || Boolean(reduceMotion);
     const glow = new Set(glowKey ? (glowKey.split(',') as SpotKind[]) : []);
@@ -183,7 +186,7 @@ export const PersonaScene: React.FC<{
     paint();
     if (still) return;
     return runFrames(canvas, tickRef, paint);
-  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker, glowKey, arranging, picked]);
+  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker, glowKey, arranging, picked, carrying]);
 
   // os objetos tocáveis: um botão (ou link) de verdade por cima de cada um,
   // para o teclado e o leitor de tela também chegarem neles

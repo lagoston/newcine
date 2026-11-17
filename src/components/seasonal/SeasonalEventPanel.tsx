@@ -22,6 +22,7 @@ import { MOOD_BY_KEY } from '../../lib/moods';
 import { EVENT_ROOMS, roomPath } from '../../lib/secretRooms';
 import { PanelSeasonalScene } from './SeasonalDecor';
 import { PortalSpiral } from '../secretRoom/TerrorPortal';
+import { TrialBadge, TrialMarkButton, TrialNote } from './DirectorTrialBar';
 import { BONE, CANDLE } from '../secretRoom/terrorTheme';
 
 // O atalho para a prateleira que também conta (ex.: Sombrio e Assustador no
@@ -342,10 +343,15 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                 <span>
                   {t(`events.${event.id}.eyebrow`)} · {timeLabel}
                 </span>
-                {event.is_preview && (
-                  <span className="ml-1 px-1.5 rounded bg-white/15 text-[10px] uppercase tracking-wide" style={{ color: PAPER }}>
-                    {t('events.preview')}
-                  </span>
+                {event.is_trial ? (
+                  // 17/11/2026: a prévia do diretor é um ensaio
+                  <TrialBadge />
+                ) : (
+                  event.is_preview && (
+                    <span className="ml-1 px-1.5 rounded bg-white/15 text-[10px] uppercase tracking-wide" style={{ color: PAPER }}>
+                      {t('events.preview')}
+                    </span>
+                  )
                 )}
               </p>
               {switcher}
@@ -443,6 +449,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                         style={{ width: `${Math.min(100, (step.progress / Math.max(1, step.count)) * 100)}%`, background: theme.accent }}
                       />
                     </span>
+                    {event.is_trial && <TrialMarkButton event={event} step={step} theme={theme} />}
                   </div>
                 </div>
               ) : (
@@ -604,7 +611,9 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
             </div>
           )}
 
-          {event.is_preview && (
+          {event.is_trial ? (
+            <TrialNote event={event} />
+          ) : event.is_preview && (
             <p className="mt-3 px-5 sm:px-8 flex items-start gap-2 text-xs leading-relaxed" style={{ color: MIST }}>
               <Film className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
               <span>{t('events.previewNote', { start: startLabel, end: endLabel })}</span>

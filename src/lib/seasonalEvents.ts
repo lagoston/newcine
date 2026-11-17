@@ -47,6 +47,10 @@ export interface SeasonalEventState {
   ends_at: string;
   is_active: boolean;
   is_preview: boolean;
+  // 17/11/2026: a prévia da Conta Diretor de um evento fora do ar é um ensaio
+  // (o que ela faz com os filmes da lista vale só ali; nada é concedido)
+  is_trial?: boolean;
+  trial_started_at?: string | null;
   now: string;
   items: SeasonalItem[];
   actions: Partial<Record<SeasonalStepKind, number[]>>;

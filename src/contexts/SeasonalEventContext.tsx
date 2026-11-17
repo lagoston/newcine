@@ -43,6 +43,10 @@ const SeasonalEventContext = createContext<SeasonalEventContextValue>({
 const PREVIEW_KEY = 'cineoracle:eventPreview';
 const REFRESH_EVENT = 'cineoracle:seasonal-refresh';
 const seenKey = (userId: string) => `cineoracle:seasonalSeen:${userId}`;
+// O ensaio da Conta Diretor (17/11/2026) comemora à parte, e de novo a cada
+// "Recomeçar": nada do ensaio entra na lista do evento de verdade.
+const trialSeenKey = (userId: string, event: SeasonalEventState) =>
+  `cineoracle:seasonalTrialSeen:${userId}:${event.id}:${event.edition}:${event.trial_started_at ?? ''}`;
 
 // Pede uma atualização do evento (depois de avaliar, sussurrar…).
 export const requestSeasonalRefresh = () => {
@@ -72,6 +76,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const lastFetch = useRef(0);
   const requestId = useRef(0);
   const seenInMemory = useRef<string[]>([]);
+  const trialSeenInMemory = useRef<Record<string, string[]>>({});
 
   const { isDirector, setPref } = director;
   useEffect(() => {
@@ -132,16 +137,19 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [refresh]);
 
   // Tags do evento conquistadas nesta edição e ainda não comemoradas
-  // neste aparelho.
+  // neste aparelho. No ensaio do diretor, as missões feitas no ensaio.
   useEffect(() => {
-    if (!event || !userId || event.is_preview) return;
-    const startsAt = new Date(event.starts_at).getTime();
+    if (!event || !userId) return;
+    const trial = Boolean(event.is_trial);
+    if (event.is_preview && !trial) return;
+    const startsAt = new Date(trial ? (event.trial_started_at ?? event.now) : event.starts_at).getTime();
     const unlocked = event.steps.filter((step) => step.unlocked && step.unlocked_at && new Date(step.unlocked_at).getTime() >= startsAt);
     if (unlocked.length === 0) return;
 
-    let seen = seenInMemory.current;
+    const storeKey = trial ? trialSeenKey(userId, event) : seenKey(userId);
+    let seen = trial ? (trialSeenInMemory.current[storeKey] ?? []) : seenInMemory.current;
     try {
-      const stored = JSON.parse(localStorage.getItem(seenKey(userId)) || '[]');
+      const stored = JSON.parse(localStorage.getItem(storeKey) || '[]');
       if (Array.isArray(stored)) seen = [...new Set([...seen, ...stored.filter((tag): tag is string => typeof tag === 'string')])];
     } catch {
       // sem armazenamento: só o que já foi comemorado nesta visita
@@ -150,9 +158,10 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
     if (fresh.length === 0) return;
 
     const nextSeen = [...new Set([...seen, ...fresh.map((step) => step.tag)])];
-    seenInMemory.current = nextSeen;
+    if (trial) trialSeenInMemory.current[storeKey] = nextSeen;
+    else seenInMemory.current = nextSeen;
     try {
-      localStorage.setItem(seenKey(userId), JSON.stringify(nextSeen));
+      localStorage.setItem(storeKey, JSON.stringify(nextSeen));
     } catch {
       // segue sem guardar
     }

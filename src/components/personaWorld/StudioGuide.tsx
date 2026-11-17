@@ -109,6 +109,8 @@ const EMPTY: PersonaWorld = {
   tags: [],
   posters: [],
   layout: {},
+  stored: [],
+  turn: {},
   oracle: { bogart: 0, fincher: 0, cypher: 0 },
   pets: { frog: null, fox: null, snake: null },
 };

@@ -7,7 +7,7 @@ import OracleSheet from '../OracleSheet';
 import PersonaWorks from '../PersonaWorks';
 import MovieDetailsModal from '../MovieDetailsModal';
 import { PERSONA_THRESHOLD, type PersonaEntry, type UserPersona } from '../../lib/persona';
-import { fetchPersonaWorld, savePersonaLayout, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
+import { arrangementOf, fetchPersonaWorld, savePersonaLayout, type PersonaWorld, type StudioArrangement, type WorldTitle } from '../../lib/personaWorld';
 import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
@@ -15,7 +15,6 @@ import { fetchPersonaEntries, fetchPersonaHistory, worldAt, type PersonaHistory 
 import { fetchPersonaThemes, readThemes, type PersonaThemes } from '../../lib/personaThemes';
 import { rememberPatronus } from '../patronus/patronus';
 import PersonaWorldView from './PersonaWorld';
-import type { ItemId } from './studio';
 import { useStudioDoors, type StudioJackpot } from './useStudioDoors';
 
 // O guia do estúdio e a gaveta de compartilhar só são baixados quando alguém abre.
@@ -58,6 +57,9 @@ const PersonaShareModal = lazy(() => import('../PersonaShareModal'));
 // mostra; Salvar grava no banco (set_persona_studio_layout) e avisa quem abriu
 // a gaveta (onLayoutSaved), para o cartão da home ou do perfil acompanhar.
 // Cancelar, ou fechar a gaveta, desfaz.
+//
+// 17/11/2026: o arranjo em andamento leva também o inventário (o que está
+// guardado) e o giro de cada objeto; o cartão de quem abriu recebe os três.
 
 const GHOST_BUTTON = `inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
 const PRIMARY_BUTTON = `inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-center leading-snug shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`;
@@ -79,7 +81,7 @@ interface PersonaWorldSheetProps {
   // na home: a máquina do Jackpot com tudo o que a porta fazia
   jackpot?: StudioJackpot;
   // o arranjo do estúdio foi salvo (o cartão de quem abriu a gaveta acompanha)
-  onLayoutSaved?: (layout: Record<string, number>) => void;
+  onLayoutSaved?: (saved: StudioArrangement) => void;
 }
 
 const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ownerId, isOwn, ownerName, persona: seed, initialWorld = null, username = null, jackpot, onLayoutSaved }) => {
@@ -157,8 +159,8 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
   const travelling = Boolean(story) && at < total;
 
   // ---- arrumar o estúdio (só no seu, no estúdio de hoje) ----
-  // null = não está arrumando; senão, o arranjo em andamento (objeto → lugar)
-  const [draft, setDraft] = useState<Record<string, number> | null>(null);
+  // null = não está arrumando; senão, o arranjo em andamento (lugares, guardados e girados)
+  const [draft, setDraft] = useState<StudioArrangement | null>(null);
   const [savingLayout, setSavingLayout] = useState(false);
   const arranging = draft !== null;
   useEffect(() => {
@@ -169,7 +171,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
     setSavingLayout(true);
     savePersonaLayout(draft)
       .then((saved) => {
-        setWorld((current) => (current ? { ...current, layout: saved } : current));
+        setWorld((current) => (current ? { ...current, layout: saved.at, stored: saved.off, turn: saved.rot } : current));
         setDraft(null);
         onLayoutSaved?.(saved);
         toast.success(t('studio.arrange.saved'));
@@ -180,16 +182,18 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
       })
       .finally(() => setSavingLayout(false));
   };
-  const changeLayout = (next: Partial<Record<ItemId, number>>) =>
+  const changeLayout = (next: StudioArrangement) =>
     setDraft((current) => {
-      // o que a pessoa acabou de arrumar vale; um lugar guardado para um objeto que ela ainda não tem sai se alguém o ocupou
-      const used = new Set(Object.values(next));
-      const kept = Object.fromEntries(Object.entries(current ?? {}).filter(([item, place]) => !(item in next) && !used.has(place)));
-      return { ...kept, ...(next as Record<string, number>) };
+      // o que a pessoa acabou de arrumar vale; um lugar guardado para um objeto
+      // que ela ainda não tem sai se alguém o ocupou (e o que foi para o
+      // inventário perde o lugar que tinha)
+      const used = new Set(Object.values(next.at));
+      const kept = Object.fromEntries(Object.entries(current?.at ?? {}).filter(([item, place]) => !(item in next.at) && !used.has(place) && !next.off.includes(item)));
+      return { at: { ...kept, ...next.at }, off: next.off, rot: next.rot };
     });
 
   const shownWorld = useMemo(() => {
-    if (world && draft) return { ...world, layout: draft };
+    if (world && draft) return { ...world, layout: draft.at, stored: draft.off, turn: draft.rot };
     return travelling && story && world ? worldAt(story.history, at, world, story.entries) : world;
   }, [travelling, story, world, at, draft]);
 
@@ -283,12 +287,12 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
                       saving: savingLayout,
                       onStart: () => {
                         setPosition(null);
-                        setDraft({ ...world.layout });
+                        setDraft(arrangementOf(world));
                       },
                       onChange: changeLayout,
                       onSave: saveLayout,
                       onCancel: () => setDraft(null),
-                      onReset: () => setDraft({}),
+                      onReset: () => setDraft({ at: {}, off: [], rot: {} }),
                     }
                   : null
               }

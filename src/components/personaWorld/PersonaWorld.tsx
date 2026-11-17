@@ -1,19 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
-import { Armchair, Check, RotateCcw } from 'lucide-react';
+import { Armchair } from 'lucide-react';
 import { MOOD_BY_LETTER } from '../../lib/moods';
-import { FURNITURE, levelText, worldState, type PersonaWorld as World, type WorldState, type WorldTitle } from '../../lib/personaWorld';
+import { FURNITURE, levelText, worldState, type PersonaWorld as World, type StudioArrangement, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import type { ThemeReading } from '../../lib/personaThemes';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL, ratingTone } from '../../lib/oracleTheme';
 import { MothCloseUp, PersonaScene, type Hotspot, type SceneArrange } from './PersonaScene';
 import type { StudioDoors } from './useStudioDoors';
-import { moveItem, type ItemId, type SpotKind } from './studio';
+import { canStore, hasPet, placeItem, storeItem, turnItem, type ArrangeState, type ItemId, type SpotKind } from './studio';
+import StudioInventory, { type InventoryItem } from './StudioInventory';
 import EvolutionBar, { type EvolutionBarProps } from './EvolutionBar';
 import ShelfPots from './ShelfPots';
 import PersonaExplained from './PersonaExplained';
 import { Bar, Heading, Note, Tile, TitleThumb } from './bits';
-import { STAGE_BG, fmtRating, studioArrange } from './draw';
+import { STAGE_BG, fmtRating, studioArrange, studioPortrait } from './draw';
 
 // O corpo do modal "Sua Persona", o mesmo na home e no perfil.
 //
@@ -48,14 +49,17 @@ import { STAGE_BG, fmtRating, studioArrange } from './draw';
 //     no seu estúdio, o botão "Arrumar o estúdio". Arrumando, toca-se num
 //     objeto para pegá-lo e depois num lugar do chão (num lugar ocupado, os
 //     dois trocam). Salvar grava; Cancelar desfaz.
+//
+// 17/11/2026: arrumando, embaixo da cena aparece o inventário (StudioInventory):
+// os objetos que a pessoa tem, na sala ou guardados, com girar e guardar.
 
 // Arrumar o estúdio: o que a gaveta entrega para a página (PersonaWorldSheet).
 export interface ArrangeControls {
   active: boolean;
   saving: boolean;
   onStart: () => void;
-  // o arranjo depois de uma mudança: cada objeto e o lugar dele
-  onChange: (at: Partial<Record<ItemId, number>>) => void;
+  // o arranjo depois de uma mudança: o lugar de cada objeto, os guardados e os girados
+  onChange: (next: StudioArrangement) => void;
   onSave: () => void;
   onCancel: () => void;
   // todos os objetos de volta ao lugar de costume
@@ -103,35 +107,83 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
   // ---- arrumar o estúdio: o objeto pego e o que cada toque faz ----
   const arranging = Boolean(arrange?.active);
   const [picked, setPicked] = useState<ItemId | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
-    if (!arranging) setPicked(null);
+    if (!arranging) {
+      setPicked(null);
+      setNotice(null);
+    }
   }, [arranging]);
   const extras = doors?.extras;
+  // o arranjo de agora (com os lugares de costume já resolvidos) e o inventário
+  const resolved = useMemo(() => (arranging ? studioArrange(world, st, extras) : null), [arranging, world, st, extras]);
+  const arrangeState = useMemo((): ArrangeState | null => (resolved ? { at: resolved.at, off: world.stored, rot: world.turn } : null), [resolved, world.stored, world.turn]);
+  // aplica uma mudança; null = não pode (quem estava no lugar não vai para o inventário)
+  const commit = (next: ArrangeState | null): boolean => {
+    if (!arrange || !next) {
+      if (arrange) setNotice(t('studio.inventory.cantStore'));
+      return false;
+    }
+    setNotice(null);
+    arrange.onChange({ at: next.at as Record<string, number>, off: next.off, rot: next.rot });
+    return true;
+  };
   const sceneArrange = useMemo((): SceneArrange | null => {
-    if (!arrange?.active) return null;
-    const { at } = studioArrange(world, st, extras);
+    if (!arrange?.active || !resolved || !arrangeState) return null;
     const itemName = (id: ItemId) => t(`studio.items.${id}`);
+    const send = (next: ArrangeState | null) => {
+      if (!next) {
+        setNotice(t('studio.inventory.cantStore'));
+        return false;
+      }
+      setNotice(null);
+      arrange.onChange({ at: next.at as Record<string, number>, off: next.off, rot: next.rot });
+      return true;
+    };
     return {
-      picked,
+      picked: picked !== null && resolved.at[picked] !== undefined ? picked : null,
+      // o objeto na mão está guardado: os lugares acendem como para um objeto da sala
+      carrying: picked !== null,
       onItem: (id) => {
         if (picked === null) setPicked(id);
         else if (picked === id) setPicked(null);
         else {
-          // tocar em outro objeto com um na mão: os dois trocam de lugar
-          const to = at[id];
-          if (to !== undefined) arrange.onChange(moveItem(at, picked, to));
-          setPicked(null);
+          // tocar em outro objeto com um na mão: os dois trocam (vindo do inventário, o outro é guardado)
+          const to = resolved.at[id];
+          if (to !== undefined && send(placeItem(arrangeState, picked, to))) setPicked(null);
         }
       },
       onPlace: (place) => {
         if (picked === null) return;
-        arrange.onChange(moveItem(at, picked, place));
-        setPicked(null);
+        if (send(placeItem(arrangeState, picked, place))) setPicked(null);
       },
       itemLabel: (id, mine) => t(mine ? 'studio.arrange.itemPicked' : picked ? 'studio.arrange.itemSwap' : 'studio.arrange.itemPick', { item: itemName(id) }),
       placeLabel: (place, free) => t(free ? 'studio.arrange.placeFree' : 'studio.arrange.placeTaken', { no: place + 1 }),
     };
-  }, [arrange, world, st, extras, picked, t]);
+  }, [arrange, resolved, arrangeState, picked, t]);
+  // as peças do inventário: o que a pessoa tem, na ordem da sala, os guardados por último
+  const inventory = useMemo((): InventoryItem[] => {
+    if (!resolved) return [];
+    const items = resolved.owned.map((id) => {
+      const turned = (world.turn[id] ?? 0) % 2 === 1;
+      const place = resolved.at[id];
+      return { id, place: place === undefined ? null : place + 1, turned, storable: canStore(id), portrait: studioPortrait(world, st, extras ?? { jackpot: 'on', poker: false }, id, turned) };
+    });
+    return [...items.filter((item) => item.place !== null), ...items.filter((item) => item.place === null)];
+  }, [resolved, world, st, extras]);
+  // o que é do cinema e não sai do lugar (e o sapo, que anda solto)
+  const fixedNames = useMemo(() => {
+    if (!arranging) return [];
+    const list: string[] = [];
+    if (st.level >= 1) list.push('projector');
+    if (st.level >= 3) list.push('rug');
+    if (st.level >= 4) list.push('lamp');
+    if (st.level >= 7) list.push('curtain');
+    if (st.level >= 9) list.push('bigScreen');
+    if (st.level >= 10) list.push('marquee');
+    if (hasPet(world, 'frog')) list.push('frog');
+    return list.map((id) => t(`studio.inventory.names.${id}`));
+  }, [arranging, st.level, world, t]);
 
   // Na cena daqui, a tela desce até a Persona (no fim) e a mariposa, até a mariposa de perto.
   const hotspots = useMemo(() => {
@@ -200,39 +252,31 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
         {/* Arrumar o estúdio: o convite e, arrumando, o passo de agora e os botões */}
         {arrange &&
           (arranging ? (
-            <div className="rounded-2xl p-3.5" style={{ background: 'rgba(244,196,84,0.08)', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45)' }}>
-              <p className="text-[14px] leading-snug" style={{ color: PAPER }} aria-live="polite">
-                {picked ? t('studio.arrange.stepPlace', { item: t(`studio.items.${picked}`) }) : t('studio.arrange.stepPick')}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={arrange.onSave}
-                  disabled={arrange.saving}
-                  className={`inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition disabled:opacity-60 ${FOCUS_RING}`}
-                  style={{ background: '#F4C454', color: INK }}
-                >
-                  <Check className="w-[18px] h-[18px]" aria-hidden />
-                  {arrange.saving ? t('studio.arrange.saving') : t('studio.arrange.save')}
-                </button>
-                <button type="button" onClick={arrange.onCancel} disabled={arrange.saving} className={GHOST} style={{ color: PAPER }}>
-                  {t('studio.arrange.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPicked(null);
-                    arrange.onReset();
-                  }}
-                  disabled={arrange.saving}
-                  className={GHOST}
-                  style={{ color: PAPER }}
-                >
-                  <RotateCcw className="w-[16px] h-[16px] text-violet-300" aria-hidden />
-                  {t('studio.arrange.reset')}
-                </button>
-              </div>
-            </div>
+            <StudioInventory
+              items={inventory}
+              picked={picked}
+              fixed={fixedNames}
+              notice={notice}
+              saving={arrange.saving}
+              onPick={(id) => {
+                setNotice(null);
+                setPicked((current) => (current === id ? null : id));
+              }}
+              onTurn={() => {
+                if (picked && arrangeState) commit(turnItem(arrangeState, picked));
+              }}
+              onStore={() => {
+                if (picked && arrangeState && commit(storeItem(arrangeState, picked))) setPicked(null);
+              }}
+              onDrop={() => setPicked(null)}
+              onSave={arrange.onSave}
+              onCancel={arrange.onCancel}
+              onReset={() => {
+                setPicked(null);
+                setNotice(null);
+                arrange.onReset();
+              }}
+            />
           ) : (
             <div className="flex justify-end">
               <button type="button" onClick={arrange.onStart} className={GHOST} style={{ color: PAPER }}>

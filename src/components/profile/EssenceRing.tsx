@@ -132,7 +132,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ persona, isOwn, ownerName, ow
             persona={persona}
             initialWorld={world}
             username={shareName}
-            onLayoutSaved={(layout) => setWorld((current) => (current ? { ...current, layout } : current))}
+            onLayoutSaved={(saved) => setWorld((current) => (current ? { ...current, layout: saved.at, stored: saved.off, turn: saved.rot } : current))}
           />
         </Suspense>
       )}
