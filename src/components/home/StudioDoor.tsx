@@ -140,6 +140,8 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
   return (
     <>
       <StudioCard world={world} failed={failed} onRetry={load} doors={doors} onOpen={openSheet} isOwn />
+      {/* o cartão de um móvel de humor tocado na cena (17/11/2026) */}
+      {doors.overlay}
 
       {jackpot.sheet}
 

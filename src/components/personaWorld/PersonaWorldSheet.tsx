@@ -257,7 +257,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
         title={isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerName ?? '' })}
         subtitle={t('personaWorld.subtitle')}
         size="lg"
-        escapeEnabled={!shareOpen && !movie && !guideOpen}
+        escapeEnabled={!shareOpen && !movie && !guideOpen && !doors.covering}
       >
         <div className="space-y-6">
           {shownWorld ? (
@@ -356,6 +356,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
       </OracleSheet>
 
       {/* O que abre por cima desta gaveta (monta depois dela). */}
+      {doors.overlay}
       {shareMounted && canShare && today && world && (
         <Suspense fallback={null}>
           <PersonaShareModal isOpen={shareOpen} onClose={() => setShareOpen(false)} persona={today} world={world} extras={doors.extras} username={username} />

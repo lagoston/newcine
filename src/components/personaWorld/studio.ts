@@ -1,5 +1,7 @@
 import { PET_ORACLE, type PersonaWorld, type PetId, type WorldState } from '../../lib/personaWorld';
 import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from './glow';
+import { disc, faceX, faceY, sprite, type Ctx, type Pt } from './pixel';
+import { MOOD_ITEMS, hasMoodItem, isMoodItem, type MoodItemId } from './moodItems';
 
 // O estúdio (14/11/2026): os objetos da sala, os lugares do chão e os bichinhos.
 //
@@ -62,8 +64,6 @@ import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from 
 // Aqui só mora o desenho, a posição e o retângulo de cada coisa. O que cada
 // uma abre é assunto de useStudioDoors.
 
-type Ctx = CanvasRenderingContext2D;
-type Pt = [number, number];
 
 // As ferramentas de desenho do estúdio (draw.ts), passadas de lá para cá.
 export interface Kit {
@@ -90,7 +90,8 @@ export const NO_EXTRAS: StudioExtras = { jackpot: 'on', poker: false };
 
 // Tudo o que pode ser tocado na cena. As quatro primeiras são objetos (aqui);
 // as outras são do cinema (draw.ts).
-export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves';
+// 17/11/2026: cada móvel de humor é tocável com o próprio nome (abre o cartão dele).
+export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves' | MoodItemId;
 export interface Rect {
   x: number;
   y: number;
@@ -147,7 +148,8 @@ const MARK_SIZE = 1.0;
 const WALL_GAP = 0.12;
 
 // Os objetos que têm lugar (a pessoa pode mudar) e os dois fixos do cinema.
-export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank';
+// 17/11/2026: e os sete móveis dos humores (moodItems/).
+export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank' | MoodItemId;
 type SolidId = ItemId | 'projector' | 'lamp';
 
 // O que os desenhos precisam saber de quem é o estúdio.
@@ -188,40 +190,8 @@ export const hasPet = (world: PersonaWorld, pet: PetId): boolean => world.pets[p
 // ---------------------------------------------------------------------------
 // As ferramentas de desenho
 // ---------------------------------------------------------------------------
-// retângulo numa face que corre ao longo de x (a face +y de uma caixa). o =
-// a ponta esquerda da face no chão dela; u = distância da ponta; v = altura.
-const faceY = (ctx: Ctx, o: Pt, u: number, v: number, w: number, h: number, c: string) => {
-  ctx.fillStyle = c;
-  for (let d = 0; d < w; d += 1) ctx.fillRect(Math.round(o[0]) + u + d, Math.round(o[1]) + ((u + d) >> 1) - v - h, 1, h);
-};
-// retângulo numa face que corre ao longo de y (a face +x). o = a ponta
-// direita da face no chão dela; u cresce para a esquerda.
-const faceX = (ctx: Ctx, o: Pt, u: number, v: number, w: number, h: number, c: string) => {
-  ctx.fillStyle = c;
-  for (let d = 0; d < w; d += 1) ctx.fillRect(Math.round(o[0]) - 1 - (u + d), Math.round(o[1]) + ((u + d) >> 1) - v - h, 1, h);
-};
-// elipse cheia (um círculo no chão, visto de cima em isométrico)
-const disc = (ctx: Ctx, cx: number, cy: number, a: number, b: number, c: string) => {
-  ctx.fillStyle = c;
-  for (let dy = -Math.floor(b); dy <= Math.floor(b); dy += 1) {
-    const half = Math.round(a * Math.sqrt(Math.max(0, 1 - (dy * dy) / (b * b))));
-    if (half > 0) ctx.fillRect(Math.round(cx) - half, Math.round(cy) + dy, half * 2, 1);
-  }
-};
-// Um desenho pequeno, linha a linha: cada letra é uma cor da paleta e o ponto
-// é vazio. flip = espelhado (virado para o outro lado).
-const sprite = (ctx: Ctx, x: number, y: number, rows: string[], palette: Record<string, string>, flip = false) => {
-  const x0 = Math.round(x);
-  const y0 = Math.round(y);
-  rows.forEach((row, ry) => {
-    for (let rx = 0; rx < row.length; rx += 1) {
-      const color = palette[row[rx]];
-      if (!color) continue;
-      ctx.fillStyle = color;
-      ctx.fillRect(x0 + (flip ? row.length - 1 - rx : rx), y0 + ry, 1, 1);
-    }
-  });
-};
+// faceY, faceX, disc e sprite moram em pixel.ts desde 17/11/2026 (os móveis
+// dos humores, em moodItems/, usam as mesmas).
 
 // ---------------------------------------------------------------------------
 // Os objetos
@@ -676,6 +646,21 @@ const ITEMS: ItemDef[] = [
   { id: 'tank', ...TANK, h: TANK.h + 2, home: 3, owned: (env) => hasPet(env.world, 'snake'), draw: drawTank, paint: paintTank },
   { id: 'projector', w: 0.9, d: 0.8, h: 24, fixed: { x: 4.15, y: 2.8 }, owned: (env) => levelOf(env) >= 1, draw: drawProjector },
   { id: 'lamp', w: 0.3, d: 0.3, h: 29, fixed: { x: 0.35, y: 0.35 }, owned: (env) => levelOf(env) >= 4, draw: drawLamp, pad: 5 },
+  // os móveis dos humores (17/11/2026): chegam com a tag do humor (50 títulos da prateleira)
+  ...MOOD_ITEMS.map(
+    (item): ItemDef => ({
+      id: item.id,
+      w: item.art.w,
+      d: item.art.d,
+      h: item.art.h,
+      home: item.home,
+      owned: (env) => hasMoodItem(env.world, env.st, item),
+      draw: item.art.draw,
+      paint: item.art.paint,
+      spot: item.id,
+      pad: item.art.pad,
+    }),
+  ),
 ];
 // os que a pessoa pode mudar de lugar, na ordem em que disputam um lugar
 export const MOVABLE: ItemId[] = ITEMS.filter((item) => item.home !== undefined).map((item) => item.id as ItemId);
@@ -733,6 +718,13 @@ const rectOf = (k: Kit, x: number, y: number, w: number, d: number, h: number, p
 };
 const overlaps = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
+// Os lugares diante da máquina do Jackpot e da estante do guia (5 e 6 na
+// tela). 17/11/2026: um móvel de humor que chega numa sala cheia não vai
+// sozinho para eles (o diretor de arte viu, na sala completa, a escultura e a
+// luminária caindo bem na frente da máquina); sem outro lugar livre, fica no
+// inventário até a pessoa escolher onde pôr. Se ela mesma puser ali, fica.
+const KEEP_CLEAR = [4, 5];
+
 // Os lugares de cada objeto: primeiro o que a pessoa escolheu (se o lugar
 // existe e ninguém pegou antes), depois o de costume; se o de costume está
 // ocupado por outro que ela pôs ali, o lugar vazio mais perto dele.
@@ -751,7 +743,7 @@ export function resolvePlaces(all: ItemId[], saved: Record<string, number>, stor
     if (at[id] !== undefined) return;
     const home = PLACES[HOME[id]];
     const order = PLACES.map((place, index) => ({ index, far: Math.hypot(place.x - home.x, place.y - home.y) })).sort((a, b) => a.far - b.far || a.index - b.index);
-    const free = order.find((option) => !taken.has(option.index));
+    const free = order.find((option) => !taken.has(option.index) && !(isMoodItem(id) && KEEP_CLEAR.includes(option.index)));
     if (!free) return;
     at[id] = free.index;
     taken.add(free.index);
@@ -765,7 +757,11 @@ const DEFAULT_TINTS: [string, string, string] = ['#6B5FA0', '#5A5390', '#8B7FC0'
 // O arranjo do estúdio de alguém, como quem olha vê (a máquina e a mesa dependem de quem olha).
 export function studioLayout(k: Kit, world: PersonaWorld, st: WorldState, extras: StudioExtras): StudioLayout {
   const tints: [string, string, string] = st.hasTrio ? [k.moodColor(st.trio[0]), k.moodColor(st.trio[1]), k.moodColor(st.trio[2])] : DEFAULT_TINTS;
-  const variant = `${st.stage}|${st.out > 0 || world.preview ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}`;
+  // 17/11/2026: e os móveis dos humores que a pessoa tem
+  const moods = MOOD_ITEMS.filter((item) => hasMoodItem(world, st, item))
+    .map((item) => item.letter)
+    .join('');
+  const variant = `${st.stage}|${st.out > 0 || world.preview ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}|${moods}`;
   let byVariant = layouts.get(world);
   if (!byVariant) {
     byVariant = new Map();

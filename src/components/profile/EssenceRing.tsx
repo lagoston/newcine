@@ -115,6 +115,8 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ persona, isOwn, ownerName, ow
       <div className="-mx-5 min-[360px]:-mx-3 sm:mx-0">
         <StudioCard world={world} failed={failed} onRetry={() => setAttempt((n) => n + 1)} doors={doors} onOpen={openWorld} isOwn={isOwn} ownerName={ownerName ?? null} roomy />
       </div>
+      {/* o cartão de um móvel de humor tocado na cena (17/11/2026) */}
+      {doors.overlay}
 
       {bookOpen && world && (
         <Suspense fallback={null}>

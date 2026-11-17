@@ -4117,7 +4117,8 @@
       "terror": "Clube do Terror",
       "terrorVia": "Clube do Terror, como convidado de @{{name}}",
       "posters": "Coleção de pôsteres",
-      "shelves": "Biblioteca"
+      "shelves": "Biblioteca",
+      "mood": "{{item}}"
     },
     "items": {
       "slot": "a máquina do Jackpot",
@@ -4130,7 +4131,14 @@
       "plant": "a planta",
       "chair": "a cadeira de diretor",
       "fox": "a caminha da raposa",
-      "tank": "o aquário da cobra"
+      "tank": "o aquário da cobra",
+      "sculpture": "a escultura impossível",
+      "lavalamp": "a luminária de lava",
+      "souljar": "a redoma das almas",
+      "kart": "o simulador de kart",
+      "loveseat": "a namoradeira",
+      "fort": "a cabana de cobertor",
+      "fridge": "o frigobar"
     },
     "arrange": {
       "start": "Arrumar o estúdio",
@@ -4176,6 +4184,13 @@
         "chair": "Cadeira de diretor",
         "fox": "Raposa",
         "tank": "Aquário da cobra",
+        "sculpture": "Escultura impossível",
+        "lavalamp": "Luminária de lava",
+        "souljar": "Redoma das almas",
+        "kart": "Simulador de kart",
+        "loveseat": "Namoradeira",
+        "fort": "Cabana de cobertor",
+        "fridge": "Frigobar",
         "projector": "projetor",
         "rug": "tapete",
         "lamp": "abajur",
@@ -4183,6 +4198,25 @@
         "bigScreen": "tela grande",
         "marquee": "letreiro de lâmpadas",
         "frog": "o sapo (anda solto)"
+      }
+    },
+    "moodCard": {
+      "films": "títulos da prateleira",
+      "average": "sua média",
+      "averageOf": "média de {{name}}",
+      "favorite": "Seu favorito da prateleira",
+      "favoriteOf": "O favorito de {{name}} na prateleira",
+      "rating": "nota",
+      "openShelf": "Ver a prateleira {{mood}}",
+      "preview": "Estúdio completo do diretor: o móvel aparece antes da tag, que pede {{goal}} títulos da prateleira.",
+      "what": {
+        "sculpture": "Um triângulo que não pode existir, e um pião que gira no alto sem nunca cair.",
+        "lavalamp": "As bolhas sobem, se juntam e trocam de cor devagar, como um sonho acordado.",
+        "souljar": "Duas luzes, uma clara e uma escura, girando uma em volta da outra.",
+        "kart": "Para quem vê filme com o pé no acelerador.",
+        "loveseat": "O sofá em S onde dois se sentam frente a frente.",
+        "fort": "O forte de lençol da sessão de cinema em família.",
+        "fridge": "O que sobrou da noite de comédia com os amigos."
       }
     }
   },
@@ -4379,6 +4413,14 @@
         "snake": "A cobra",
         "snakeWhat": "Mora no aquário. Tag {{tag}}, da Cobra Cypher.",
         "progress": "{{count}} de {{goal}} títulos"
+      },
+      "moods": {
+        "title": "Os móveis dos humores",
+        "intro": "Sete prateleiras dão um móvel ao estúdio. Ele chega junto com a tag do humor: {{goal}} títulos avaliados daquela prateleira.",
+        "what": "{{mood}} · tag {{tag}}",
+        "touchOwn": "Toque num móvel do estúdio para ver o que você tem daquele humor: quantos títulos, a sua média e o seu favorito.",
+        "touchOther": "Toque num móvel do estúdio de {{name}} para ver o que essa pessoa tem daquele humor: quantos títulos, a média e o favorito.",
+        "others": "Sombrio e Assustador e Aventuras não dão móvel: as tags delas liberam as cartas Horror e Yu-Gi-Oh! dos oráculos."
       }
     },
     "spots": {

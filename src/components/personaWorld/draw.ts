@@ -183,6 +183,8 @@ const box = (ctx: Ctx, x: number, y: number, z: number, w: number, d: number, h:
 
 // As ferramentas daqui, para o desenho da sala de estar (studio.ts).
 const KIT: Kit = { iso, box, poly, px, mix, dark, light, moodColor, size: [RW, RH] };
+// a prévia dos móveis dos humores (a bancada dos desenhistas) desenha um objeto sozinho com elas
+export const STUDIO_KIT: Kit = KIT;
 
 const FONT5: Record<string, string[]> = {
   M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
@@ -508,6 +510,12 @@ export function studioPortrait(world: PersonaWorld, st: WorldState, extras: Stud
     portraits.set(key, canvas ? { src: canvas.toDataURL(), w: canvas.width, h: canvas.height } : null);
   }
   return portraits.get(key) ?? null;
+}
+
+// O desenho de um objeto sozinho, em canvas (17/11/2026: o cartão e o guia
+// dos móveis dos humores). Desenha mesmo um objeto que a pessoa ainda não tem.
+export function studioItemArt(world: PersonaWorld, st: WorldState, extras: StudioExtras, id: ItemId): HTMLCanvasElement | null {
+  return itemPortrait(KIT, studioLayout(KIT, world, st, extras), id, false);
 }
 
 // ---------- o brilho do que pode ser tocado (glow.ts) ----------

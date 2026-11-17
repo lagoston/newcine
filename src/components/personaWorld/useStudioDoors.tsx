@@ -9,6 +9,9 @@ import { usePokerDoor } from '../poker/game/usePokerDoor';
 import { BLEFE_ROUTES } from '../poker/jackpot/pokerMeta';
 import type { Hotspot } from './PersonaScene';
 import { hasTerrorBox, type SpotKind, type StudioExtras } from './studio';
+import { MOOD_ITEMS, type MoodItemId } from './moodItems';
+import { pokeItem } from './pixel';
+import MoodObjectCard from './MoodObjectCardLazy';
 
 // O que cada coisa do estúdio abre (14/11/2026).
 //
@@ -28,7 +31,10 @@ import { hasTerrorBox, type SpotKind, type StudioExtras } from './studio';
 //   • os quadros      → a coleção de pôsteres do Jackpot;
 //   • a tela e a mariposa → "Sua Persona" (quem monta a cena diz o que isso é:
 //     abrir a gaveta, ou, dentro dela, descer até a Persona e a mariposa);
-//   • a estante das latas → a Biblioteca (sem brilho).
+//   • a estante das latas → a Biblioteca (sem brilho);
+//   • os móveis dos humores (17/11/2026: a escultura, a luminária, a redoma,
+//     o kart, a namoradeira, a cabana e o frigobar) → reagem ao toque e abrem
+//     o cartão do móvel (MoodObjectCard), no estúdio de qualquer pessoa.
 //
 // No estúdio de outra pessoa os jogos, os quadros e a estante são só desenho
 // (os jogos e a coleção são de quem está olhando); o livro é o guia com os
@@ -64,6 +70,11 @@ export interface StudioJackpot {
 export interface StudioDoors {
   extras: StudioExtras;
   hotspots: Partial<Record<SpotKind, Hotspot>>;
+  // 17/11/2026: o que abre por cima da cena (o cartão de um móvel de humor);
+  // quem monta a cena põe isto em algum lugar da página
+  overlay: React.ReactNode;
+  // o cartão está aberto (quem está por baixo desliga o Esc)
+  covering: boolean;
 }
 
 export function useStudioDoors(options: {
@@ -106,8 +117,10 @@ export function useStudioDoors(options: {
   const posterCount = world?.posters.length ?? 0;
   const hasTerror = Boolean(world && hasTerrorBox(world));
   const personaLabel = isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerUsername ? `@${ownerUsername}` : '' });
+  // o móvel de humor tocado (o cartão aberto)
+  const [moodCard, setMoodCard] = useState<MoodItemId | null>(null);
 
-  return useMemo(() => {
+  const doors = useMemo(() => {
     const extras: StudioExtras = { jackpot: !machine ? 'off' : alert ? 'alert' : 'on', poker: poker.open };
     const hotspots: Partial<Record<SpotKind, Hotspot>> = {
       book: { label: t('studio.spots.book'), onClick: onOpenBook },
@@ -143,6 +156,22 @@ export function useStudioDoors(options: {
         ? { label: t('studio.spots.terror'), to: roomPath(TERROR_CLUB), onClick: onLeave }
         : { label: t('studio.spots.terrorVia', { name: ownerUsername ?? '' }), to: roomPath(TERROR_CLUB, ownerUsername ?? null), onClick: onLeave };
     }
+    // os móveis dos humores: só os que estão na sala viram botão (studioSpots)
+    MOOD_ITEMS.forEach((item) => {
+      hotspots[item.id] = {
+        label: t('studio.spots.mood', { item: t(`studio.inventory.names.${item.id}`) }),
+        onClick: () => {
+          pokeItem(item.id);
+          setMoodCard(item.id);
+        },
+      };
+    });
     return { extras, hotspots };
   }, [machine, alert, poker.open, t, onOpenBook, onOpenPersona, personaLabel, isOwn, waiting, above, openJackpot, onLeave, navigate, posterCount, hasTerror, viewerId, ownerUsername]);
+
+  const overlay =
+    moodCard && world ? (
+      <MoodObjectCard id={moodCard} world={world} isOwn={isOwn} ownerUsername={ownerUsername ?? null} extras={doors.extras} onClose={() => setMoodCard(null)} onLeave={onLeave} />
+    ) : null;
+  return { ...doors, overlay, covering: moodCard !== null };
 }

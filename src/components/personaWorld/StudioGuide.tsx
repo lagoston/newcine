@@ -9,11 +9,12 @@ import { supabase } from '../../lib/supabase';
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { mapPersonaEntry, personaText, PERSONA_THRESHOLD, type PersonaEntry } from '../../lib/persona';
 import { FURNITURE, LEVEL_AT, LETTERS, MAX_LEVEL, PET_GOAL, levelText, worldState, type PersonaWorld, type PetId, type WorldState } from '../../lib/personaWorld';
-import { ORACLE_TAGS } from '../../lib/tags';
+import { ORACLE_TAGS, PROGRESSION_TAGS } from '../../lib/tags';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL } from '../../lib/oracleTheme';
 import PersonasModal from '../PersonasModal';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
-import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioItemRect, studioSpots, type MothSpec } from './draw';
+import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioItemArt, studioItemRect, studioSpots, type MothSpec } from './draw';
+import { MOOD_ITEMS, MOOD_ITEM_GOAL, hasMoodItem, type MoodItem, type MoodItemId } from './moodItems';
 import { hasPet, hasTerrorBox, NO_EXTRAS, PET_ITEMS, type SpotKind, type StudioExtras } from './studio';
 
 // O guia do estúdio: o livro da estante.
@@ -70,6 +71,12 @@ import { hasPet, hasTerrorBox, NO_EXTRAS, PET_ITEMS, type SpotKind, type StudioE
 //     retrato do personagem (o mesmo cartão da ficha, PersonaCard), com o
 //     código por cima da foto e o título embaixo. Cabem 12 por página (eram
 //     18 blocos de letras), e o livro ganhou uma abertura: sete no total.
+//
+// 17/11/2026: "Os móveis dos humores" ganharam a terceira abertura (oito no
+// total): os sete móveis, com o desenho de cada um, a tag que traz cada um e
+// quanto falta. Pedido do Bruno ao escolher os móveis, preocupado com quem
+// ainda não tem nenhum ("pouquíssimos usuário tem sequer uma tag dessas"):
+// assim todo mundo vê o que pode ganhar.
 
 // as tintas sobre o papel (todas com contraste de leitura sobre o creme)
 const INK_SOFT = '#5B4F6E';
@@ -241,6 +248,20 @@ function makeArt(data: GuideData): (key: string) => HTMLCanvasElement {
       const h = Math.min(52, Math.round(spot.h) + 6);
       return crop(scene, spot.x + spot.w / 2, spot.y + spot.h / 2, w, h);
     }
+    if (key.startsWith('mood:')) {
+      // Um móvel de humor, sozinho e parado, no meio do quadrinho escuro.
+      // Aparece mesmo para quem ainda não o tem: é o guia.
+      const piece = studioItemArt(world, st, extras, key.slice(5) as MoodItemId);
+      const w = piece ? Math.min(46, Math.max(30, piece.width + 8)) : ITEM.w;
+      const h = piece ? Math.min(44, Math.max(26, piece.height + 6)) : ITEM.h;
+      const out = canvasOf(w, h);
+      const ctx = out.getContext('2d');
+      if (!ctx) return out;
+      ctx.fillStyle = `rgb(${SHADE.join(',')})`;
+      ctx.fillRect(0, 0, w, h);
+      if (piece) ctx.drawImage(piece, Math.round((w - piece.width) / 2), Math.max(0, h - piece.height - 3));
+      return out;
+    }
     if (key.startsWith('pet:')) {
       // Um bichinho, recortado do estúdio de hoje (parado). Aparece aqui mesmo
       // para quem ainda não o tem: é o guia.
@@ -339,9 +360,12 @@ type CatalogEntry = PersonaEntry & { userCount: number };
 // computador, 3 no celular) e quantas são.
 const PER_PAGE = 12;
 const PERSONAS = 84;
-// As quatro primeiras aberturas são o manual; a 1ª página das personalidades
-// fica na direita da 4ª e as outras vão de duas em duas.
-const spreadsFor = (personas: number) => 4 + Math.ceil((Math.ceil(personas / PER_PAGE) - 1) / 2);
+// As cinco primeiras aberturas são o manual (a dos móveis dos humores entrou
+// em 17/11/2026, como a 3ª); a 1ª página das personalidades fica na direita
+// da 5ª e as outras vão de duas em duas.
+const MOODS_SPREAD = 2;
+const MANUAL = 5;
+const spreadsFor = (personas: number) => MANUAL + Math.ceil((Math.ceil(personas / PER_PAGE) - 1) / 2);
 
 const useViewport = () => {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
@@ -721,7 +745,45 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     </li>
   );
 
-  // ---- 3 e 4. o gráfico das nove prateleiras e as três letras ----
+  // ---- 3. os móveis dos humores (17/11/2026) ----
+  const moodRow = (item: MoodItem) => {
+    const has = hasMoodItem(world, st, item);
+    const count = st.films[item.letter] ?? 0;
+    const tag = PROGRESSION_TAGS.find((entry) => entry.name === item.tag);
+    return (
+      <li key={item.id} className="flex items-center gap-3">
+        <span className="grid w-[98px] shrink-0 place-items-center">{frame(`mood:${item.id}`)}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] leading-tight" style={PIXEL}>
+            {t(`studio.inventory.names.${item.id}`)}
+          </p>
+          <p className="mt-[2px] text-[13px] leading-snug" style={{ color: INK_SOFT }}>
+            {g('moods.what', { mood: moodName(item.letter), tag: tag ? `${tag.emoji} ${tag.name}` : item.tag })}
+          </p>
+          <p className="mt-[2px] inline-flex items-center gap-1 text-[12.5px] font-semibold" style={{ color: has ? PAST : FUTURE }}>
+            {has ? <Check className="h-[13px] w-[13px] shrink-0" aria-hidden /> : <Hourglass className="h-[13px] w-[13px] shrink-0" aria-hidden />}
+            {has ? g('objects.has') : g('pets.progress', { count: whole(Math.min(count, MOOD_ITEM_GOAL)), goal: MOOD_ITEM_GOAL })}
+          </p>
+        </div>
+      </li>
+    );
+  };
+  const moodsLeft = () => (
+    <>
+      {heading(g('moods.title'))}
+      {body(g('moods.intro', { goal: MOOD_ITEM_GOAL }), 'mt-2')}
+      <ul className="mt-3 grid gap-[7px]">{MOOD_ITEMS.slice(0, 4).map(moodRow)}</ul>
+    </>
+  );
+  const moodsRight = () => (
+    <>
+      <ul className="grid gap-[7px]">{MOOD_ITEMS.slice(4).map(moodRow)}</ul>
+      {note(g(isOwn ? 'moods.touchOwn' : 'moods.touchOther', { name }), 'mt-3')}
+      {note(g('moods.others'), 'mt-2')}
+    </>
+  );
+
+  // ---- 4 e 5. o gráfico das nove prateleiras e as três letras ----
   const chart = () => {
     const strongest = Math.max(1, ...st.rank.map((letter) => st.score[letter]));
     return (
@@ -839,10 +901,10 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   };
 
   // ---- as duas metades de cada abertura ----
-  const titles = [g('evolutions.title'), g('places.title'), g('shelves.title'), g('letters.title'), ...Array.from({ length: spreads - 4 }, () => g('personas.title'))];
+  const titles = [g('evolutions.title'), g('places.title'), g('moods.title'), g('shelves.title'), g('letters.title'), ...Array.from({ length: spreads - MANUAL }, () => g('personas.title'))];
   // as personalidades: a 1ª página fica na 4ª abertura (à direita); depois, duas por abertura
   const personaRange = (first: number) => note(g('personas.range', { from: first * PER_PAGE + 1, to: Math.min(personaTotal, (first + 2) * PER_PAGE), total: personaTotal }), 'mt-1 mb-3');
-  const leftOf = (index: number): React.ReactNode => {
+  const manualLeft = (index: number): React.ReactNode => {
     if (index === 0) {
       return (
         <>
@@ -926,7 +988,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
       </>
     );
   };
-  const rightOf = (index: number): React.ReactNode => {
+  const manualRight = (index: number): React.ReactNode => {
     if (index === 0) return <ul className="grid gap-[3px]">{Array.from({ length: MAX_LEVEL - 1 }, (_, i) => i + 3).map(stageRow)}</ul>;
     if (index === 1) {
       const has = hasTerrorBox(world);
@@ -971,6 +1033,10 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     }
     return personaPage((index - 4) * 2 + 2);
   };
+
+  // a abertura dos móveis entrou no meio: as de depois são as de antes, uma para a frente
+  const leftOf = (index: number): React.ReactNode => (index === MOODS_SPREAD ? moodsLeft() : manualLeft(index > MOODS_SPREAD ? index - 1 : index));
+  const rightOf = (index: number): React.ReactNode => (index === MOODS_SPREAD ? moodsRight() : manualRight(index > MOODS_SPREAD ? index - 1 : index));
 
   // ---- a capa ----
   const cover = (live: boolean) => (

@@ -4118,7 +4118,8 @@
       "terror": "Terror Club",
       "terrorVia": "Terror Club, as a guest of @{{name}}",
       "posters": "Poster collection",
-      "shelves": "Library"
+      "shelves": "Library",
+      "mood": "{{item}}"
     },
     "items": {
       "slot": "the Jackpot machine",
@@ -4131,7 +4132,14 @@
       "plant": "the plant",
       "chair": "the director's chair",
       "fox": "the fox's bed",
-      "tank": "the snake's tank"
+      "tank": "the snake's tank",
+      "sculpture": "the impossible sculpture",
+      "lavalamp": "the lava lamp",
+      "souljar": "the soul jar",
+      "kart": "the kart simulator",
+      "loveseat": "the courting sofa",
+      "fort": "the blanket fort",
+      "fridge": "the mini fridge"
     },
     "arrange": {
       "start": "Arrange the studio",
@@ -4177,6 +4185,13 @@
         "chair": "Director's chair",
         "fox": "Fox",
         "tank": "Snake's tank",
+        "sculpture": "Impossible sculpture",
+        "lavalamp": "Lava lamp",
+        "souljar": "Soul jar",
+        "kart": "Kart simulator",
+        "loveseat": "Courting sofa",
+        "fort": "Blanket fort",
+        "fridge": "Mini fridge",
         "projector": "projector",
         "rug": "rug",
         "lamp": "lamp",
@@ -4184,6 +4199,25 @@
         "bigScreen": "big screen",
         "marquee": "light-bulb marquee",
         "frog": "the frog (roams free)"
+      }
+    },
+    "moodCard": {
+      "films": "titles from this shelf",
+      "average": "your average",
+      "averageOf": "{{name}}'s average",
+      "favorite": "Your favorite from this shelf",
+      "favoriteOf": "{{name}}'s favorite from this shelf",
+      "rating": "rating",
+      "openShelf": "See the {{mood}} shelf",
+      "preview": "Director's full studio: the piece shows up before the tag, which takes {{goal}} titles from the shelf.",
+      "what": {
+        "sculpture": "A triangle that can't exist, and a spinning top that never falls.",
+        "lavalamp": "The blobs rise, merge and slowly change color, like a waking dream.",
+        "souljar": "Two lights, one bright and one dark, circling each other.",
+        "kart": "For people who watch movies with their foot on the gas.",
+        "loveseat": "The S-shaped sofa where two people sit face to face.",
+        "fort": "The bedsheet fort of family movie night.",
+        "fridge": "What's left after comedy night with friends."
       }
     }
   },
@@ -4380,6 +4414,14 @@
         "snake": "The snake",
         "snakeWhat": "Lives in the tank. Tag {{tag}}, from Cobra Cypher.",
         "progress": "{{count}} of {{goal}} titles"
+      },
+      "moods": {
+        "title": "Mood furniture",
+        "intro": "Seven shelves give the studio a piece of furniture. It arrives with the mood's tag: {{goal}} rated titles from that shelf.",
+        "what": "{{mood}} · {{tag}} tag",
+        "touchOwn": "Tap a piece in the studio to see what you have from that mood: how many titles, your average and your favorite.",
+        "touchOther": "Tap a piece in {{name}}'s studio to see what they have from that mood: how many titles, the average and the favorite.",
+        "others": "Dark & Scary and Adventures give no furniture: their tags unlock the Horror and Yu-Gi-Oh! oracle cards."
       }
     },
     "spots": {
