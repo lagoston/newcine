@@ -18,10 +18,15 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.3
 // para os apps antigos (APK) — o site novo pega tudo isso do banco pela
 // cache-title. Podem sair quando os apps antigos deixarem de ser usados.
 
+// 18/11/2026 (otimização, rede.md A7): Access-Control-Max-Age. O site manda
+// Authorization, então cada GET vinha precedido de um OPTIONS (que também é
+// uma invocação desta função); sem o cabeçalho o Chrome guarda o preflight
+// por só 5 s. Com ele, o navegador guarda por até 24 h (o Chrome usa até 2 h).
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+  'Access-Control-Max-Age': '86400',
 };
 
 const TMDB_API_KEY = Deno.env.get('TMDB_API_KEY') || '';
@@ -29,6 +34,18 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 
 const HOUR = 3600;
 const DAY = 24 * HOUR;
+
+// 18/11/2026 (otimização, rede.md A7): o que já fica guardado aqui (listas,
+// vídeos, pessoas, find) também pode ficar no cache do navegador, por no
+// máximo 1 h e nunca além do prazo da regra. Antes nada tinha Cache-Control e
+// cada volta à home ia de novo à função. "private": a resposta vem para um
+// pedido com Authorization (nenhum cache compartilhado guarda). Busca (ttl 0),
+// erros e o limite de pedidos continuam sem cabeçalho de cache.
+const BROWSER_MAX_AGE = HOUR;
+function browserCache(ttl: number, ageSeconds = 0): Record<string, string> {
+  const fresh = Math.floor(Math.min(BROWSER_MAX_AGE, ttl - ageSeconds));
+  return fresh > 0 ? { 'Cache-Control': `private, max-age=${fresh}` } : {};
+}
 const USER_REQUESTS_PER_HOUR = 1200;
 const ANON_REQUESTS_PER_HOUR = 600;
 
@@ -158,8 +175,9 @@ Deno.serve(async (req: Request) => {
     // 1) guardado e dentro do prazo
     if (rule && rule.ttl > 0) {
       const { data: cached } = await supabase.from('tmdb_response_cache').select('payload, fetched_at').eq('endpoint', target.key).maybeSingle();
-      if (cached && Date.now() - new Date(cached.fetched_at).getTime() < rule.ttl * 1000) {
-        return json(cached.payload, 200, { 'X-Cache': 'hit' });
+      const ageMs = cached ? Date.now() - new Date(cached.fetched_at).getTime() : Infinity;
+      if (cached && ageMs < rule.ttl * 1000) {
+        return json(cached.payload, 200, { 'X-Cache': 'hit', ...browserCache(rule.ttl, ageMs / 1000) });
       }
     }
 
@@ -189,7 +207,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from('tmdb_response_cache').upsert({ endpoint: target.key, payload: data, fetched_at: new Date().toISOString() }, { onConflict: 'endpoint' });
     }
 
-    return json(data, 200, { 'X-Cache': 'miss' });
+    return json(data, 200, { 'X-Cache': 'miss', ...(rule && rule.ttl > 0 ? browserCache(rule.ttl) : {}) });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
   }

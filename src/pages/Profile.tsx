@@ -113,7 +113,7 @@ const getImageDimensions = (file: File): Promise<{ width: number; height: number
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { session, isPremium, checkPremiumStatus } = useAuth();
+  const { session, isPremium } = useAuth();
   // Conta Diretor (16/11/2026): os efeitos de nome que pedem resenhas aparecem
   const { isDirector } = useDirector();
   const { t, i18n } = useTranslation();
@@ -233,9 +233,10 @@ export default function Profile() {
         setCreatedAt(session.user.created_at);
       }
 
-      if (checkPremiumStatus) {
-        await checkPremiumStatus();
-      }
+      // 18/11/2026 (otimização): o Perfil não checa mais o premium por conta
+      // própria. O login já checa ao abrir o app (e a tela de sucesso do
+      // Premium, depois de assinar); esta era a 3ª checagem (2 RPCs) em toda
+      // visita ao Perfil, medida na prévia de rede.
     } catch (error) {
       console.error('Error loading profile:', error);
       toast.error(t('profile.toast.loadError'));

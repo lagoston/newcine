@@ -129,18 +129,10 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
           const sliced = data.slice(0, 10);
           setMovieResults(sliced);
           setProfileResults([]);
-          sliced.forEach((movie) => {
-            const mediaType = movie.media_type || 'movie';
-            const key = `${mediaType}:${movie.id}`;
-            if (!prefetchRef.current.has(key)) {
-              // Só o que já está no banco: resultado que ninguém abre não é
-              // buscado no TMDB nem gravado.
-              const pending = getCachedMovieDetails(movie.id, mediaType);
-              // Evita "unhandled rejection" de uma pré-busca que ninguém abriu.
-              pending.catch(() => {});
-              prefetchRef.current.set(key, pending);
-            }
-          });
+          // 18/11/2026 (otimização): os detalhes não são mais adiantados para os
+          // 10 resultados de cada busca (eram 10 linhas inteiras do movie_cache por
+          // pesquisa, quase nunca abertas); só quando o dedo encosta num
+          // resultado (prefetchResult, abaixo).
         }
       } catch (error) {
         console.error('Error in mobile search:', error);
@@ -218,7 +210,18 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     inputRef.current?.focus({ preventScroll: true });
   };
 
-  // Detalhes adiantados quando o dedo encosta (resultados já vêm adiantados).
+  // Resultado da busca: adianta só o que já está no banco quando o dedo
+  // encosta (resultado que ninguém abre não é buscado no TMDB nem gravado).
+  const prefetchResult = (id: number, mediaType: 'movie' | 'tv') => {
+    const key = `${mediaType}:${id}`;
+    if (prefetchRef.current.has(key)) return;
+    const pending = getCachedMovieDetails(id, mediaType);
+    // Evita "unhandled rejection" de uma pré-busca que ninguém abriu.
+    pending.catch(() => {});
+    prefetchRef.current.set(key, pending);
+  };
+
+  // Buscas recentes: detalhes adiantados quando o dedo encosta.
   const prefetch = (id: number, mediaType: 'movie' | 'tv') => {
     const key = `${mediaType}:${id}`;
     if (prefetchRef.current.has(key)) return;
@@ -371,6 +374,7 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
               <li key={key} className="search-row" style={{ '--row-i': index } as React.CSSProperties}>
                 <button
                   onClick={() => handleMovieClick(movie)}
+                  onPointerDown={() => prefetchResult(movie.id, mediaType)}
                   aria-busy={openingKey === key || undefined}
                   className={`w-full flex justify-start items-center gap-3.5 py-2.5 text-left rounded-xl active:bg-white/5 transition ${FOCUS_RING}`}
                 >
@@ -491,8 +495,13 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 z-[90] backdrop-blur-xl"
-            style={{ background: 'rgba(12, 8, 24, 0.82)', touchAction: 'none' }}
+            // 18/11/2026 (otimização, bateria.md A4): sem o backdrop-blur-xl de tela
+            // inteira — o desfoque era refeito a cada quadro com a Home animando por
+            // baixo (1.150 → ~540 ms de CPU por segundo com a busca aberta). Sem o
+            // desfoque, o véu ficou quase opaco (0,82 → 0,98): a Home por trás
+            // aparecia nítida atrás dos resultados; assim fica como antes.
+            className="lg:hidden fixed inset-0 z-[90]"
+            style={{ background: 'rgba(12, 8, 24, 0.98)', touchAction: 'none' }}
             aria-hidden
           />
 

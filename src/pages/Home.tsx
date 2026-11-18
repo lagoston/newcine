@@ -197,7 +197,9 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
               <li key={movieKey(movie)} ref={reveal} className={`reveal-tile shrink-0 ${TILE_WIDTH}`}>
                 <button
                   onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
-                  onPointerEnter={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
+                  // 18/11/2026 (otimização): "passar por cima" só com mouse; no toque o
+                  // pointerdown já adianta (antes os dois disparavam a cada toque).
+                  onPointerEnter={(e) => { if (e.pointerType === 'mouse') prefetchMovie(movie.id, asMediaType(movie.media_type)); }}
                   onPointerDown={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
                   className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
                 >
@@ -383,6 +385,14 @@ const Home = () => {
     setForYouSeries(undefined);
     if (userId) {
       fetchUsername(userId);
+      // 18/11/2026 (otimização): as três listas são pedidas já na montagem, junto
+      // com os painéis do topo. Antes as prateleiras ficavam escondidas até os
+      // painéis responderem e só então pediam as listas (uma ida a mais na
+      // abertura). Os pôsteres continuam entrando só quando a prateleira aparece,
+      // e as listas vêm da memória por 30 min (lib/tmdb.ts).
+      loadShelf('trending');
+      loadShelf('comingSoon');
+      loadShelf('bestOfYear');
     } else {
       fetchGuestTrending();
     }

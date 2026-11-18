@@ -207,12 +207,33 @@ export const findByImdbId = async (imdbId: string): Promise<{ id: number; media_
   }
 };
 
-export const getTrending = async (): Promise<Movie[]> => {
-  const data = await tmdbFetch('/trending/movie/week');
-  return data.results;
-};
+// 18/11/2026 (otimização): as listas da Home (Popular agora, Em breve,
+// Melhores do ano) ficam guardadas na memória da aba por 30 min. Antes,
+// cada volta à Home pedia tudo de novo ao tmdb-proxy (7 pedidos, medido na
+// prévia de rede), embora o proxy guarde as mesmas listas por 6 a 12 h.
+// Pedidos simultâneos esperam o mesmo; erro não fica guardado; quem recebe
+// leva uma cópia da lista (pode recortar ou ordenar sem mexer na guardada).
+const LIST_TTL_MS = 30 * 60 * 1000;
+const listMemo = new Map<string, { at: number; list: Promise<Movie[]> }>();
+function memoList(name: string, load: () => Promise<Movie[]>): Promise<Movie[]> {
+  const key = `${name}|${getCurrentLanguage()}`;
+  const hit = listMemo.get(key);
+  if (hit && Date.now() - hit.at < LIST_TTL_MS) return hit.list.then((movies) => movies.slice());
+  const list = load();
+  listMemo.set(key, { at: Date.now(), list });
+  list.catch(() => {
+    if (listMemo.get(key)?.list === list) listMemo.delete(key);
+  });
+  return list.then((movies) => movies.slice());
+}
 
-export const getComingSoon = async (): Promise<Movie[]> => {
+export const getTrending = (): Promise<Movie[]> =>
+  memoList('trending', async () => {
+    const data = await tmdbFetch('/trending/movie/week');
+    return data.results;
+  });
+
+async function loadComingSoon(): Promise<Movie[]> {
   const data = await tmdbFetch('/movie/upcoming?region=US');
   // O endpoint /movie/upcoming do TMDB às vezes inclui filmes antigos
   // que tiveram um relançamento nos cinemas (restauração 4K, reprise
@@ -231,7 +252,9 @@ export const getComingSoon = async (): Promise<Movie[]> => {
     const releaseDate = new Date(movie.release_date);
     return !isNaN(releaseDate.getTime()) && releaseDate >= cutoff;
   });
-};
+}
+
+export const getComingSoon = (): Promise<Movie[]> => memoList('comingSoon', loadComingSoon);
 
 export const getTopRatedGems = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=vote_average.desc&vote_count.gte=5000&vote_average.gte=8');
@@ -269,7 +292,7 @@ export const getTopRatedGems = async (): Promise<Movie[]> => {
 //   C = média geral do conjunto de candidatos
 const BEST_OF_YEAR_CONFIDENCE_THRESHOLD = 300;
 
-export const getBestOfYear = async (): Promise<Movie[]> => {
+async function loadBestOfYear(): Promise<Movie[]> {
   const today = new Date();
   const oneYearAgo = new Date();
   oneYearAgo.setDate(today.getDate() - 365);
@@ -282,8 +305,10 @@ export const getBestOfYear = async (): Promise<Movie[]> => {
   // o piso mínimo pra sequer entrar no pool de candidatos; a ponderação
   // abaixo continua refinando a ordem entre os que passam desse corte
   // (um filme com 400 votos ainda pesa menos que um com 10 mil).
+  // 18/11/2026 (otimização): 2 páginas (40 candidatos) em vez de 5 (100) para
+  // mostrar 20: eram 5 idas ao tmdb-proxy (e 5 preflights) a cada Home.
   const pages = await Promise.all(
-    [1, 2, 3, 4, 5].map((page) =>
+    [1, 2].map((page) =>
       tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=400&${dateParams}&page=${page}`)
     )
   );
@@ -304,7 +329,9 @@ export const getBestOfYear = async (): Promise<Movie[]> => {
     .sort((a, b) => b.weightedRating - a.weightedRating);
 
   return weighted.slice(0, 20).map((w) => w.movie);
-};
+}
+
+export const getBestOfYear = (): Promise<Movie[]> => memoList('bestOfYear', loadBestOfYear);
 
 export const getHiddenIndies = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=popularity.asc&popularity.lte=10&vote_count.gte=50&with_original_language=en');
@@ -406,8 +433,7 @@ export async function getCachedMovieDetails(movieId: number, mediaType: 'movie' 
   return movie;
 }
 
-// A linha do título no movie_cache (ou null).
-async function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<any | null> {
+async function readCachedRow(movieId: number, mediaType: 'movie' | 'tv'): Promise<any | null> {
   try {
     const { data, error } = await supabase
       .from('movie_cache')
@@ -421,6 +447,22 @@ async function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie'
     console.error('Error fetching from cache:', error);
     return null;
   }
+}
+
+// A linha do título no movie_cache (ou null).
+// 18/11/2026 (otimização): um pedido só por título enquanto ele está em voo.
+// No toque, o pôster pré-carrega duas vezes (pointerenter + pointerdown) e o
+// clique pede de novo: eram 3 leituras da linha inteira (com as temporadas,
+// numa série) a cada abertura do título, medido na prévia de rede. Agora quem
+// chega enquanto a leitura está em voo espera a mesma resposta.
+const cachedRowInFlight = new Map<string, ReturnType<typeof readCachedRow>>();
+function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie') {
+  const key = `${mediaType}:${movieId}`;
+  const inFlight = cachedRowInFlight.get(key);
+  if (inFlight) return inFlight;
+  const request = readCachedRow(movieId, mediaType).finally(() => cachedRowInFlight.delete(key));
+  cachedRowInFlight.set(key, request);
+  return request;
 }
 
 // Linha do movie_cache → Movie, no idioma do site.
@@ -526,19 +568,27 @@ export interface MovieTrailer {
 // trailer oficial do YouTube; se não achar nenhum, retorna null (o chamador
 // deve mostrar "trailer não disponível" — comum em filmes do oráculo Cypher,
 // que é propositalmente obscuro/underground).
-export const getMovieTrailer = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<MovieTrailer | null> => {
+// options.skipDb (18/11/2026): quem já leu movie_cache.trailer e sabe que está
+// vazio (o trailer da porta da Home) pula a releitura e vai direto ao TMDB.
+export const getMovieTrailer = async (
+  movieId: number,
+  mediaType: 'movie' | 'tv' = 'movie',
+  options: { skipDb?: boolean } = {}
+): Promise<MovieTrailer | null> => {
   try {
     // O trailer escolhido fica no movie_cache desde 12/10/2026 ({} = o título
     // não tem). Título ainda sem essa informação: pergunta ao TMDB (o proxy
     // guarda a resposta por 14 dias).
-    const { data: row } = await supabase
-      .from('movie_cache')
-      .select('trailer')
-      .eq('tmdb_id', movieId)
-      .eq('media_type', mediaType)
-      .maybeSingle();
-    if (row?.trailer && typeof row.trailer === 'object') {
-      return row.trailer.key ? { key: row.trailer.key, site: row.trailer.site || 'YouTube', name: row.trailer.name || '' } : null;
+    if (!options.skipDb) {
+      const { data: row } = await supabase
+        .from('movie_cache')
+        .select('trailer')
+        .eq('tmdb_id', movieId)
+        .eq('media_type', mediaType)
+        .maybeSingle();
+      if (row?.trailer && typeof row.trailer === 'object') {
+        return row.trailer.key ? { key: row.trailer.key, site: row.trailer.site || 'YouTube', name: row.trailer.name || '' } : null;
+      }
     }
 
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
@@ -834,13 +884,27 @@ export interface TvProgress {
   airedCount: number;
 }
 
-export const getTvProgressBatch = async (
-  userId: string,
-  tmdbIds: number[]
-): Promise<Map<number, TvProgress>> => {
-  const map = new Map<number, TvProgress>();
-  if (tmdbIds.length === 0) return map;
+// 18/11/2026 (otimização, rede.md A9): o progresso de cada série fica guardado
+// por id (5 min). A Biblioteca pede o progresso de todas as séries visíveis e
+// pedia de novo a lista inteira a cada lote de 10 pôsteres que entrava (6
+// chamadas com ids repetidos numa visita, medido na prévia de rede); agora
+// só as séries que ainda não vieram vão ao banco, e pedidos simultâneos de
+// prateleiras diferentes esperam o mesmo. Marcar um episódio (evento
+// 'episodeToggled', disparado logo depois do onEpisodeToggle do menu do
+// título) apaga o guardado: a leitura espera um microtask e já vê o apagado.
+const TV_PROGRESS_TTL_MS = 5 * 60 * 1000;
+const tvProgressMemo = new Map<string, { at: number; value: TvProgress | null }>();
+const tvProgressInFlight = new Map<string, Promise<TvProgress | null>>();
+let tvProgressGeneration = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('episodeToggled', () => {
+    tvProgressGeneration += 1;
+    tvProgressMemo.clear();
+    tvProgressInFlight.clear();
+  });
+}
 
+async function fetchTvProgress(userId: string, tmdbIds: number[]): Promise<Map<number, TvProgress> | null> {
   try {
     const { data, error } = await supabase.rpc('get_tv_progress_batch', {
       p_user_id: userId,
@@ -849,13 +913,68 @@ export const getTvProgressBatch = async (
 
     if (error) throw error;
 
+    const map = new Map<number, TvProgress>();
     (data || []).forEach((row: { tmdb_id: number; watched_count: number; aired_count: number }) => {
       map.set(row.tmdb_id, { watchedCount: row.watched_count, airedCount: row.aired_count });
     });
+    return map;
   } catch (error) {
     console.error('Error fetching TV progress batch:', error);
+    return null;
+  }
+}
+
+export const getTvProgressBatch = async (
+  userId: string,
+  tmdbIds: number[]
+): Promise<Map<number, TvProgress>> => {
+  const map = new Map<number, TvProgress>();
+  if (tmdbIds.length === 0) return map;
+
+  // Espera o resto do toque atual: o 'episodeToggled' sai logo depois de quem
+  // pede o progresso de novo, e precisa apagar o guardado antes desta leitura.
+  await Promise.resolve();
+
+  const now = Date.now();
+  const generation = tvProgressGeneration;
+  const missing: number[] = [];
+  const waiting: Promise<void>[] = [];
+  Array.from(new Set(tmdbIds)).forEach((id) => {
+    const key = `${userId}:${id}`;
+    const hit = tvProgressMemo.get(key);
+    if (hit && now - hit.at < TV_PROGRESS_TTL_MS) {
+      if (hit.value) map.set(id, hit.value);
+      return;
+    }
+    const inFlight = tvProgressInFlight.get(key);
+    if (inFlight) {
+      waiting.push(inFlight.then((value) => {
+        if (value) map.set(id, value);
+      }));
+      return;
+    }
+    missing.push(id);
+  });
+
+  if (missing.length > 0) {
+    const request = fetchTvProgress(userId, missing);
+    missing.forEach((id) => {
+      const key = `${userId}:${id}`;
+      const one = request.then((result) => {
+        const value = result?.get(id) ?? null;
+        // Erro não fica guardado; resposta de antes de um episódio marcado também não.
+        if (result && generation === tvProgressGeneration) tvProgressMemo.set(key, { at: Date.now(), value });
+        if (tvProgressInFlight.get(key) === one) tvProgressInFlight.delete(key);
+        return value;
+      });
+      tvProgressInFlight.set(key, one);
+      waiting.push(one.then((value) => {
+        if (value) map.set(id, value);
+      }));
+    });
   }
 
+  await Promise.all(waiting);
   return map;
 };
 
