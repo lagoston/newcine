@@ -197,7 +197,9 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
               <li key={movieKey(movie)} ref={reveal} className={`reveal-tile shrink-0 ${TILE_WIDTH}`}>
                 <button
                   onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
-                  onPointerEnter={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
+                  // 18/11/2026 (otimização): "passar por cima" só com mouse; no toque o
+                  // pointerdown já adianta (antes os dois disparavam a cada toque).
+                  onPointerEnter={(e) => { if (e.pointerType === 'mouse') prefetchMovie(movie.id, asMediaType(movie.media_type)); }}
                   onPointerDown={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
                   className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
                 >

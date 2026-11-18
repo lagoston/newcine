@@ -406,8 +406,7 @@ export async function getCachedMovieDetails(movieId: number, mediaType: 'movie' 
   return movie;
 }
 
-// A linha do título no movie_cache (ou null).
-async function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<any | null> {
+async function readCachedRow(movieId: number, mediaType: 'movie' | 'tv'): Promise<any | null> {
   try {
     const { data, error } = await supabase
       .from('movie_cache')
@@ -421,6 +420,22 @@ async function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie'
     console.error('Error fetching from cache:', error);
     return null;
   }
+}
+
+// A linha do título no movie_cache (ou null).
+// 18/11/2026 (otimização): um pedido só por título enquanto ele está em voo.
+// No toque, o pôster pré-carrega duas vezes (pointerenter + pointerdown) e o
+// clique pede de novo: eram 3 leituras da linha inteira (com as temporadas,
+// numa série) a cada abertura do título, medido na prévia de rede. Agora quem
+// chega enquanto a leitura está em voo espera a mesma resposta.
+const cachedRowInFlight = new Map<string, ReturnType<typeof readCachedRow>>();
+function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie') {
+  const key = `${mediaType}:${movieId}`;
+  const inFlight = cachedRowInFlight.get(key);
+  if (inFlight) return inFlight;
+  const request = readCachedRow(movieId, mediaType).finally(() => cachedRowInFlight.delete(key));
+  cachedRowInFlight.set(key, request);
+  return request;
 }
 
 // Linha do movie_cache → Movie, no idioma do site.
