@@ -45,22 +45,26 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       const sliced = data.slice(0, 6);
       setResults(sliced);
       setOpen(true);
-      sliced.forEach((movie) => {
-        const mediaType = movie.media_type || 'movie';
-        if (!prefetchRef.current.has(`${mediaType}:${movie.id}`)) {
-          // Só o que já está no banco (resultado que ninguém abre não é
-          // buscado no TMDB nem gravado).
-          const pending = getCachedMovieDetails(movie.id, mediaType);
-          pending.catch(() => {});
-          prefetchRef.current.set(`${mediaType}:${movie.id}`, pending);
-        }
-      });
+      // 18/11/2026 (otimização): os 6 resultados de cada busca não são mais
+      // adiantados de uma vez (6 linhas inteiras do movie_cache por pesquisa);
+      // só o resultado em que o mouse ou o dedo chega (prefetchResult).
     } catch {
       setResults([]);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Só o que já está no banco (resultado que ninguém abre não é buscado no
+  // TMDB nem gravado).
+  const prefetchResult = (movie: Movie) => {
+    const mediaType = movie.media_type || 'movie';
+    const key = `${mediaType}:${movie.id}`;
+    if (prefetchRef.current.has(key)) return;
+    const pending = getCachedMovieDetails(movie.id, mediaType);
+    pending.catch(() => {});
+    prefetchRef.current.set(key, pending);
+  };
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -232,6 +236,9 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
               key={`${movie.media_type || 'movie'}:${movie.id}`}
               type="button"
               onClick={() => handleMovieClick(movie)}
+              onPointerEnter={() => prefetchResult(movie)}
+              onPointerDown={() => prefetchResult(movie)}
+              onFocus={() => prefetchResult(movie)}
               className="search-row w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/10 transition-colors text-left group"
               style={{ '--row-i': index } as React.CSSProperties}
             >
