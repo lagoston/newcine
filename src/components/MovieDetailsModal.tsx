@@ -1675,6 +1675,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     // no lugar do número (o medidor da nota prevista)
     node?: React.ReactNode;
     labelIcon?: React.ReactNode;
+    // depois do nome da coluna (o número da nota prevista)
+    labelExtra?: React.ReactNode;
   };
   const loggedIn = !!session?.user;
   // Série fora das prateleiras dos oráculos (ou filme ainda sem nota do
@@ -1703,6 +1705,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       color: '#C4B5FD',
       span: 2,
       node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} userId={session?.user?.id} scope={predictionScope} />,
+      // 18/11/2026 (pedido do Bruno, a partir de um retorno de usuário: "eu
+      // achava melhor quando já mostrava direto o número, agora tem um outro
+      // esquema que achei meio confuso"): o aparelho continua, e o número da
+      // nota prevista volta a aparecer escrito, ao lado do nome da coluna, na
+      // cor da nota. Ele entra depois do voo do Patrono (para não entregar o
+      // pouso antes); com "reduzir movimento" aparece direto.
+      labelExtra:
+        !pending && predictedRating !== null ? (
+          <span key={predictedRating} className="co-pred-num font-bold tabular-nums" style={{ color: ratingTone(predictedRating).color }}>
+            {predictedRating}
+          </span>
+        ) : null,
     });
     if (hasRated) {
       scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
@@ -2109,6 +2123,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             <dt className="mt-1.5 text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
                               {cell.labelIcon}
                               {cell.label}
+                              {cell.labelExtra}
                             </dt>
                             <dd className={cell.node ? 'w-full flex justify-center md:justify-start' : 'h-[1.9rem] flex items-center'} style={{ color: cell.color }}>
                               {cell.node ? (

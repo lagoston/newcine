@@ -2834,7 +2834,7 @@
     "copied": "Invite link copied.",
     "copyError": "Couldn't copy. Press and hold the link to copy it.",
     "loadError": "Couldn't load your invite right now.",
-    "howItWorks": "The chips arrive when your friend confirms their email. You earn for up to 10 friends every 30 days.",
+    "howItWorks": "Chips arrive when your friend confirms their email. Everyone gets 3 invites.",
     "joined_one": "{{count}} friend has joined with your invite.",
     "joined_other": "{{count}} friends have joined with your invite.",
     "shareText_one": "Join me on CineOracle! Sign up with my link and we both get {{count}} special chip in the Poster Jackpot.",
@@ -2843,7 +2843,10 @@
     "signupBanner_one": "{{name}} invited you. Sign up and you both get {{count}} special chip in the Poster Jackpot.",
     "signupBanner_other": "{{name}} invited you. Sign up and you both get {{count}} special chips in the Poster Jackpot.",
     "redeemed_one": "You joined with {{name}}'s invite and got {{count}} special chip.",
-    "redeemed_other": "You joined with {{name}}'s invite and got {{count}} special chips."
+    "redeemed_other": "You joined with {{name}}'s invite and got {{count}} special chips.",
+    "left_one": "{{count}} of your {{limit}} invites left. Chips arrive when your friend confirms their email.",
+    "left_other": "{{count}} of your {{limit}} invites left. Chips arrive when your friend confirms their email.",
+    "used": "You've used all {{limit}} of your invites. New friends joining by your link no longer earn chips."
   },
   "trades": {
     "title": "Trade with friends",

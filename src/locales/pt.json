@@ -2839,7 +2839,7 @@
     "copied": "Link do convite copiado.",
     "copyError": "Não deu para copiar. Segure o link para copiar.",
     "loadError": "Não deu para carregar o seu convite agora.",
-    "howItWorks": "As fichas chegam quando o amigo confirmar o e-mail. Você ganha por até 10 amigos a cada 30 dias.",
+    "howItWorks": "As fichas chegam quando o amigo confirmar o e-mail. Cada pessoa tem 3 convites.",
     "joined_one": "{{count}} amigo já entrou pelo seu convite.",
     "joined_other": "{{count}} amigos já entraram pelo seu convite.",
     "shareText_one": "Vem pro CineOracle! Criando a conta pelo meu link, a gente ganha {{count}} ficha especial no Poster Jackpot.",
@@ -2848,7 +2848,10 @@
     "signupBanner_one": "{{name}} te convidou. Crie sua conta e vocês dois ganham {{count}} ficha especial no Poster Jackpot.",
     "signupBanner_other": "{{name}} te convidou. Crie sua conta e vocês dois ganham {{count}} fichas especiais no Poster Jackpot.",
     "redeemed_one": "Você entrou pelo convite de {{name}} e ganhou {{count}} ficha especial.",
-    "redeemed_other": "Você entrou pelo convite de {{name}} e ganhou {{count}} fichas especiais."
+    "redeemed_other": "Você entrou pelo convite de {{name}} e ganhou {{count}} fichas especiais.",
+    "left_one": "Resta {{count}} convite dos seus {{limit}}. As fichas chegam quando o amigo confirmar o e-mail.",
+    "left_other": "Restam {{count}} convites dos seus {{limit}}. As fichas chegam quando o amigo confirmar o e-mail.",
+    "used": "Você já usou os seus {{limit}} convites. Novos amigos pelo link não rendem mais fichas."
   },
   "trades": {
     "title": "Trocas com amigos",

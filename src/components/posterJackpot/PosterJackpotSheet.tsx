@@ -827,7 +827,8 @@ const InviteCard: React.FC = () => {
             </button>
           </div>
           <p className="relative mt-2.5 text-[12.5px] leading-relaxed" style={{ color: MIST }}>
-            {invite && invite.joined > 0 ? t('invite.joined', { count: invite.joined }) : t('invite.howItWorks')}
+            {/* 18/11/2026: 3 convites por pessoa; a linha diz quantos sobram */}
+            {invite ? (invite.left > 0 ? t('invite.left', { count: invite.left, limit: invite.limit }) : t('invite.used', { limit: invite.limit })) : t('invite.howItWorks')}
           </p>
         </>
       )}

@@ -61,19 +61,29 @@ export function clearPendingInvite() {
 
 export const inviteLink = (code: string) => `${SITE_URL}/auth?signup=true&convite=${encodeURIComponent(code)}`;
 
+// Quantos convites cada pessoa tem (o banco é quem manda; isto é só a reserva).
+export const INVITE_LIMIT = 3;
+
 export interface MyInvite {
   code: string;
   link: string;
   joined: number;
   rewarded: number;
+  // 18/11/2026 (pedido do Bruno): cada pessoa tem 3 convites, para sempre.
+  // left = quantos ainda rendem fichas (servidor antigo: assume o limite inteiro).
+  limit: number;
+  left: number;
 }
 
 export async function getMyInvite(): Promise<MyInvite> {
   const { data, error } = await supabase.rpc('get_my_invite');
   if (error) throw error;
-  const raw = (data || {}) as { code?: string; joined?: number; rewarded?: number };
+  const raw = (data || {}) as { code?: string; joined?: number; rewarded?: number; limit?: number; left?: number };
   const code = raw.code || '';
-  return { code, link: inviteLink(code), joined: Number(raw.joined) || 0, rewarded: Number(raw.rewarded) || 0 };
+  const limit = Number(raw.limit) || INVITE_LIMIT;
+  const rewarded = Number(raw.rewarded) || 0;
+  const left = raw.left === undefined ? Math.max(0, limit - rewarded) : Math.max(0, Number(raw.left) || 0);
+  return { code, link: inviteLink(code), joined: Number(raw.joined) || 0, rewarded, limit, left };
 }
 
 export async function getInvitePreview(code: string): Promise<{ username: string; avatar_url: string | null } | null> {

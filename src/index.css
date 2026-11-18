@@ -1045,3 +1045,19 @@ img[loading="lazy"] {
   background: #fff;
   box-shadow: 0 0 0 1px var(--fate-color), 0 0 6px 2px var(--fate-deep);
 }
+
+/* 18/11/2026: o número da nota prevista ao lado de "Prevista para você" no
+   menu do título. Entra depois do voo do Patrono (≈1,5 s), para não entregar
+   o pouso antes; com "reduzir movimento" aparece direto. */
+.co-pred-num {
+  margin-left: 0.4em;
+  font-size: 1.15em;
+  animation: co-pred-num-in 0.35s ease-out 1.5s both;
+}
+@keyframes co-pred-num-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .co-pred-num { animation: none; }
+}
