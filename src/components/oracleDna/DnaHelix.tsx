@@ -64,6 +64,11 @@ const DnaHelix: React.FC<DnaHelixProps> = ({ bases = [], highlight = null, size 
   }, [total, P, A, cy, perTurn, turns]);
 
   const duration = (busy ? 2.2 : 7) * turns;
+  // 18/11/2026 (otimização): o ícone (40 px, no menu de cada título) fica
+  // parado. Girando, ele rodava o framer-motion a 60 quadros/s enquanto o menu
+  // estivesse aberto (~37 ms de CPU por segundo só para o ícone, medido). A
+  // faixa grande (hero) continua girando.
+  const still = reduce || !hero;
 
   return (
     <svg
@@ -86,8 +91,8 @@ const DnaHelix: React.FC<DnaHelixProps> = ({ bases = [], highlight = null, size 
       </defs>
       <g mask={`url(#dna-mask-${gradId})`}>
         <motion.g
-          animate={reduce ? undefined : { x: [0, -LOOP] }}
-          transition={reduce ? undefined : { duration, ease: 'linear', repeat: Infinity }}
+          animate={still ? undefined : { x: [0, -LOOP] }}
+          transition={still ? undefined : { duration, ease: 'linear', repeat: Infinity }}
         >
           {rungs.map((r, k) => {
             const lit = r.i < bases.length;

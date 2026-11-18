@@ -35,6 +35,9 @@ const RAMP_START = [91, 63, 168];
 const RAMP_END = [240, 171, 252];
 const SELECTED = '#F0ABFC';
 const AUTO_SPEED = 0.006; // graus por ms
+// 18/11/2026 (otimização): quanto dura o giro sozinho, ao entrar na tela e
+// depois de cada toque (antes girava para sempre).
+const AUTO_MS = 8000;
 const LIST_SIZE = 6;
 
 const fillFor = (count: number, max: number) => {
@@ -87,7 +90,12 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
   const rotation = useRef<[number, number]>([20, -18]);
   const anim = useRef<{ from: [number, number]; to: [number, number]; start: number } | null>(null);
   const idleUntil = useRef(0);
-  const visible = useRef(true);
+  // 18/11/2026: até quando o giro sozinho vale, e quem religa o laço de quadros
+  const autoUntil = useRef(0);
+  const kickRef = useRef<() => void>(() => undefined);
+  const resumeTimer = useRef<number | undefined>(undefined);
+  // começa fora: o observador avisa a entrada (e com ela começa o giro)
+  const visible = useRef(false);
   const gesture = useRef({ active: false, dragging: false, x: 0, y: 0, rot: [0, 0] as [number, number], pointerId: 0 });
   const drawRef = useRef<() => void>(() => undefined);
 
@@ -160,12 +168,19 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
     const ro = new ResizeObserver(update);
     ro.observe(el);
     const io = new IntersectionObserver(([entry]) => {
+      const entering = entry.isIntersecting && !visible.current;
       visible.current = entry.isIntersecting;
+      // 18/11/2026 (otimização): entrou na tela: gira por AUTO_MS e para
+      if (entering) {
+        autoUntil.current = performance.now() + AUTO_MS;
+        kickRef.current();
+      }
     });
     io.observe(el);
     return () => {
       ro.disconnect();
       io.disconnect();
+      window.clearTimeout(resumeTimer.current);
     };
   }, []);
 
@@ -243,11 +258,20 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
     // da tela): o globo continua girando liso e a página fica livre para
     // responder ao mouse. Arrastar e o "trazer o país para a frente" seguem
     // em todos os quadros.
+    //
+    // 18/11/2026 (otimização): o laço só existe enquanto há o que animar.
+    // Antes ele se reagendava a todo quadro para sempre (60 chamadas/s mesmo
+    // fora da tela ou com "reduzir movimento") e o giro sozinho não parava:
+    // 738 ms/s da thread principal com o perfil parado, a thread inteira num
+    // celular mais lento (medido). Agora o giro dura AUTO_MS ao entrar na tela
+    // e depois de cada toque; o resto do tempo o globo fica parado e o laço,
+    // desligado (kick religa).
     let frame = 0;
-    let last = performance.now();
+    let last = 0;
     let lastAuto = 0;
     const loop = (now: number) => {
-      const dt = Math.min(64, now - last);
+      frame = 0;
+      const dt = last ? Math.min(64, now - last) : 16;
       last = now;
       if (anim.current) {
         const k = Math.min(1, (now - anim.current.start) / 900);
@@ -257,18 +281,30 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
         rotation.current = [lon, lat];
         if (k >= 1) anim.current = null;
         draw();
-      } else if (!reduceMotion && visible.current && !document.hidden && !gesture.current.dragging && !selected && now > idleUntil.current) {
+      } else if (!reduceMotion && visible.current && !document.hidden && !gesture.current.dragging && !selected && now > idleUntil.current && now < autoUntil.current) {
         rotation.current = [rotation.current[0] + AUTO_SPEED * dt, rotation.current[1]];
         if (now - lastAuto >= 33) {
           lastAuto = now;
           draw();
         }
+      } else {
+        // nada para animar: o laço para aqui
+        last = 0;
+        return;
       }
       frame = requestAnimationFrame(loop);
     };
+    const kick = () => {
+      if (!frame) frame = requestAnimationFrame(loop);
+    };
+    kickRef.current = kick;
     draw();
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    kick();
+    return () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      kickRef.current = () => undefined;
+    };
   }, [features, size, selected, hovered, countryCounts, maxCount, byCode, reduceMotion]);
 
   // Traz um país para a frente.
@@ -284,6 +320,7 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
         drawRef.current();
       } else {
         anim.current = { from: [...rotation.current] as [number, number], to, start: performance.now() };
+        kickRef.current();
       }
     },
     [byCode, reduceMotion],
@@ -332,6 +369,10 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
     const g = gesture.current;
     g.active = false;
     idleUntil.current = performance.now() + 4000;
+    // 18/11/2026 (otimização): depois do toque o giro volta em 4 s e dura AUTO_MS
+    autoUntil.current = idleUntil.current + AUTO_MS;
+    window.clearTimeout(resumeTimer.current);
+    resumeTimer.current = window.setTimeout(() => kickRef.current(), 4050);
     if (g.dragging) {
       g.dragging = false;
       return;
