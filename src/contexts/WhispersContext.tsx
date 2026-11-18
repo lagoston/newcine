@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -34,9 +34,20 @@ const WhispersContext = createContext<WhispersContextValue>({
 
 export const useWhispers = () => useContext(WhispersContext);
 
-// Uma única fonte de verdade para os não lidos: um estado e uma subscription
-// (na tabela friend_indications), consumidos por qualquer componente via
-// useWhispers().
+// Uma única fonte de verdade para os não lidos: um estado, consumido por
+// qualquer componente via useWhispers().
+//
+// 18/11/2026 (otimização, banco.md A5a): saiu a assinatura Realtime
+// `postgres_changes` em friend_indications. A publicação `supabase_realtime`
+// não tem nenhuma tabela, então ela nunca recebeu um evento sequer: só mantinha
+// um websocket aberto em cada aparelho (com batimento a cada ~25 s) e custou
+// 22,9% do tempo histórico do banco (realtime.list_changes). Nada no site
+// dependia desses eventos. No lugar, o contador é relido quando o app volta ao
+// primeiro plano (no máximo uma vez por minuto), além de quando a sessão muda
+// e de quem já chama refetchUnreadCount (o modal, ao marcar como lidos). O
+// aviso em tempo real volta na Onda 2 por Broadcast (tópico privado
+// user:<id>, como o pôquer).
+const FOREGROUND_REFETCH_MS = 60_000;
 export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { session } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -47,7 +58,10 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
   const closeWhispers = useCallback(() => setWhispersOpen(false), []);
   const notifyFriendAccepted = useCallback(() => setFriendsVersion((v) => v + 1), []);
 
+  const lastFetch = useRef(0);
+
   const refetchUnreadCount = useCallback(async () => {
+    lastFetch.current = Date.now();
     if (!session?.user?.id) {
       setUnreadCount(0);
       return;
@@ -72,31 +86,24 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     refetchUnreadCount();
 
-    const channel = supabase
-      .channel('whispers-global-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friend_indications',
-          filter: `to_user_id=eq.${session.user.id}`,
-        },
-        () => {
-          refetchUnreadCount();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const onForeground = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetch.current > FOREGROUND_REFETCH_MS) {
+        refetchUnreadCount();
+      }
     };
+    document.addEventListener('visibilitychange', onForeground);
+    return () => document.removeEventListener('visibilitychange', onForeground);
   }, [session?.user?.id, refetchUnreadCount]);
 
+  // 18/11/2026 (otimização): valor memorizado (era um objeto novo a cada render
+  // do provedor, re-renderizando o sino e quem mais usa useWhispers).
+  const value = useMemo(
+    () => ({ unreadCount, refetchUnreadCount, whispersOpen, openWhispers, closeWhispers, friendsVersion, notifyFriendAccepted }),
+    [unreadCount, refetchUnreadCount, whispersOpen, openWhispers, closeWhispers, friendsVersion, notifyFriendAccepted]
+  );
+
   return (
-    <WhispersContext.Provider
-      value={{ unreadCount, refetchUnreadCount, whispersOpen, openWhispers, closeWhispers, friendsVersion, notifyFriendAccepted }}
-    >
+    <WhispersContext.Provider value={value}>
       {children}
     </WhispersContext.Provider>
   );
