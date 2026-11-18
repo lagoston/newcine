@@ -207,12 +207,33 @@ export const findByImdbId = async (imdbId: string): Promise<{ id: number; media_
   }
 };
 
-export const getTrending = async (): Promise<Movie[]> => {
-  const data = await tmdbFetch('/trending/movie/week');
-  return data.results;
-};
+// 18/11/2026 (otimização): as listas da Home (Popular agora, Em breve,
+// Melhores do ano) ficam guardadas na memória da aba por 30 min. Antes,
+// cada volta à Home pedia tudo de novo ao tmdb-proxy (7 pedidos, medido na
+// prévia de rede), embora o proxy guarde as mesmas listas por 6 a 12 h.
+// Pedidos simultâneos esperam o mesmo; erro não fica guardado; quem recebe
+// leva uma cópia da lista (pode recortar ou ordenar sem mexer na guardada).
+const LIST_TTL_MS = 30 * 60 * 1000;
+const listMemo = new Map<string, { at: number; list: Promise<Movie[]> }>();
+function memoList(name: string, load: () => Promise<Movie[]>): Promise<Movie[]> {
+  const key = `${name}|${getCurrentLanguage()}`;
+  const hit = listMemo.get(key);
+  if (hit && Date.now() - hit.at < LIST_TTL_MS) return hit.list.then((movies) => movies.slice());
+  const list = load();
+  listMemo.set(key, { at: Date.now(), list });
+  list.catch(() => {
+    if (listMemo.get(key)?.list === list) listMemo.delete(key);
+  });
+  return list.then((movies) => movies.slice());
+}
 
-export const getComingSoon = async (): Promise<Movie[]> => {
+export const getTrending = (): Promise<Movie[]> =>
+  memoList('trending', async () => {
+    const data = await tmdbFetch('/trending/movie/week');
+    return data.results;
+  });
+
+async function loadComingSoon(): Promise<Movie[]> {
   const data = await tmdbFetch('/movie/upcoming?region=US');
   // O endpoint /movie/upcoming do TMDB às vezes inclui filmes antigos
   // que tiveram um relançamento nos cinemas (restauração 4K, reprise
@@ -231,7 +252,9 @@ export const getComingSoon = async (): Promise<Movie[]> => {
     const releaseDate = new Date(movie.release_date);
     return !isNaN(releaseDate.getTime()) && releaseDate >= cutoff;
   });
-};
+}
+
+export const getComingSoon = (): Promise<Movie[]> => memoList('comingSoon', loadComingSoon);
 
 export const getTopRatedGems = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=vote_average.desc&vote_count.gte=5000&vote_average.gte=8');
@@ -269,7 +292,7 @@ export const getTopRatedGems = async (): Promise<Movie[]> => {
 //   C = média geral do conjunto de candidatos
 const BEST_OF_YEAR_CONFIDENCE_THRESHOLD = 300;
 
-export const getBestOfYear = async (): Promise<Movie[]> => {
+async function loadBestOfYear(): Promise<Movie[]> {
   const today = new Date();
   const oneYearAgo = new Date();
   oneYearAgo.setDate(today.getDate() - 365);
@@ -282,8 +305,10 @@ export const getBestOfYear = async (): Promise<Movie[]> => {
   // o piso mínimo pra sequer entrar no pool de candidatos; a ponderação
   // abaixo continua refinando a ordem entre os que passam desse corte
   // (um filme com 400 votos ainda pesa menos que um com 10 mil).
+  // 18/11/2026 (otimização): 2 páginas (40 candidatos) em vez de 5 (100) para
+  // mostrar 20: eram 5 idas ao tmdb-proxy (e 5 preflights) a cada Home.
   const pages = await Promise.all(
-    [1, 2, 3, 4, 5].map((page) =>
+    [1, 2].map((page) =>
       tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=400&${dateParams}&page=${page}`)
     )
   );
@@ -304,7 +329,9 @@ export const getBestOfYear = async (): Promise<Movie[]> => {
     .sort((a, b) => b.weightedRating - a.weightedRating);
 
   return weighted.slice(0, 20).map((w) => w.movie);
-};
+}
+
+export const getBestOfYear = (): Promise<Movie[]> => memoList('bestOfYear', loadBestOfYear);
 
 export const getHiddenIndies = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=popularity.asc&popularity.lte=10&vote_count.gte=50&with_original_language=en');

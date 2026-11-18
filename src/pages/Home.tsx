@@ -385,6 +385,14 @@ const Home = () => {
     setForYouSeries(undefined);
     if (userId) {
       fetchUsername(userId);
+      // 18/11/2026 (otimização): as três listas são pedidas já na montagem, junto
+      // com os painéis do topo. Antes as prateleiras ficavam escondidas até os
+      // painéis responderem e só então pediam as listas (uma ida a mais na
+      // abertura). Os pôsteres continuam entrando só quando a prateleira aparece,
+      // e as listas vêm da memória por 30 min (lib/tmdb.ts).
+      loadShelf('trending');
+      loadShelf('comingSoon');
+      loadShelf('bestOfYear');
     } else {
       fetchGuestTrending();
     }
