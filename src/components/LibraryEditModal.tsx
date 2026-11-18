@@ -4,12 +4,30 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import * as XLSX from 'xlsx';
 import { getMovieDetails } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import ConfirmationModal from './ConfirmationModal';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 import { CINE_ELITE, DECADE_ERA_COLORS, RANK_MEDALS, hasCineElite, type RatedLayout } from '../lib/libraryLayouts';
+
+// 18/11/2026 (otimização): o CSV da biblioteca é escrito aqui, à mão. Antes o
+// xlsx (316 KB, 89 KB comprimido) era importado só para isto e entrava no
+// pacote da Biblioteca — baixado por toda pessoa que abria a Biblioteca. A
+// saída é idêntica à do xlsx (json_to_sheet + sheet_to_csv), conferida com os
+// mesmos dados: aspas quando há vírgula, aspas ou quebra de linha, e "ID"
+// entre aspas (o xlsx faz isso para o Excel não confundir o arquivo com SYLK).
+const csvCell = (value: unknown) => {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  return /[",\n\r]/.test(text) || text === 'ID' ? `"${text.replace(/"/g, '""')}"` : text;
+};
+const toCsv = (rows: Record<string, unknown>[]) => {
+  if (rows.length === 0) return '';
+  const headers = Object.keys(rows[0]);
+  return [headers, ...rows.map((row) => headers.map((h) => row[h]))]
+    .map((line) => line.map(csvCell).join(','))
+    .join('\n');
+};
 
 // Ajustes da Biblioteca: como os avaliados aparecem (Notas, One Grid ou
 // Melhores da Década, que pede a tag 🏆 Cine Elite — a escolha vale também
@@ -188,8 +206,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
       }));
 
       // Convert to CSV format
-      const worksheet = XLSX.utils.json_to_sheet(csvData);
-      const csv = XLSX.utils.sheet_to_csv(worksheet);
+      const csv = toCsv(csvData);
 
       // Create blob and download
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

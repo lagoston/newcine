@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { FileUp, AlertCircle, Loader2, ArrowLeft, Star, Film, Database, CheckCircle2, XCircle, MinusCircle, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import * as XLSX from 'xlsx';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { searchMovies, findByImdbId } from '../lib/tmdb';
@@ -119,6 +118,10 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
           return row;
         });
       } else {
+        // 18/11/2026 (otimização): o xlsx (316 KB, 89 KB comprimido) só é baixado
+        // aqui, quando alguém importa uma planilha .xlsx/.xls. Antes vinha com a
+        // página Adicionar filmes inteira por import estático.
+        const XLSX = await import('xlsx');
         const workbook = XLSX.read(await source.arrayBuffer(), { type: 'array' });
         rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
       }
