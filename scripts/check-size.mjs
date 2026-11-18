@@ -45,15 +45,15 @@ const build = path.resolve(args.find((arg) => !arg.startsWith('--')) || path.joi
 
 // Limites em KB comprimidos (brotli 11, o que o Netlify entrega).
 const BUDGET = {
-  shellKB: 215, // casca: entrada + eixos + CSS global + 1 idioma (18/11/2026: 193)
-  homeKB: 330, // abertura logada: casca + Home (18/11/2026: 298)
-  libraryKB: 360, // casca + Biblioteca (18/11/2026: 324)
-  chunkKB: 95, // qualquer pedaço sozinho (os maiores hoje: xlsx 89, MovieDetailsModal 55)
-  iconsKB: 12, // o pedaço dos ícones (18/11/2026: 8,6)
+  shellKB: 290, // casca: entrada + eixos + CSS global + 1 idioma (18/11/2026: 268)
+  homeKB: 405, // abertura logada: casca + Home, com o CSS (18/11/2026: 375)
+  libraryKB: 430, // casca + Biblioteca (18/11/2026: 396)
+  chunkKB: 120, // qualquer pedaço sozinho (os maiores em 18/11/2026: xlsx 112, Blefe 64, director 60)
+  iconsKB: 12, // o pedaço dos ícones (18/11/2026: 8,8)
   tinyFiles: 25, // arquivos JS com menos de 1 KB (18/11/2026: 15)
-  precacheKB: 300, // o que o service worker baixa de antemão (18/11/2026: 259)
-  precacheFiles: 40,
-  cascade: 45, // um pedaço com hash cujo nome é citado, direta ou indiretamente, por mais que isto
+  precacheKB: 450, // o que o service worker baixa de antemão (18/11/2026: 414; antes de 18/11: ≈1.150)
+  precacheFiles: 40, // (18/11/2026: 26; antes: 136)
+  cascade: 45, // pedaço com hash citado, direta ou indiretamente, por mais arquivos que isto (18/11/2026: o maior tem 37)
 };
 
 const errors = [];

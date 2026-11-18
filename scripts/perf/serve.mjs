@@ -10,7 +10,7 @@
 //     responde 404 (não o index.html); qualquer outra rota cai no index.html.
 //
 // Uso direto:  node scripts/perf/serve.mjs <pasta do build> [porta=5204]
-// Em script:   const server = await startServer(pasta, porta); … await server.close();
+// Em script:   const server = await startServer(pasta, porta, { onRequest: (caminho, status) => … }); … await server.close();
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -23,7 +23,7 @@ const COMPRESSIBLE = /\.(js|css|html|json|svg|webmanifest|txt)$/;
 const IMMUTABLE = /^\/(static|fonts)\//;
 const NO_FALLBACK = /^\/(static|core|fonts)\//;
 
-export function startServer(dir, port = 5204, { log = false } = {}) {
+export function startServer(dir, port = 5204, { log = false, onRequest = null } = {}) {
   const root = path.resolve(dir);
   if (!fs.existsSync(path.join(root, 'index.html'))) throw new Error(`não achei index.html em ${root}`);
   const cache = new Map();
@@ -54,6 +54,7 @@ export function startServer(dir, port = 5204, { log = false } = {}) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end('404');
         if (log) console.log(404, pathname);
+        onRequest?.(pathname, 404);
         return;
       }
       file = path.join(root, 'index.html');
@@ -80,6 +81,7 @@ export function startServer(dir, port = 5204, { log = false } = {}) {
       res.end(body);
     }
     if (log) console.log(status, pathname);
+    onRequest?.(pathname, status);
   });
 
   return new Promise((resolve, reject) => {
