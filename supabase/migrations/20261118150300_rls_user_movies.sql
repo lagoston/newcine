@@ -32,7 +32,14 @@
 
 set local lock_timeout = '5s';
 
-create or replace function public.rls_hidden_owner_ids()
+-- A função mora no esquema `private`, que a API (PostgREST) não expõe: as
+-- políticas conseguem chamá-la, mas ninguém consegue pedi-la por RPC — a
+-- resposta é a lista de contas escondidas e de perfis fechados, que não pode
+-- vazar (revisão do coordenador, 18/11/2026).
+create schema if not exists private;
+grant usage on schema private to anon, authenticated, service_role;
+
+create or replace function private.rls_hidden_owner_ids()
 returns uuid[]
 language sql
 stable
@@ -60,14 +67,14 @@ as $function$
   end
 $function$;
 
-comment on function public.rls_hidden_owner_ids() is
-  '18/11/2026: de quem a pessoa que pede NÃO pode ver o conteúdo (a mesma regra de can_view_user_content, de uma vez). Usada nas políticas como (select public.rls_hidden_owner_ids()).';
+comment on function private.rls_hidden_owner_ids() is
+  '18/11/2026: de quem a pessoa que pede NÃO pode ver o conteúdo (a mesma regra de can_view_user_content, de uma vez). Usada nas políticas como (select private.rls_hidden_owner_ids()).';
 
-revoke all on function public.rls_hidden_owner_ids() from public;
-grant execute on function public.rls_hidden_owner_ids() to anon, authenticated, service_role;
+revoke all on function private.rls_hidden_owner_ids() from public;
+grant execute on function private.rls_hidden_owner_ids() to anon, authenticated, service_role;
 
 alter policy "View user movies respecting profile visibility" on public.user_movies
-  using (not (user_id = any ((select public.rls_hidden_owner_ids())::uuid[])));
+  using (not (user_id = any ((select private.rls_hidden_owner_ids())::uuid[])));
 
 alter policy "Users read own seasonal actions" on public.seasonal_event_actions
   using ((select auth.uid()) = user_id);
