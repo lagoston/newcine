@@ -35,6 +35,12 @@ import { getMovieTrailer, getMoviesFromCacheByType, type Movie } from '../../lib
 //     (enablejsapi), sem carregar a API inteira;
 //   • uma vez por sessão (aba / abertura do app), nunca com "reduzir
 //     movimento" nem com economia de dados.
+//   • 18/11/2026 (otimização, rede.md A8 e bateria.md A11): uma TENTATIVA por
+//     dia (antes: por sessão, e só marcada quando o vídeo chegava a aparecer —
+//     um autoplay bloqueado refazia a busca dos candidatos e recarregava o
+//     player a cada volta à home); nunca em dados móveis quando o aparelho diz
+//     a conexão; e aparece no máximo ~25 s (~30 s tocando, com o aquecimento
+//     escondido), em vez de ir até 1,5 s antes do fim do trailer (2–3 min).
 
 const EMBED_ORIGIN = 'https://www.youtube-nocookie.com';
 const START_AT = 5; // segundos: o vídeo começa aqui, ainda escondido
@@ -44,7 +50,12 @@ const STEADY_MS = 800; // e tocando sem parar há pelo menos isso (nada de rodin
 const GIVE_UP_MS = 9000; // sem começar a tocar nesse tempo, desiste
 const STUCK_MS = 14000; // começou a tocar, mas não chegou ao ponto de entrar nesse tempo: desiste
 const SLIDE_MS = 650;
-const SESSION_KEY = 'cineoracle:door-trailer';
+const SHOW_MAX_MS = 25000; // aparecendo no máximo isso (18/11/2026)
+const DAY_KEY = 'cineoracle:door-trailer-day';
+// Conexões que gastam o pacote de dados (quando o navegador conta qual é).
+const METERED = new Set(['cellular', 'wimax', 'bluetooth']);
+// Sem armazenamento local: vale ao menos para esta aba.
+let triedInThisTab = false;
 
 type Phase = 'off' | 'loading' | 'showing' | 'leaving';
 
@@ -53,22 +64,32 @@ interface Pick {
   key: string;
 }
 
+// O dia de hoje no fuso de quem está olhando ("2026-11-18").
+function today(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function shouldRun(): boolean {
+  if (triedInThisTab) return false;
   try {
-    if (sessionStorage.getItem(SESSION_KEY)) return false;
+    if (localStorage.getItem(DAY_KEY) === today()) return false;
   } catch {
-    // sem sessionStorage: segue (no pior caso, o trailer volta numa nova visita à home)
+    // sem localStorage: vale a marca desta aba (triedInThisTab)
   }
   if (typeof window === 'undefined') return false;
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; type?: string } }).connection;
   if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return false;
+  if (conn?.type && METERED.has(conn.type)) return false;
   return true;
 }
 
-function markShown() {
+// Marca a tentativa de hoje (antes de buscar os candidatos), dê certo ou não.
+function markTried() {
+  triedInThisTab = true;
   try {
-    sessionStorage.setItem(SESSION_KEY, '1');
+    localStorage.setItem(DAY_KEY, today());
   } catch {
     // ignora
   }
@@ -146,7 +167,9 @@ async function chooseTrailer(): Promise<Pick | null> {
     if (!key) {
       if (lookups >= 3) continue;
       lookups += 1;
-      key = (await getMovieTrailer(item.id, 'movie'))?.key ?? null;
+      // trailer_key nulo = o banco ainda não sabe (as duas fontes já leram
+      // movie_cache.trailer): vai direto ao TMDB, sem reler a mesma coluna.
+      key = (await getMovieTrailer(item.id, 'movie', { skipDb: true }))?.key ?? null;
     }
     if (!key) continue;
     const movies = await getMoviesFromCacheByType([{ movie_id: item.id, media_type: 'movie' }]);
@@ -220,15 +243,17 @@ export function useDoorTrailer(enabled: boolean, watchRef: React.RefObject<HTMLE
     if (now - firstPlayAt.current < WARM_UP_MS || now - playingSince.current < STEADY_MS) return;
     if (videoTime.current !== null && videoTime.current < SHOW_FROM) return;
     clearTimers();
-    markShown();
     go('showing');
-  }, [go]);
+    // 18/11/2026: no máximo SHOW_MAX_MS aparecendo; depois a porta volta.
+    later(() => finish(), SHOW_MAX_MS);
+  }, [go, finish]);
 
   // 1) Escolhe o filme assim que a home acende.
   useEffect(() => {
     if (!enabled || ranRef.current) return;
     ranRef.current = true;
     if (!shouldRun()) return;
+    markTried();
     let alive = true;
     chooseTrailer()
       .then((chosen) => {

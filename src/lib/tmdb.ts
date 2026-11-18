@@ -568,19 +568,27 @@ export interface MovieTrailer {
 // trailer oficial do YouTube; se não achar nenhum, retorna null (o chamador
 // deve mostrar "trailer não disponível" — comum em filmes do oráculo Cypher,
 // que é propositalmente obscuro/underground).
-export const getMovieTrailer = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<MovieTrailer | null> => {
+// options.skipDb (18/11/2026): quem já leu movie_cache.trailer e sabe que está
+// vazio (o trailer da porta da Home) pula a releitura e vai direto ao TMDB.
+export const getMovieTrailer = async (
+  movieId: number,
+  mediaType: 'movie' | 'tv' = 'movie',
+  options: { skipDb?: boolean } = {}
+): Promise<MovieTrailer | null> => {
   try {
     // O trailer escolhido fica no movie_cache desde 12/10/2026 ({} = o título
     // não tem). Título ainda sem essa informação: pergunta ao TMDB (o proxy
     // guarda a resposta por 14 dias).
-    const { data: row } = await supabase
-      .from('movie_cache')
-      .select('trailer')
-      .eq('tmdb_id', movieId)
-      .eq('media_type', mediaType)
-      .maybeSingle();
-    if (row?.trailer && typeof row.trailer === 'object') {
-      return row.trailer.key ? { key: row.trailer.key, site: row.trailer.site || 'YouTube', name: row.trailer.name || '' } : null;
+    if (!options.skipDb) {
+      const { data: row } = await supabase
+        .from('movie_cache')
+        .select('trailer')
+        .eq('tmdb_id', movieId)
+        .eq('media_type', mediaType)
+        .maybeSingle();
+      if (row?.trailer && typeof row.trailer === 'object') {
+        return row.trailer.key ? { key: row.trailer.key, site: row.trailer.site || 'YouTube', name: row.trailer.name || '' } : null;
+      }
     }
 
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
