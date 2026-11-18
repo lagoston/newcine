@@ -72,8 +72,22 @@ export default defineConfig({
         // do xlsx (~320 KB, usado só na importação do IMDb) também fica de
         // fora e é baixado apenas se a importação for aberta.
         globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
-        globIgnores: ['**/xlsx-*.js'],
+        // 18/11/2026 (otimização): a Courier Prime (/fonts, só do efeito
+        // Typewriter) também fica fora do pré-cache: entra no cache quando é
+        // usada (regra "app-fonts" abaixo).
+        globIgnores: ['**/xlsx-*.js', '**/fonts/courier-prime-*.woff2'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/fonts/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'app-fonts',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 ano
+              }
+            }
+          },
           {
             urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('.webp'),
             handler: 'CacheFirst',
