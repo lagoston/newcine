@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 import { getBannerClass, getBannerTone } from '../lib/banners';
+import { BannerFx } from '../components/BannerFx';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -401,6 +402,8 @@ export default function Community() {
           aria-hidden
         >
           {decoration && <CardSeasonalScene eventId={decoration} />}
+          {/* 18/11/2026 (Reborn, bateria A7): a camada de movimento do banner */}
+          {bannerClass && <BannerFx />}
         </div>
         {/* Contagem para o próximo 31/10 ou 25/12, no canto da faixa. */}
         {decoration && <SeasonalCountdownMini eventId={decoration} className="absolute right-3 z-[2]" style={{ top: 46 }} />}

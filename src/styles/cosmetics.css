@@ -528,20 +528,28 @@
     repeating-linear-gradient(45deg, transparent 0 9px, rgba(197, 179, 88, 0.12) 9px 12px, transparent 12px 22px),
     repeating-linear-gradient(-45deg, transparent 0 9px, rgba(140, 126, 58, 0.1) 9px 12px, transparent 12px 22px);
 }
-.co-banner--hellrider::after {
+/* 18/11/2026 (A7): as brasas moram na camada de movimento (BannerFx). A
+   máscara (somem ao subir) fica parada no span; o desenho, um ladrilho mais
+   alto que o banner, sobe com transform. Antes era background-position no
+   ::after: 617–785 ms de CPU por segundo com o perfil parado (medido). */
+.co-banner--hellrider > .co-banner-fx {
+  display: block;
+  -webkit-mask: linear-gradient(to top, #000, transparent 85%);
+  mask: linear-gradient(to top, #000, transparent 85%);
+}
+.co-banner--hellrider > .co-banner-fx::before {
+  bottom: -100px;
   background:
     radial-gradient(1.5px 1.5px at 30px 60px, rgba(253, 186, 116, 0.95), transparent),
     radial-gradient(1.2px 1.2px at 90px 20px, rgba(251, 146, 60, 0.9), transparent),
     radial-gradient(1.8px 1.8px at 140px 80px, rgba(254, 215, 170, 0.9), transparent);
   background-size: 180px 100px;
-  -webkit-mask: linear-gradient(to top, #000, transparent 85%);
-  mask: linear-gradient(to top, #000, transparent 85%);
   animation: co-embers 5s linear infinite;
 }
 /* sobe exatamente um ladrilho (100px) e nada de lado: o recomeço não dá
    salto */
 @keyframes co-embers {
-  to { background-position: 0 -100px; }
+  to { transform: translateY(-100px); }
 }
 
 /* ---- Premonição (Death Dodger) ---------------------------------------------
@@ -595,14 +603,21 @@
   background: linear-gradient(0deg, rgba(180, 83, 9, 0.5) 0%, rgba(245, 158, 11, 0.28) 16%, rgba(254, 243, 199, 0.38) 18.5%, rgba(254, 243, 199, 0.08) 22%, transparent 24%) no-repeat;
   animation: co-slosh 5s ease-in-out infinite;
 }
-.co-banner--casual-drinker::after {
+/* 18/11/2026 (A7): as bolhas moram na camada de movimento (BannerFx): a
+   máscara (só dentro do líquido) parada no span e o ladrilho, um ladrilho
+   mais alto, subindo com transform. */
+.co-banner--casual-drinker > .co-banner-fx {
+  display: block;
+  -webkit-mask: linear-gradient(to top, #000 0%, #000 14%, transparent 22%);
+  mask: linear-gradient(to top, #000 0%, #000 14%, transparent 22%);
+}
+.co-banner--casual-drinker > .co-banner-fx::before {
+  bottom: -110px;
   background:
     radial-gradient(1.6px 1.6px at 20px 80px, rgba(255, 251, 235, 0.9), transparent),
     radial-gradient(1.2px 1.2px at 70px 40px, rgba(255, 251, 235, 0.8), transparent),
     radial-gradient(2px 2px at 120px 95px, rgba(255, 251, 235, 0.75), transparent);
   background-size: 160px 110px;
-  -webkit-mask: linear-gradient(to top, #000 0%, #000 14%, transparent 22%);
-  mask: linear-gradient(to top, #000 0%, #000 14%, transparent 22%);
   animation: co-bubbles 3.5s linear infinite;
 }
 @keyframes co-slosh {
@@ -611,7 +626,7 @@
 }
 /* bolhas sobem um ladrilho (110px) por ciclo, retas: sem salto no meio */
 @keyframes co-bubbles {
-  to { background-position: 0 -110px, 0 -110px, 0 -110px; }
+  to { transform: translateY(-110px); }
 }
 
 /* ---- Vingadores (Infinity Gauntlet) ----------------------------------------
@@ -658,7 +673,8 @@
   .co-frame::after,
   .co-banner,
   .co-banner::before,
-  .co-banner::after {
+  .co-banner::after,
+  .co-banner-fx::before {
     animation: none !important;
   }
   /* Os SVGs animados (1 e 0 do Matrix, geada da moldura do Gelo, joias do

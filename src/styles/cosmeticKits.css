@@ -397,8 +397,19 @@
     radial-gradient(ellipse 55% 110% at 82% 0%, rgba(203, 213, 225, 0.12), transparent 62%),
     linear-gradient(180deg, #0A0E16, #111826 70%, #151B28);
 }
-.co-banner--got::before {
+/* 18/11/2026 (Reborn, bateria A7): a neve mora na camada de movimento
+   (components/BannerFx.tsx), na frente da cena (z 1). A máscara (some para o
+   lado do texto) fica parada no span; o desenho, 3 ladrilhos mais alto e 1
+   mais largo que o banner, desce com transform. Antes era background-position
+   no ::before, repintando o banner inteiro a cada quadro. */
+.co-banner--got > .co-banner-fx {
+  display: block;
   z-index: 1;
+  -webkit-mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
+  mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
+}
+.co-banner--got > .co-banner-fx::before {
+  inset: -360px -180px 0 0;
   background:
     radial-gradient(1.4px 1.4px at 20px 30px, rgba(241, 245, 249, 0.9), transparent),
     radial-gradient(1px 1px at 70px 80px, rgba(241, 245, 249, 0.75), transparent),
@@ -407,13 +418,11 @@
     radial-gradient(1.3px 1.3px at 42px 108px, rgba(255, 255, 255, 0.8), transparent),
     radial-gradient(0.9px 0.9px at 98px 52px, rgba(255, 255, 255, 0.6), transparent);
   background-size: 180px 120px;
-  -webkit-mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
-  mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
   animation: kit-snow 14s linear infinite;
 }
 /* 3 ladrilhos para baixo e 1 para o lado: o recomeço não dá salto */
 @keyframes kit-snow {
-  to { background-position: -180px 360px; }
+  to { transform: translate(-180px, 360px); }
 }
 
 /* ---- Rick and Morty: o portal no meio do espaço --------------------------
@@ -447,14 +456,19 @@
     radial-gradient(ellipse 35% 80% at 0% 100%, rgba(190, 18, 60, 0.12), transparent 70%),
     linear-gradient(180deg, #160D0A, #120A08 60%, #0A0606);
 }
+/* 18/11/2026 (A7): as luzes andam com transform numa camada um passo (140px)
+   mais larga que o banner. A máscara só varia de cima para baixo, então pode
+   andar de lado junto com o desenho sem mudar nada. */
 .co-banner--sopranos::before {
+  inset: 0 -140px 0 0;
+  border-radius: 0;
   background: repeating-linear-gradient(90deg, transparent 0 70px, rgba(251, 191, 36, 0.09) 70px 74px, transparent 74px 140px);
   -webkit-mask: linear-gradient(to bottom, #000, transparent 42%);
   mask: linear-gradient(to bottom, #000, transparent 42%);
   animation: kit-tunnel 5s linear infinite;
 }
 @keyframes kit-tunnel {
-  to { background-position: -140px 0; }
+  to { transform: translateX(-140px); }
 }
 
 /* ---- The Walking Dead: o fim do mundo ao entardecer -----------------------
@@ -466,18 +480,23 @@
     radial-gradient(ellipse 50% 70% at 80% 75%, rgba(185, 28, 28, 0.22), transparent 66%),
     linear-gradient(180deg, #1C1D19, #22211C 50%, #2A1A14);
 }
+/* 18/11/2026 (A7): a névoa anda com transform. O ladrilho continua com duas
+   larguras do banner; a camada tem três (o banner + um ladrilho) e desliza um
+   ladrilho inteiro para a esquerda, como antes. */
 .co-banner--walking-dead::before {
   z-index: 1;
+  inset: 0 -200% 0 0;
+  border-radius: 0;
   background:
     radial-gradient(ellipse 30% 40% at 20% 85%, rgba(168, 162, 158, 0.2), transparent 70%),
     radial-gradient(ellipse 25% 35% at 60% 95%, rgba(168, 162, 158, 0.16), transparent 70%),
     radial-gradient(ellipse 35% 30% at 92% 80%, rgba(168, 162, 158, 0.18), transparent 70%);
-  background-size: 200% 100%;
+  background-size: 66.6667% 100%;
   background-repeat: repeat-x;
   animation: kit-fog 36s linear infinite;
 }
 @keyframes kit-fog {
-  to { background-position: 200% 0; }
+  to { transform: translateX(-66.6667%); }
 }
 
 /* No celular, o cartão grande do perfil (.co-banner--card) é centralizado

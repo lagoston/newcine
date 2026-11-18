@@ -10,6 +10,7 @@ import { FlipFrame } from './kitFrames/FlipFrame';
 import { THEME_TAGS, PROGRESSION_TAGS } from '../lib/tags';
 import { fetchTagProgress } from '../lib/tagProgress';
 import { banners, BannerId, getBannerClass } from '../lib/banners';
+import { BannerFx } from './BannerFx';
 import { textEffects, TextEffectId, meetsTextEffectRequirement, getTextEffectNameClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import OracleSheet, { SheetFade } from './OracleSheet';
@@ -81,14 +82,14 @@ type CosmeticResult = { success?: boolean } | null;
 // ::before/::after não obedecem estilo inline. Quem prefere menos
 // movimento nunca vê a animação rodando.
 const PREVIEW_ANIM_CSS = `
-  .cz-anim, .cz-anim::before, .cz-anim::after { animation-play-state: paused !important; }
-  .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after,
-  .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after {
+  .cz-anim, .cz-anim::before, .cz-anim::after, .cz-anim > .co-banner-fx::before { animation-play-state: paused !important; }
+  .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after, .cz-tile:hover .cz-anim > .co-banner-fx::before,
+  .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after, .cz-tile:focus-visible .cz-anim > .co-banner-fx::before {
     animation-play-state: running !important;
   }
   @media (prefers-reduced-motion: reduce) {
-    .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after,
-    .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after {
+    .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after, .cz-tile:hover .cz-anim > .co-banner-fx::before,
+    .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after, .cz-tile:focus-visible .cz-anim > .co-banner-fx::before {
       animation-play-state: paused !important;
     }
   }
@@ -474,6 +475,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   }
                 >
                   <span className="absolute inset-0 flex items-center px-4">{profileMockup}</span>
+                  {/* 18/11/2026 (Reborn, bateria A7): a camada de movimento do banner
+                      (.co-banner-fx também pausa e roda com o cartão: PREVIEW_ANIM_CSS) */}
+                  {!isDefault && <BannerFx />}
                 </span>
                 <span className="flex items-center justify-between gap-2 px-1.5">
                   <span className="text-[13px] font-medium truncate" style={{ color: PAPER }}>
@@ -637,6 +641,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               </span>
             </span>
           </div>
+          {/* 18/11/2026 (Reborn, bateria A7): a camada de movimento do banner */}
+          {bannerClass && <BannerFx />}
         </div>
       </section>
     );

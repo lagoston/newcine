@@ -4,6 +4,7 @@ import { User, Users, Calendar, Crown, Loader2 } from 'lucide-react';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { FlipFrame } from './kitFrames/FlipFrame';
 import { getBannerClass } from '../lib/banners';
+import { BannerFx } from './BannerFx';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
 import type { SeasonalEventId } from '../lib/seasonalEvents';
@@ -204,6 +205,9 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
 
         {actions && <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2">{actions}</div>}
       </div>
+      {/* 18/11/2026 (Reborn, bateria A7): a camada de movimento do banner
+          (brasas, bolhas, neve). Último filho: fica por baixo do conteúdo. */}
+      {bannerClass && <BannerFx />}
     </div>
   );
 };
