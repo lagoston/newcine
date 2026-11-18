@@ -120,6 +120,7 @@ const EMPTY: PersonaWorld = {
   turn: {},
   oracle: { bogart: 0, fincher: 0, cypher: 0 },
   picks: {},
+  items: [],
   pets: { frog: null, fox: null, snake: null },
 };
 
@@ -1004,6 +1005,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
             {objectRow('terror', g('objects.terror'), g('objects.terrorWhat'), { has })}
           </ul>
           {note(g('objects.more'), 'mt-3')}
+          {note(g('objects.cobra'), 'mt-2')}
           {!isOwn && note(g('objects.other'), 'mt-2')}
         </>
       );

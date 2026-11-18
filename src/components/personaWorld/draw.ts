@@ -2,6 +2,8 @@ import { MOOD_BY_LETTER } from '../../lib/moods';
 import { MIST, NIGHT, PAPER, VELVET } from '../../lib/oracleTheme';
 import { LETTERS, type PersonaWorld, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import { GLOW_SOFT, glowAlphas, glowOf, paintGlow, type Glow } from './glow';
+import { COBRA_RIFLE, hasCobraItem } from './cobraItems';
+import { pokeFrame } from './pixel';
 import {
   arrangeTargets,
   drawLounge,
@@ -213,6 +215,75 @@ export const SCREEN_SIZE = (stage: number): { w: number; h: number } => {
 export const POSTER_SIZE = { w: 7, h: 11 };
 // a moldura de cada quadro: a cor da raridade do pôster (as mesmas do Poster Jackpot)
 const RARITY_FRAME: Record<string, string> = { common: '#D8D2C6', rare: '#5EA8FF', epic: '#C77DFF', legendary: '#FFC83D' };
+
+// O rifle de parede (17/11/2026, noite): um dos móveis que a Cobra dá no
+// pôquer (cobraItems.ts). Pedido do Bruno: "um rifle de parede (único objeto
+// por enquanto a ficar fixo no spot único na parede que sobrou)". O pedaço
+// livre é o da parede da direita, depois da estante das latas, acima da
+// máquina do Jackpot e da estante do guia: o rifle fica deitado em dois
+// ganchos de latão, com a coronha para o canto e o cano apontando para a
+// estante. É o rifle de Tchekhov: se ele aparece na parede no primeiro ato,
+// tem de disparar até o fim. Tocar dispara (ver paintRifle): sai uma
+// bandeirinha da boca do cano, como nos desenhos animados, e ela volta.
+// Em coordenadas da parede: u = distância do canto, v = altura do chão.
+const RIFLE_U = 72;
+const RIFLE_V = 39;
+// cada peça: [du, dv, largura, altura, cor] (du a partir da boca do cano)
+const RIFLE_PARTS: [number, number, number, number, string][] = [
+  // os ganchos de latão, por baixo
+  [8, -2, 1, 2, '#B8862B'],
+  [8, -1, 1, 1, '#F4C454'],
+  [25, -2, 1, 2, '#B8862B'],
+  [25, -1, 1, 1, '#F4C454'],
+  // o cano, com a luz por cima, e a mira
+  [0, 4, 17, 1, '#2E3139'],
+  [1, 5, 15, 1, '#6C7282'],
+  [1, 6, 1, 1, '#2E3139'],
+  // a telha de madeira por baixo do cano
+  [6, 2, 10, 2, '#7A4A2A'],
+  [6, 3, 10, 1, '#A8683A'],
+  // a caixa da culatra, com o guarda-mato
+  [16, 2, 5, 4, '#3A3E48'],
+  [16, 5, 5, 1, '#8A90A0'],
+  [17, 0, 1, 2, '#2E3139'],
+  [19, 0, 1, 2, '#2E3139'],
+  [18, 0, 1, 1, '#2E3139'],
+  // o pescoço e a coronha, com a soleira escura no fim
+  [21, 2, 2, 3, '#5A341E'],
+  [23, 2, 3, 4, '#7A4A2A'],
+  [26, 1, 5, 5, '#7A4A2A'],
+  [23, 5, 8, 1, '#A8683A'],
+  [26, 1, 5, 1, '#5A341E'],
+  [31, 1, 1, 5, '#2A1A12'],
+];
+const drawRifle = (ctx: Ctx, solid?: string) => {
+  RIFLE_PARTS.forEach(([du, dv, w, h, c]) => wallRect(ctx, 'R', RIFLE_U + du, RIFLE_V + dv, w, h, solid ?? c));
+};
+const RIFLE_BOX: [number, number, number, number] = [RIFLE_U - 1, RIFLE_V - 3, 34, 11];
+// O disparo de Tchekhov: um sopro de fumaça na boca do cano, a haste que
+// salta para fora com a bandeirinha vermelha (que tremula) e a volta.
+function paintRifle(ctx: Ctx, f: number) {
+  const mu = RIFLE_U - 1;
+  const mv = RIFLE_V + 4;
+  if (f <= 3) {
+    // a fumaça
+    const puff = ['rgba(243,234,211,0.85)', 'rgba(243,234,211,0.6)', 'rgba(243,234,211,0.35)', 'rgba(243,234,211,0.15)'][f];
+    wallRect(ctx, 'R', mu - 2 - f, mv - 1, 2, 3, puff);
+    wallRect(ctx, 'R', mu - 4 - f, mv + 1 + (f >> 1), 1, 1, puff);
+  }
+  // a haste sai (quadros 1 a 3), fica (até 15) e volta (16 a 19)
+  const out = f < 1 ? 0 : f <= 3 ? f * 3 : f <= 15 ? 9 : f <= 19 ? 9 - (f - 15) * 2 : 0;
+  if (out <= 0) return;
+  wallRect(ctx, 'R', mu - out, mv, out, 1, '#BDB4D6');
+  if (out < 7) return;
+  // a bandeirinha pendurada na ponta da haste, tremulando
+  const fu = mu - out - 6;
+  const wave = (f >> 1) % 2;
+  wallRect(ctx, 'R', fu, mv - 5, 6, 5, '#E5484D');
+  wallRect(ctx, 'R', fu + wave, mv - 5, 1, 5, '#C2333A');
+  wallRect(ctx, 'R', fu + 2, mv - 3, 2, 1, '#F3EAD3');
+  wallRect(ctx, 'R', fu + 6, mv - 5, 1, 6, '#BDB4D6');
+}
 const POSTER_SLOTS: Pt[] = [
   [50, 26],
   [60, 26],
@@ -420,6 +491,8 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     for (let b = 2; b < WALL_R; b += 4) wallRect(ctx, 'R', b, WALL - 4, 1, 1, GOLD);
     for (let b = 2; b < WALL_L; b += 4) wallRect(ctx, 'L', b, WALL - 4, 1, 1, GOLD);
   }
+  // o rifle de parede (móvel da Cobra, 17/11/2026)
+  if (hasCobraItem(world, COBRA_RIFLE)) drawRifle(ctx);
 
   // ---- o tapete (nível 3): fica no chão, por baixo de tudo ----
   if (st.stage >= STAGE_RUG) {
@@ -466,6 +539,7 @@ export function studioSpots(world: PersonaWorld, st: WorldState, extras: StudioE
     const v0 = Math.min(...vs);
     spots.push({ kind: 'posters', ...wallBox('L', u0 - 1, v0 - 1, Math.max(...us) + 9 - u0 + 2, Math.max(...vs) + 13 - v0 + 2) });
   }
+  if (hasCobraItem(world, COBRA_RIFLE)) spots.push({ kind: 'rifle', ...wallBox('R', ...RIFLE_BOX) });
   spots.push({ kind: 'moth', ...creatureBox(st, world) });
   return spots.concat(loungeSpots(studioLayout(KIT, world, st, extras)));
 }
@@ -527,6 +601,7 @@ const screenGlow = (stage: number): Glow =>
     wallRect(ctx, 'L', r.u - pad, r.v - pad, r.w + pad * 2, r.h + pad * 2, '#fff');
   });
 const postersGlow = (count: number): Glow => glowOf(`posters:${count}`, RW, RH, (ctx) => POSTER_SLOTS.slice(0, count).forEach(([u, v]) => wallRect(ctx, 'L', u, v, 9, 13, '#fff')));
+const rifleGlow = (): Glow => glowOf('rifle', RW, RH, (ctx) => drawRifle(ctx, '#fff'));
 const NO_GLOW: ReadonlySet<SpotKind> = new Set();
 
 // o facho do projetor (por cima da mobília, por baixo da mariposa)
@@ -903,6 +978,12 @@ export function paintFrame(
   const soft = glowAlphas(tick, still, false);
   if (!arranging && glow.has('screen')) paintGlow(ctx, screenGlow(st.stage), 0, 0, GLOW_SOFT, soft);
   if (!arranging && glow.has('posters') && world.posters.length > 0) paintGlow(ctx, postersGlow(Math.min(world.posters.length, POSTER_SLOTS.length)), 0, 0, GLOW_SOFT, soft);
+  // o rifle de parede: o brilho de tocável e o disparo ao toque
+  if (hasCobraItem(world, COBRA_RIFLE)) {
+    if (!arranging && glow.has('rifle')) paintGlow(ctx, rifleGlow(), 0, 0, GLOW_SOFT, soft);
+    const shot = still ? -1 : pokeFrame('rifle');
+    if (shot >= 0) paintRifle(ctx, shot);
+  }
   const layout = studioLayout(KIT, world, st, extras);
   paintLounge(KIT, ctx, layout, tick, still, glow, arranging);
   paintFrog(KIT, ctx, layout, tick, still);

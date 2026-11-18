@@ -205,6 +205,8 @@ export function worldAt(history: PersonaHistory, k: number, today: PersonaWorld,
     stored: today.stored,
     // as recomendações dos humores são as de hoje (17/11/2026; não há história delas)
     picks: today.picks,
+    // os móveis da Cobra: os de hoje (não há história deles)
+    items: today.items,
     turn: today.turn,
     oracle: today.oracle,
     pets: {

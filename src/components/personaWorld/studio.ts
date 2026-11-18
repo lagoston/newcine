@@ -3,6 +3,7 @@ import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from 
 import { disc, faceX, faceY, sprite, type Ctx, type Pt } from './pixel';
 import { MOOD_ITEMS, hasMoodItem, isMoodItem, type MoodItemId } from './moodItems';
 import { TERROR_PORTAL, drawTerrorPortal, paintTerrorPortal } from './terrorPortal';
+import { COBRA_TURNTABLE, TURNTABLE, drawTurntable, hasCobraItem, paintTurntable } from './cobraItems';
 
 // O estúdio (14/11/2026): os objetos da sala, os lugares do chão e os bichinhos.
 //
@@ -92,7 +93,8 @@ export const NO_EXTRAS: StudioExtras = { jackpot: 'on', poker: false };
 // Tudo o que pode ser tocado na cena. As quatro primeiras são objetos (aqui);
 // as outras são do cinema (draw.ts).
 // 17/11/2026: cada móvel de humor é tocável com o próprio nome (abre o cartão dele).
-export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves' | MoodItemId;
+// e (17/11/2026) os móveis da Cobra: o toca-discos e o rifle de parede (este em draw.ts).
+export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves' | 'turntable' | 'rifle' | MoodItemId;
 export interface Rect {
   x: number;
   y: number;
@@ -150,7 +152,7 @@ const WALL_GAP = 0.12;
 
 // Os objetos que têm lugar (a pessoa pode mudar) e os dois fixos do cinema.
 // 17/11/2026: e os sete móveis dos humores (moodItems/).
-export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank' | MoodItemId;
+export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank' | 'turntable' | MoodItemId;
 type SolidId = ItemId | 'projector' | 'lamp';
 
 // O que os desenhos precisam saber de quem é o estúdio.
@@ -600,6 +602,8 @@ const ITEMS: ItemDef[] = [
   { id: 'chair', w: 0.8, d: 0.8, h: 14, home: 9, owned: (env) => levelOf(env) >= 8, draw: drawChair },
   { id: 'fox', ...FOX, h: 14, home: 12, owned: (env) => hasPet(env.world, 'fox'), draw: drawFox, paint: paintFox, pad: 2 },
   { id: 'tank', ...TANK, h: TANK.h + 2, home: 3, owned: (env) => hasPet(env.world, 'snake'), draw: drawTank, paint: paintTank },
+  // o toca-discos que a Cobra dá no pôquer (17/11/2026; cobraItems.ts)
+  { id: 'turntable', ...TURNTABLE, home: 7, owned: (env) => hasCobraItem(env.world, COBRA_TURNTABLE), draw: drawTurntable, paint: paintTurntable, spot: 'turntable', pad: 2 },
   { id: 'projector', w: 0.9, d: 0.8, h: 24, fixed: { x: 4.15, y: 2.8 }, owned: (env) => levelOf(env) >= 1, draw: drawProjector },
   { id: 'lamp', w: 0.3, d: 0.3, h: 29, fixed: { x: 0.35, y: 0.35 }, owned: (env) => levelOf(env) >= 4, draw: drawLamp, pad: 5 },
   // os móveis dos humores (17/11/2026): chegam com a tag do humor (50 títulos da prateleira)
@@ -675,7 +679,7 @@ const rectOf = (k: Kit, x: number, y: number, w: number, d: number, h: number, p
 const overlaps = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 // Os lugares diante da máquina do Jackpot e da estante do guia (5 e 6 na
-// tela). 17/11/2026: um móvel de humor que chega numa sala cheia não vai
+// tela). 17/11/2026: um móvel de humor (ou o toca-discos da Cobra) que chega numa sala cheia não vai
 // sozinho para eles (o diretor de arte viu, na sala completa, a escultura e a
 // luminária caindo bem na frente da máquina); sem outro lugar livre, fica no
 // inventário até a pessoa escolher onde pôr. Se ela mesma puser ali, fica.
@@ -699,7 +703,7 @@ export function resolvePlaces(all: ItemId[], saved: Record<string, number>, stor
     if (at[id] !== undefined) return;
     const home = PLACES[HOME[id]];
     const order = PLACES.map((place, index) => ({ index, far: Math.hypot(place.x - home.x, place.y - home.y) })).sort((a, b) => a.far - b.far || a.index - b.index);
-    const free = order.find((option) => !taken.has(option.index) && !(isMoodItem(id) && KEEP_CLEAR.includes(option.index)));
+    const free = order.find((option) => !taken.has(option.index) && !((isMoodItem(id) || id === 'turntable') && KEEP_CLEAR.includes(option.index)));
     if (!free) return;
     at[id] = free.index;
     taken.add(free.index);
@@ -717,7 +721,7 @@ export function studioLayout(k: Kit, world: PersonaWorld, st: WorldState, extras
   const moods = MOOD_ITEMS.filter((item) => hasMoodItem(world, st, item))
     .map((item) => item.letter)
     .join('');
-  const variant = `${st.stage}|${st.out > 0 || world.preview ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}|${moods}`;
+  const variant = `${st.stage}|${st.out > 0 || world.preview ? 1 : 0}|${extras.jackpot}|${extras.poker ? 1 : 0}|${tints.join('')}|${moods}|${world.items.join(',')}`;
   let byVariant = layouts.get(world);
   if (!byVariant) {
     byVariant = new Map();

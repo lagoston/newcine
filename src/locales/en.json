@@ -4119,7 +4119,9 @@
       "terrorVia": "Terror Club, as a guest of @{{name}}",
       "posters": "Poster collection",
       "shelves": "Library",
-      "mood": "{{item}}"
+      "mood": "{{item}}",
+      "turntable": "Record player",
+      "rifle": "Wall rifle"
     },
     "items": {
       "slot": "the Jackpot machine",
@@ -4139,7 +4141,8 @@
       "kart": "the kart simulator",
       "loveseat": "the courting sofa",
       "fort": "the blanket fort",
-      "fridge": "the mini fridge"
+      "fridge": "the mini fridge",
+      "turntable": "the record player"
     },
     "arrange": {
       "start": "Arrange the studio",
@@ -4192,13 +4195,15 @@
         "loveseat": "Courting sofa",
         "fort": "Blanket fort",
         "fridge": "Mini fridge",
+        "turntable": "Record player",
         "projector": "projector",
         "rug": "rug",
         "lamp": "lamp",
         "curtain": "screen curtain",
         "bigScreen": "big screen",
         "marquee": "light-bulb marquee",
-        "frog": "the frog (roams free)"
+        "frog": "the frog (roams free)",
+        "rifle": "wall rifle"
       }
     },
     "moodCard": {
@@ -4375,7 +4380,8 @@
         "has": "Already in the studio",
         "missing": "Not in the studio yet",
         "more": "You can also tap: the screen and the moth (they open the Persona), the frames on the wall (the last 4 posters won in the Jackpot; they open the collection) and the shelves of cans (they lead to the Library; the only one that does not glow).",
-        "other": "In someone else's studio, the machine, the table, the frames and the shelves of cans are just to look at."
+        "other": "In someone else's studio, the machine, the table, the frames and the shelves of cans are just to look at.",
+        "cobra": "The Snake's little box at Poster Poker also hides furniture: the wall rifle (it hangs on the right wall) and the record player."
       },
       "shelves": {
         "title": "The shelves",

@@ -156,6 +156,11 @@ export function useStudioDoors(options: {
         ? { label: t('studio.spots.terror'), to: roomPath(TERROR_CLUB), onClick: onLeave }
         : { label: t('studio.spots.terrorVia', { name: ownerUsername ?? '' }), to: roomPath(TERROR_CLUB, ownerUsername ?? null), onClick: onLeave };
     }
+    // os móveis da Cobra (17/11/2026): tocar só faz reagir (o toca-discos
+    // toca um pouco; o rifle dispara a bandeirinha). Só viram botão se a
+    // pessoa tiver (studioSpots).
+    hotspots.turntable = { label: t('studio.spots.turntable'), onClick: () => pokeItem('turntable') };
+    hotspots.rifle = { label: t('studio.spots.rifle'), onClick: () => pokeItem('rifle') };
     // os móveis dos humores: só os que estão na sala viram botão (studioSpots)
     MOOD_ITEMS.forEach((item) => {
       hotspots[item.id] = {

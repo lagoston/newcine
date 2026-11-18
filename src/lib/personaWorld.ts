@@ -139,6 +139,9 @@ export interface PersonaWorld {
   // (letra → título), para o cartão dos móveis dos humores. Sem escolha, o
   // cartão usa o mais bem avaliado da prateleira (best).
   picks: Record<string, WorldTitle>;
+  // 17/11/2026 (noite): os móveis do estúdio que a Cobra deu no pôquer (ids
+  // de poker_items: 'studio-rifle', 'studio-turntable')
+  items: string[];
   // os bichinhos: em que nota (a contagem de títulos avaliados) cada um
   // chegou, isto é, a 200ª da curadoria do oráculo dele (null = ainda não)
   pets: Record<PetId, number | null>;
@@ -301,6 +304,7 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
     turn: parseTurn(raw.layout),
     oracle: { bogart: num(oracle.bogart), fincher: num(oracle.fincher), cypher: num(oracle.cypher) },
     picks,
+    items: Array.isArray(raw.items) ? (raw.items as unknown[]).filter((item): item is string => typeof item === 'string') : [],
     pets: { frog: petAt(pets.frog), fox: petAt(pets.fox), snake: petAt(pets.snake) },
   };
 }

@@ -9,6 +9,7 @@ import { FOCUS_RING, INK, MIST, PAPER, PIXEL, ratingTone } from '../../lib/oracl
 import { MothCloseUp, PersonaScene, type Hotspot, type SceneArrange } from './PersonaScene';
 import type { StudioDoors } from './useStudioDoors';
 import { canStore, hasPet, placeItem, storeItem, turnItem, type ArrangeState, type ItemId, type SpotKind } from './studio';
+import { COBRA_RIFLE, hasCobraItem } from './cobraItems';
 import StudioInventory, { type InventoryItem } from './StudioInventory';
 import EvolutionBar, { type EvolutionBarProps } from './EvolutionBar';
 import ShelfPots from './ShelfPots';
@@ -182,6 +183,8 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
     if (st.level >= 9) list.push('bigScreen');
     if (st.level >= 10) list.push('marquee');
     if (hasPet(world, 'frog')) list.push('frog');
+    // o rifle de parede (móvel da Cobra, 17/11/2026) mora fixo na parede
+    if (hasCobraItem(world, COBRA_RIFLE)) list.push('rifle');
     return list.map((id) => t(`studio.inventory.names.${id}`));
   }, [arranging, st.level, world, t]);
 

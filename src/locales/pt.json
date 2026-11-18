@@ -4118,7 +4118,9 @@
       "terrorVia": "Clube do Terror, como convidado de @{{name}}",
       "posters": "Coleção de pôsteres",
       "shelves": "Biblioteca",
-      "mood": "{{item}}"
+      "mood": "{{item}}",
+      "turntable": "Toca-discos",
+      "rifle": "Rifle de parede"
     },
     "items": {
       "slot": "a máquina do Jackpot",
@@ -4138,7 +4140,8 @@
       "kart": "o simulador de kart",
       "loveseat": "a namoradeira",
       "fort": "a cabana de cobertor",
-      "fridge": "o frigobar"
+      "fridge": "o frigobar",
+      "turntable": "o toca-discos"
     },
     "arrange": {
       "start": "Arrumar o estúdio",
@@ -4191,13 +4194,15 @@
         "loveseat": "Namoradeira",
         "fort": "Cabana de cobertor",
         "fridge": "Frigobar",
+        "turntable": "Toca-discos",
         "projector": "projetor",
         "rug": "tapete",
         "lamp": "abajur",
         "curtain": "cortina da tela",
         "bigScreen": "tela grande",
         "marquee": "letreiro de lâmpadas",
-        "frog": "o sapo (anda solto)"
+        "frog": "o sapo (anda solto)",
+        "rifle": "rifle de parede"
       }
     },
     "moodCard": {
@@ -4374,7 +4379,8 @@
         "has": "Já está no estúdio",
         "missing": "Ainda não está no estúdio",
         "more": "Também se tocam: a tela e a mariposa (abrem a Persona), os quadros da parede (os 4 últimos pôsteres ganhos no Jackpot; abrem a coleção) e a estante das latas (leva à Biblioteca; é a única que não brilha).",
-        "other": "No estúdio de outra pessoa, a máquina, a mesa, os quadros e a estante das latas são só para olhar."
+        "other": "No estúdio de outra pessoa, a máquina, a mesa, os quadros e a estante das latas são só para olhar.",
+        "cobra": "A Cobra também esconde móveis na caixinha dela, no Pôster Poker: o rifle de parede (que fica na parede da direita) e o toca-discos."
       },
       "shelves": {
         "title": "As prateleiras",
