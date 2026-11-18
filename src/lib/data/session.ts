@@ -35,6 +35,12 @@ export function claimScope(uid: string | null): void {
     .then(() => {
       // outra troca chegou no meio: quem manda é a mais nova
       if (seq !== claimSeq) return;
+      // Segunda passada: entre a limpeza acima e a tela redesenhar com a pessoa
+      // nova, um componente ainda montado pode ter recriado a "casca" de uma
+      // consulta da pessoa anterior (vazia e desligada, mas com o id dela na
+      // chave). Não sobra nem isso.
+      const owner = uid ?? 'null';
+      queryClient.removeQueries({ predicate: (query) => !isPublic(query) && query.meta?.owner !== owner });
       if (uid !== null) startUserPersist(uid);
       setScope({ userReady: true });
     });
