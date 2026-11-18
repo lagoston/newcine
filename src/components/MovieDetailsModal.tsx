@@ -26,6 +26,9 @@ import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
 import PersonPageSheet, { type PersonSeed } from './PersonPageSheet';
+import OracleDnaSheet from './oracleDna/OracleDnaSheet';
+import DnaHelix from './oracleDna/DnaHelix';
+import { GENE_COLORS } from '../lib/oracleDna';
 import PosterArt from './posterJackpot/PosterArt';
 import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
 import {
@@ -257,6 +260,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingNestedMovieId, setLoadingNestedMovieId] = useState<number | null>(null);
   // Página da pessoa (ator) aberta por cima deste menu — PersonPageSheet.
   const [personSheet, setPersonSheet] = useState<PersonSeed | null>(null);
+  // Oracle DNA (18/11/2026): a gaveta dos parentes do título em todas as
+  // prateleiras. dnaRefresh muda quando o menu de um parente (aberto por
+  // cima da gaveta) fecha: o DNA é lido de novo, sem apagar a tela.
+  const [showDna, setShowDna] = useState(false);
+  const [dnaRefresh, setDnaRefresh] = useState(0);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -297,6 +305,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // diretor do filme anterior não podem ficar para trás.
   useEffect(() => {
     setPersonSheet(null);
+    setShowDna(false);
     setResolvingDirector(false);
   }, [movie.id]);
 
@@ -313,9 +322,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     };
   }, [directorCrewId]);
 
-  // Fechou o menu: a página da pessoa fecha junto.
+  // Fechou o menu: a página da pessoa e o DNA fecham junto.
   useEffect(() => {
-    if (!isOpen) setPersonSheet(null);
+    if (!isOpen) {
+      setPersonSheet(null);
+      setShowDna(false);
+    }
   }, [isOpen]);
 
   // Orçamento (só filmes). Vem do movie_cache; se o filme veio de um cache
@@ -545,7 +557,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // Esc fecha a camada de cima: trailer → temporadas → o próprio modal.
   // Com um modal filho aberto (resenhas, nota, indicar, confirmação, página
   // da pessoa ou outro filme aninhado), quem responde ao Esc é ele, não este.
-  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!nestedMovie || !!personSheet;
+  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!nestedMovie || !!personSheet || showDna;
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1433,18 +1445,20 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  // Abre outro filme por cima deste (saga, página da pessoa). São sempre filmes (as listas vêm dos créditos de filme do
-  // TMDB), então o tipo vai explícito — sem a consulta à tabela movies, que
-  // erra quando um filme e uma série têm o mesmo número.
+  // Abre outro filme por cima deste (saga, página da pessoa, Oracle DNA). Da
+  // saga e da pessoa são sempre filmes (as listas vêm dos créditos de filme do
+  // TMDB); o DNA também traz séries. O tipo vai sempre explícito — sem a
+  // consulta à tabela movies, que erra quando um filme e uma série têm o
+  // mesmo número.
   //
   // Clona no interesse: o título aberto entra no movie_cache se ainda não
   // estiver lá (getMovieDetailsFromDB → cache-title). Só o que a pessoa
   // abre — não os 10 da lista — e quem atualiza o que já existe é o
   // servidor.
-  const openNestedMovie = async (movieId: number) => {
+  const openNestedMovie = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie') => {
     setLoadingNestedMovieId(movieId);
     try {
-      const details = await getMovieDetailsFromDB(movieId, 'movie');
+      const details = { ...(await getMovieDetailsFromDB(movieId, mediaType)), media_type: mediaType };
       if (isNested && onReplaceMovie) {
         // Já estamos numa camada aninhada — pede pro pai trocar o filme
         // exibido aqui, em vez de abrir mais uma camada por baixo (a página
@@ -2100,10 +2114,32 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     )}
                   </div>
 
+                  {/* Oracle DNA: os parentes do título em todas as prateleiras. */}
+                  {session?.user && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDna(true)}
+                      aria-haspopup="dialog"
+                      className={`group mt-5 w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-fuchsia-300/40 text-left transition ${FOCUS_RING}`}
+                      style={{ background: `linear-gradient(100deg, ${withAlpha('#E879F9', 0.13)} 0%, ${VELVET} 58%)` }}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg overflow-hidden" style={{ background: withAlpha('#E879F9', 0.14) }}>
+                          <DnaHelix size="icon" bases={GENE_COLORS.slice(0, 4)} className="w-9 h-9" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[17px] leading-tight" style={{ ...PIXEL, color: PAPER }}>{t('oracleDna.title')}</span>
+                          <span className="block mt-0.5 text-sm truncate" style={{ color: MIST }}>{t('oracleDna.cardHint')}</span>
+                        </span>
+                      </span>
+                      <ChevronRight className="w-5 h-5 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
+                    </button>
+                  )}
+
                   {isTvShow && (
                     <button
                       onClick={handleOpenSeasons}
-                      className={`mt-5 w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
+                      className={`${session?.user ? 'mt-3' : 'mt-5'} w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
                       style={{ background: VELVET }}
                     >
                       <span className="flex items-center gap-3 min-w-0">
@@ -2847,6 +2883,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         />
       )}
 
+      {session?.user && (
+        <OracleDnaSheet
+          open={showDna}
+          onClose={() => setShowDna(false)}
+          titleId={movie.id}
+          mediaType={isTvShow ? 'tv' : 'movie'}
+          title={movie.title}
+          year={year}
+          onOpenTitle={(id, mediaType) => openNestedMovie(id, mediaType)}
+          loadingId={loadingNestedMovieId}
+          escapeEnabled={!nestedMovie}
+          refreshKey={dnaRefresh}
+        />
+      )}
+
       <PersonPageSheet
         person={personSheet}
         onClose={() => setPersonSheet(null)}
@@ -2860,7 +2911,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         <MovieDetailsModal
           movie={nestedMovie}
           isOpen={true}
-          onClose={() => setNestedMovie(null)}
+          onClose={() => {
+            setNestedMovie(null);
+            if (showDna) setDnaRefresh((n) => n + 1);
+          }}
           zIndexClass={zIndexClass}
           isNested={true}
           onReplaceMovie={setNestedMovie}
