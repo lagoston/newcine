@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getMovieDetailsFromDB, Movie } from '../lib/tmdb';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import { fetchUserPersona, type UserPersona } from '../lib/persona';
+import { fetchAllPages } from '../lib/fetchAllPages';
 
 // --- Tipos ---
 
@@ -111,15 +112,28 @@ async function batchFetchFromCache(
 
   const ids = [...new Set(entries.map((e) => e.movie_id))];
 
-  const { data, error } = await supabase
-    .from('movie_cache')
-    .select(
-      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, seasons_data, origin_country, watch_providers, keywords'
+  // 18/11/2026 (correção): em lotes de 450 ids. Cada id pode trazer até 2 linhas
+  // (filme e série com o mesmo número), e o PostgREST corta em 1.000 linhas por
+  // pedido; numa biblioteca grande a lista inteira numa URL só também passava
+  // de qualquer tamanho razoável. Até 450 títulos continua sendo um pedido só.
+  const CHUNK = 450;
+  const chunks: number[][] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+  const results = await Promise.all(
+    chunks.map((chunk) =>
+      supabase
+        .from('movie_cache')
+        .select(
+          'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, seasons_data, origin_country, watch_providers, keywords'
+        )
+        .in('tmdb_id', chunk)
     )
-    .in('tmdb_id', ids);
+  );
+  const failed = results.find((result) => result.error);
+  const data = results.flatMap((result) => result.data ?? []);
 
-  if (error || !data) {
-    console.error('Error batch-fetching movie_cache:', error);
+  if (failed || data.length === 0) {
+    if (failed) console.error('Error batch-fetching movie_cache:', failed.error);
     return map;
   }
 
@@ -208,11 +222,17 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             .select('*', { count: 'exact', head: true })
             .eq('status', 'accepted')
             .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
-          supabase
-            .from('user_movies')
-            .select('movie_id, rating, movies!inner(media_type)')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
+          // 18/11/2026 (correção): paginado — sem isso o PostgREST cortava em 1.000
+          // títulos, sem erro. 'id' desempata quem entrou no mesmo instante.
+          fetchAllPages((from, to) =>
+            supabase
+              .from('user_movies')
+              .select('movie_id, rating, movies!inner(media_type)')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .order('id')
+              .range(from, to)
+          )
         ]);
 
         if (userMoviesRes.error) throw userMoviesRes.error;
@@ -275,11 +295,19 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         let watchedEpisodesByShow = new Map<number, { season_number: number; episode_number: number }[]>();
 
         if (tvIds.length > 0) {
-          const { data: watchedData } = await supabase
-            .from('watched_episodes')
-            .select('tmdb_id, season_number, episode_number')
-            .eq('user_id', userId)
-            .in('tmdb_id', tvIds);
+          // 18/11/2026 (correção): paginado (cada episódio é uma linha; quem viu
+          // muitas séries passava de 1.000 e o tempo assistido saía menor).
+          const { data: watchedData } = await fetchAllPages((from, to) =>
+            supabase
+              .from('watched_episodes')
+              .select('tmdb_id, season_number, episode_number')
+              .eq('user_id', userId)
+              .in('tmdb_id', tvIds)
+              .order('tmdb_id')
+              .order('season_number')
+              .order('episode_number')
+              .range(from, to)
+          );
 
           (watchedData || []).forEach((ep: any) => {
             const list = watchedEpisodesByShow.get(ep.tmdb_id) || [];

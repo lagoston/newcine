@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { fetchAllPages } from './fetchAllPages';
 import { getContinent } from './continents';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES, GAME_TAGS, type GameId } from './tags';
 
@@ -130,7 +131,11 @@ export const sortGameTags = (tags: SpecialTagStatus[]): SpecialTagStatus[] =>
 
 export async function fetchTagProgress(userId: string): Promise<TagProgress> {
   const [moviesRes, poolsRes, friendsRes, realReviewsRes, aiReviewsRes, specialRes, userSpecialRes] = await Promise.all([
-    supabase.from('user_movies').select('movie_id, rating, media_type').eq('user_id', userId).not('rating', 'is', null),
+    // 18/11/2026 (correção): paginado — o PostgREST cortava em 1.000 títulos
+    // avaliados, sem erro, e as tags de quem tem mais saíam com menos.
+    fetchAllPages((from, to) =>
+      supabase.from('user_movies').select('movie_id, rating, media_type').eq('user_id', userId).not('rating', 'is', null).order('id').range(from, to)
+    ),
     supabase.from('recommendation_pools').select('card_type, mood_key, movie_ids, tv_ids'),
     supabase
       .from('friendships')
