@@ -1,0 +1,135 @@
+/* Fontes do CineOracle, servidas pelo próprio site (18/11/2026, Protocolo Reborn).
+   ARQUIVO GERADO por scripts/fonts/sync-fonts.mjs — não edite à mão; mude a
+   lista FONTS do script e rode-o de novo.
+
+   Antes estas letras vinham do Google Fonts (uma folha de estilo de outro
+   domínio, que travava a primeira pintura, e títulos em outra letra no app sem
+   internet). Agora os .woff2 moram em public/fonts/ (licença OFL ao lado de
+   cada família). O navegador só baixa um arquivo quando um texto usa aquela
+   fonte, naquele peso e com caracteres daquele alfabeto (unicode-range):
+   declarar todas aqui não pesa na abertura. Só a Pixelify Sans (latin), que a
+   primeira tela usa, tem <link rel="preload"> no index.html.
+   font-display: swap = o texto aparece na letra reserva e troca quando a fonte
+   chega (nunca fica invisível). */
+
+/* Pixelify Sans: títulos do site (PIXEL em src/lib/oracleTheme.ts). É a única com preload no index.html. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/pixelify-sans-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/pixelify-sans-latin-wght-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Cinzel Decorative: letreiros do Poster Jackpot e do pôquer. */
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/cinzel-decorative-latin-ext-700-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/cinzel-decorative-latin-700-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(/fonts/cinzel-decorative-latin-ext-900-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(/fonts/cinzel-decorative-latin-900-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Cinzel: rótulos da curadoria de pôsteres (página interna). */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url(/fonts/cinzel-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url(/fonts/cinzel-latin-wght-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Limelight: títulos do Pôster Poker. */
+@font-face {
+  font-family: 'Limelight';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/limelight-latin-ext-400-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Limelight';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/limelight-latin-400-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Courier Prime: efeito de texto Premium "Typewriter" (src/lib/textEffects.tsx). */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/courier-prime-latin-ext-400-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/courier-prime-latin-400-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/courier-prime-latin-ext-700-normal.woff2) format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/courier-prime-latin-700-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}

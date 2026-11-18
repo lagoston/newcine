@@ -4,4 +4,7 @@
 # site não conseguiria se recuperar recarregando. O Netlify só aplica estas
 # regras quando o arquivo não existe.
 /static/*  /404.html  404
+# Idem para os pedaços-eixo de nome fixo e para as fontes (18/11/2026, Reborn).
+/core/*  /404.html  404
+/fonts/*  /404.html  404
 /* /index.html 200
