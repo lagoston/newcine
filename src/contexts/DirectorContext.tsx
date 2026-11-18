@@ -32,11 +32,31 @@ const DirectorContext = createContext<DirectorContextValue>({
   refresh: async () => {},
 });
 
+// 18/11/2026 (otimização): o que importa do token para o papel de diretor é o
+// nível de autenticação (aal) e o último código digitado (amr), que mudam ao
+// passar pelo app autenticador. Antes a consulta dependia do token inteiro e
+// era refeita a cada renovação automática (de hora em hora), piscando
+// `loading` para os 13 consumidores sem nada ter mudado. Token ilegível: volta
+// ao comportamento antigo (o próprio token).
+function authLevelKey(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const part = token.split('.')[1];
+    const json = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/')));
+    const amr = Array.isArray(json.amr) ? json.amr : [];
+    const lastCode = amr.reduce((max: number, entry: { timestamp?: number }) => Math.max(max, Number(entry?.timestamp) || 0), 0);
+    return `${json.aal ?? ''}:${lastCode}`;
+  } catch {
+    return token;
+  }
+}
+
 export const DirectorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
   // o nível do app autenticador muda o token, não o usuário
   const token = session?.access_token ?? null;
+  const authLevel = useMemo(() => authLevelKey(token), [token]);
   const [state, setState] = useState<DirectorState>(NO_DIRECTOR);
   const [loading, setLoading] = useState(Boolean(userId));
   const [prefs, setPrefs] = useState<DirectorPrefs>(DEFAULT_PREFS);
@@ -51,13 +71,24 @@ export const DirectorProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const next = await fetchDirectorState();
     setState(next);
     setLoading(false);
-    // userId e token: a resposta é sobre a sessão que pediu
+    // userId e nível de autenticação: a resposta é sobre a sessão que pediu
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, token]);
+  }, [userId, authLevel]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // O nível 3 ("código há menos de 15 minutos") vence sozinho, sem o token
+  // mudar: confere de novo quando ele vence (antes isso só acontecia na
+  // renovação do token, até 1 h depois). Só para quem é diretor.
+  useEffect(() => {
+    if (!state.recent) return;
+    const id = window.setTimeout(() => {
+      refresh();
+    }, 15 * 60 * 1000 + 5000);
+    return () => window.clearTimeout(id);
+  }, [state.recent, refresh]);
 
   useEffect(() => {
     setPrefs(userId && state.director ? readDirectorPrefs(userId) : DEFAULT_PREFS);

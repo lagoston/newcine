@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { getPendingInvite, redeemPendingInvite } from './invite';
@@ -27,6 +27,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [isLifetimePremium, setIsLifetimePremium] = useState(false);
+  // 18/11/2026 (otimização): a sessão em uso, para reconhecer a "mesma sessão".
+  // O supabase-js emite SIGNED_IN a cada volta do app ao primeiro plano
+  // (visibilitychange → _recoverAndRefresh), com um objeto novo lido do
+  // armazenamento e o MESMO token. Gravar esse objeto re-renderizava todos os
+  // consumidores de useAuth (115 componentes na Biblioteca, ~260 ms com CPU 4×)
+  // e refazia as 2 RPCs de premium a cada volta. Mesmo token + mesmo usuário =
+  // nada mudou: fica a sessão que já estava.
+  const sessionRef = useRef<Session | null>(null);
+
+  // Adota a sessão nova só se ela for outra (token ou usuário diferente).
+  // Devolve true quando adotou.
+  const adoptSession = (next: Session) => {
+    const prev = sessionRef.current;
+    if (prev && prev.access_token === next.access_token && prev.user.id === next.user.id) return false;
+    sessionRef.current = next;
+    setSession(next);
+    setUser(next.user);
+    return true;
+  };
 
   useEffect(() => {
     console.log("🔄 Auth: Initializing...");
@@ -43,8 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data.session) {
         console.log("✅ Auth: Session restored");
-        setSession(data.session);
-        setUser(data.session.user);
+        adoptSession(data.session);
         checkPremiumStatus(data.session.user.id);
       } else {
         console.log("ℹ️ Auth: No session found");
@@ -80,12 +98,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('ℹ️ Auth: User signed out');
           clearAuthState();
         } else if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          
-          if (event === 'SIGNED_IN') {
-            checkPremiumStatus(currentSession.user.id);
-            void redeemPendingInvite();
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            // 18/11/2026 (otimização): a volta do app repete SIGNED_IN com a
+            // mesma sessão; só um login de verdade (outro token) segue adiante.
+            const changed = adoptSession(currentSession);
+            if (event === 'SIGNED_IN' && changed) {
+              checkPremiumStatus(currentSession.user.id);
+              void redeemPendingInvite();
+            }
+          } else {
+            // TOKEN_REFRESHED, USER_UPDATED, MFA…: o token ou o usuário mudou
+            sessionRef.current = currentSession;
+            setSession(currentSession);
+            setUser(currentSession.user);
           }
         }
         
@@ -101,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearAuthState = () => {
+    sessionRef.current = null;
     setSession(null);
     setUser(null);
     setIsPremium(false);
@@ -294,8 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
+        adoptSession(data.session);
         await checkPremiumStatus();
         console.log("✅ Auth: Session refreshed successfully");
       } else {
@@ -374,7 +399,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const value = {
+  // 18/11/2026 (otimização): o valor só muda quando o estado muda (antes era
+  // um objeto novo a cada render, para os 65 arquivos que usam useAuth). As
+  // funções só leem estado que está nas dependências.
+  const value = useMemo(() => ({
     session,
     user,
     loading,
@@ -388,7 +416,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
     updatePassword,
     checkPremiumStatus
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [session, user, loading, isPremium, isLifetimePremium]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
