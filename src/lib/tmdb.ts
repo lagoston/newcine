@@ -884,13 +884,27 @@ export interface TvProgress {
   airedCount: number;
 }
 
-export const getTvProgressBatch = async (
-  userId: string,
-  tmdbIds: number[]
-): Promise<Map<number, TvProgress>> => {
-  const map = new Map<number, TvProgress>();
-  if (tmdbIds.length === 0) return map;
+// 18/11/2026 (otimização, rede.md A9): o progresso de cada série fica guardado
+// por id (5 min). A Biblioteca pede o progresso de todas as séries visíveis e
+// pedia de novo a lista inteira a cada lote de 10 pôsteres que entrava (6
+// chamadas com ids repetidos numa visita, medido na prévia de rede); agora
+// só as séries que ainda não vieram vão ao banco, e pedidos simultâneos de
+// prateleiras diferentes esperam o mesmo. Marcar um episódio (evento
+// 'episodeToggled', disparado logo depois do onEpisodeToggle do menu do
+// título) apaga o guardado: a leitura espera um microtask e já vê o apagado.
+const TV_PROGRESS_TTL_MS = 5 * 60 * 1000;
+const tvProgressMemo = new Map<string, { at: number; value: TvProgress | null }>();
+const tvProgressInFlight = new Map<string, Promise<TvProgress | null>>();
+let tvProgressGeneration = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('episodeToggled', () => {
+    tvProgressGeneration += 1;
+    tvProgressMemo.clear();
+    tvProgressInFlight.clear();
+  });
+}
 
+async function fetchTvProgress(userId: string, tmdbIds: number[]): Promise<Map<number, TvProgress> | null> {
   try {
     const { data, error } = await supabase.rpc('get_tv_progress_batch', {
       p_user_id: userId,
@@ -899,13 +913,68 @@ export const getTvProgressBatch = async (
 
     if (error) throw error;
 
+    const map = new Map<number, TvProgress>();
     (data || []).forEach((row: { tmdb_id: number; watched_count: number; aired_count: number }) => {
       map.set(row.tmdb_id, { watchedCount: row.watched_count, airedCount: row.aired_count });
     });
+    return map;
   } catch (error) {
     console.error('Error fetching TV progress batch:', error);
+    return null;
+  }
+}
+
+export const getTvProgressBatch = async (
+  userId: string,
+  tmdbIds: number[]
+): Promise<Map<number, TvProgress>> => {
+  const map = new Map<number, TvProgress>();
+  if (tmdbIds.length === 0) return map;
+
+  // Espera o resto do toque atual: o 'episodeToggled' sai logo depois de quem
+  // pede o progresso de novo, e precisa apagar o guardado antes desta leitura.
+  await Promise.resolve();
+
+  const now = Date.now();
+  const generation = tvProgressGeneration;
+  const missing: number[] = [];
+  const waiting: Promise<void>[] = [];
+  Array.from(new Set(tmdbIds)).forEach((id) => {
+    const key = `${userId}:${id}`;
+    const hit = tvProgressMemo.get(key);
+    if (hit && now - hit.at < TV_PROGRESS_TTL_MS) {
+      if (hit.value) map.set(id, hit.value);
+      return;
+    }
+    const inFlight = tvProgressInFlight.get(key);
+    if (inFlight) {
+      waiting.push(inFlight.then((value) => {
+        if (value) map.set(id, value);
+      }));
+      return;
+    }
+    missing.push(id);
+  });
+
+  if (missing.length > 0) {
+    const request = fetchTvProgress(userId, missing);
+    missing.forEach((id) => {
+      const key = `${userId}:${id}`;
+      const one = request.then((result) => {
+        const value = result?.get(id) ?? null;
+        // Erro não fica guardado; resposta de antes de um episódio marcado também não.
+        if (result && generation === tvProgressGeneration) tvProgressMemo.set(key, { at: Date.now(), value });
+        if (tvProgressInFlight.get(key) === one) tvProgressInFlight.delete(key);
+        return value;
+      });
+      tvProgressInFlight.set(key, one);
+      waiting.push(one.then((value) => {
+        if (value) map.set(id, value);
+      }));
+    });
   }
 
+  await Promise.all(waiting);
   return map;
 };
 
