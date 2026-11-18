@@ -147,7 +147,12 @@ export default defineConfig({
     minify: 'terser',
     cssMinify: true,
     reportCompressedSize: false,
-    assetsDir: 'assets',
+    // 18/11/2026 (otimização): os arquivos com hash no nome (JS e CSS do build)
+    // vão para /static, uma pasta só deles, que o public/_headers marca como
+    // imutável (cache de 1 ano). A pasta /assets continua com as imagens do
+    // public/ (cartas, ícones, imagem de compartilhamento), que não têm hash e
+    // por isso não podem ter cache longo.
+    assetsDir: 'static',
     copyPublicDir: true,
   },
   server: {
