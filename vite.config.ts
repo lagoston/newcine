@@ -80,6 +80,15 @@ function inEntryGraph(id: string, getModuleInfo: (id: string) => ModuleInfoLike,
 //     pré-carga dos import() (modulePreload.resolveDependencies, abaixo);
 //   • depois de mexer, rode `npm run smoke` (tela branca = eixo errado) e
 //     `npm run check:size` (confere o mapa, a casca do service worker e os tamanhos).
+//
+// PLANO B (interruptor, sem mexer no código): se algum navegador ou WebView
+// mostrar tela branca por causa disto, publique com a variável de ambiente
+// STABLE_HUBS=0 (no Netlify: Site configuration → Environment variables; no
+// terminal: `STABLE_HUBS=0 npx vite build`). Os eixos voltam a sair com hash
+// em /static, sem import map e sem /core — exatamente como na onda 1. A
+// cascata de nomes volta, mas o site fica como estava. O resto (fontes, CSS
+// global na entrada, pré-cache enxuto) não depende do interruptor.
+const STABLE_HUBS = process.env.STABLE_HUBS !== '0';
 const HUB_DIR = 'core';
 const HUBS = ['react-vendor', 'router', 'supabase', 'motion', 'i18n', 'toast', 'icons', 'vendor', 'app-core'];
 // '/core/app-core.js' → '/static/app-core-<hash>.js' (preenchido a cada build)
@@ -109,7 +118,7 @@ function stableHubs(): Plugin {
         // pasta). Na cópia que vai para /static isso vira "../core/x.js": o
         // mesmo endereço estável, que o mapa resolve.
         const sibling = /((?:\bfrom|\bimport)\s*|\bimport\s*\(\s*)(["'])\.\/([\w.-]+)\.js\2/g;
-        for (const name of HUBS) {
+        for (const name of STABLE_HUBS ? HUBS : []) {
           const chunk = bundle[hubFile(name)];
           if (!chunk || chunk.type !== 'chunk') continue;
           const code = chunk.code.replace(sibling, (all: string, pre: string, quote: string, target: string) =>
@@ -349,7 +358,7 @@ export default defineConfig({
         },
         // 18/11/2026 (Reborn, pacote): os eixos saem com nome fixo em /core (ver
         // stableHubs, no alto); o resto continua com hash em /static.
-        chunkFileNames: (chunk) => (HUBS.includes(chunk.name) ? `${HUB_DIR}/[name].js` : 'static/[name]-[hash].js'),
+        chunkFileNames: (chunk) => (STABLE_HUBS && HUBS.includes(chunk.name) ? `${HUB_DIR}/[name].js` : 'static/[name]-[hash].js'),
         // Os nomes pelos quais um pedaço exporta para os outros ficam os do
         // código (useAuth, getTrending…), não letras sorteadas (a, b, c…). Com
         // letras, acrescentar UMA função ao app-core remanejava as letras e

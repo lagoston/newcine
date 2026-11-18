@@ -86,7 +86,9 @@ const size = (list, key) => [...list].reduce((sum, file) => sum + (files.get(fil
 const mapMatch = html.match(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/);
 const hubs = new Map(); // 'core/app-core.js' → 'static/app-core-HASH.js'
 if (!mapMatch) {
-  fail('index.html sem <script type="importmap"> (os pedaços-eixo ficariam sem a cópia imutável)');
+  // Sem /core no build = compilado com STABLE_HUBS=0 (o plano B do vite.config.ts): vale, mas avisa.
+  if (fs.existsSync(path.join(build, 'core'))) fail('index.html sem <script type="importmap"> (os pedaços-eixo de /core ficariam sem a cópia imutável)');
+  else warn('build sem pedaços-eixo de nome fixo (STABLE_HUBS=0, o plano B): um deploy que mexe no código comum volta a trocar o nome de ~80 arquivos');
 } else {
   const firstScript = html.search(/<script\b/);
   const firstPreload = html.search(/<link[^>]+rel="modulepreload"/);

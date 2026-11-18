@@ -18,9 +18,18 @@ function chain(): unknown {
   });
 }
 const session = () => (localStorage.getItem('measure_guest') === '1' ? null : { user: { id: 'u1', email: 'x@y.z' }, access_token: 't' });
+// Respostas de mentira por função, para os testes que precisam de algo ligado.
+// localStorage.measure_jackpot = '1' → o Poster Jackpot liberado, com 3 fichas
+// (para testar a gaveta, que só existe para quem tem a roleta).
+const rpcData = (name: string): unknown => {
+  if (name === 'get_jackpot_state' && localStorage.getItem('measure_jackpot') === '1') {
+    return { enabled: true, tickets: 3, premium: true, lucky_progress: 0, lucky_spins: 0, missions: [], catalog: { common: 10, rare: 5, epic: 3, legendary: 1, total: 19 }, owned: 0, remaining: 19, remaining_special: 4 };
+  }
+  return null;
+};
 export const supabase = {
   from: () => chain(),
-  rpc: () => Promise.resolve(result),
+  rpc: (name: string) => Promise.resolve({ ...result, data: rpcData(name) }),
   functions: { invoke: () => Promise.resolve(result) },
   storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }), upload: () => Promise.resolve(result), list: () => Promise.resolve({ data: [], error: null }) }) },
   auth: {
