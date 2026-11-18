@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
+import { Q, fetchCached, invalidate, ownerNow, patchCached, peekCached, useCached, useOwner, type Cached } from './data';
 
 // Poster Jackpot (30/10/2026): a roleta do Oracle Hub que sorteia pôsteres
 // alternativos (escolhidos à mão no TMDB) em 4 raridades e 3 efeitos
@@ -268,7 +269,7 @@ const parseGift = (value: unknown): JackpotGift | null => {
   return { kind: 'friday13', amount: num(gift.amount) || 3, day: typeof gift.day === 'string' ? gift.day : '' };
 };
 
-export async function fetchJackpotState(): Promise<JackpotState> {
+async function loadJackpotState(): Promise<JackpotState> {
   const { data, error } = await supabase.rpc('get_jackpot_state');
   if (error) throw error;
   const raw = (data || {}) as Row;
@@ -298,6 +299,33 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     dailyChip: raw.daily_chip === true,
     poker: parsePokerTeaser(raw.poker),
   };
+}
+
+// 18/11/2026 (Reborn, onda 2a): o estado do Jackpot é uma consulta da camada
+// de dados (chave ['jackpot','state'], vale 1 min). Medido na prévia de rede:
+// numa sessão de 6 telas get_jackpot_state saía 3× (a Home, o Perfil e a Home
+// de novo, cada um por conta própria) e agora sai 1×. Quem refaz: a ficha
+// voadora ('jackpot:chips'), a gaveta ao abrir (refreshJackpotState) e a volta
+// ao app depois do prazo. Um giro corrige o saldo com a própria resposta
+// (patchJackpotState), sem pedir de novo.
+export function fetchJackpotState(): Promise<JackpotState> {
+  return fetchCached(Q.jackpotState(ownerNow()), loadJackpotState);
+}
+
+// O estado para um componente (undefined enquanto carrega).
+export function useJackpotState(): Cached<JackpotState> {
+  return useCached(Q.jackpotState(useOwner()), loadJackpotState);
+}
+
+// Lê de novo agora (quem está mostrando recebe o estado novo).
+export function refreshJackpotState(): Promise<void> {
+  return invalidate(['jackpot', 'state']);
+}
+
+// Corrige o estado guardado com o que a tela acabou de saber (saldo depois de
+// um giro, missão resgatada, ficha do dia pega).
+export function patchJackpotState(value: Partial<JackpotState>): void {
+  patchCached<JackpotState>(Q.jackpotState(ownerNow()), (current) => ({ ...current, ...value }));
 }
 
 // Pega a ficha grátis de hoje (uma por dia, dia de Brasília).
@@ -330,19 +358,28 @@ export function nextFriday13(from = new Date()): Date {
   return day;
 }
 
-let catalogPromise: Promise<CatalogPoster[]> | null = null;
+// 18/11/2026 (Reborn, onda 2a): o catálogo é uma consulta da camada de dados
+// (chave ['jackpot','catalog'], vale 1 h, guardado no aparelho por pessoa).
+// Antes havia a promessa guardada aqui e uma cópia já resolvida na gaveta
+// (catalogMemo), criada só porque a promessa não entrega o valor no primeiro
+// quadro — é o que peekJackpotCatalog() faz. O banco devolve [] para quem não
+// tem a roleta liberada: lista vazia não fica valendo (keys.ts).
+async function loadJackpotCatalog(): Promise<CatalogPoster[]> {
+  const { data, error } = await supabase.rpc('get_jackpot_catalog');
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []) as CatalogPoster[];
+}
+
 export function fetchJackpotCatalog(): Promise<CatalogPoster[]> {
-  if (!catalogPromise) {
-    catalogPromise = (async () => {
-      const { data, error } = await supabase.rpc('get_jackpot_catalog');
-      if (error) throw error;
-      return (Array.isArray(data) ? data : []) as CatalogPoster[];
-    })().catch((error) => {
-      catalogPromise = null;
-      throw error;
-    });
-  }
-  return catalogPromise;
+  return fetchCached(Q.jackpotCatalog(ownerNow()), loadJackpotCatalog);
+}
+
+// O catálogo que já está guardado, na hora, sem ir à rede (null se não há).
+export function peekJackpotCatalog(): CatalogPoster[] | null {
+  const owner = ownerNow();
+  if (typeof owner !== 'string') return null;
+  const list = peekCached<CatalogPoster[]>(Q.jackpotCatalog(owner));
+  return list && list.length > 0 ? list : null;
 }
 
 // ---------------------------------------------------------------------------

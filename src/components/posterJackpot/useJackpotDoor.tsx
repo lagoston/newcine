@@ -3,9 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../lib/auth';
-import { claimDailyChip, fetchJackpotState, loadJackpotFont, markJackpotGiftSeen, type DailyReward, type JackpotState } from '../../lib/posterJackpot';
+import {
+  claimDailyChip,
+  loadJackpotFont,
+  markJackpotGiftSeen,
+  patchJackpotState,
+  refreshJackpotState,
+  useJackpotState,
+  type DailyReward,
+  type JackpotState,
+} from '../../lib/posterJackpot';
 import { primeJackpotAudio } from '../../lib/jackpotSound';
-import { JACKPOT_CHIPS_EVENT } from '../../lib/flyingChip';
 import { ChipFace } from './Chips';
 import { JACKPOT_TOAST_STYLE } from './jackpotToast';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
@@ -48,7 +56,15 @@ export function useJackpotDoor(): JackpotDoor {
   const { t } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user?.id;
-  const [state, setState] = useState<JackpotState | null>(null);
+  // 18/11/2026 (Reborn, onda 2a): o estado vem da camada de dados (uma consulta
+  // para a Home, o Perfil e a gaveta; antes cada montagem pedia a sua). A ficha
+  // voadora ('jackpot:chips') refaz a consulta pelo mapa de eventos da camada:
+  // este arquivo não escuta mais o aviso de window.
+  const { data, error: stateError } = useJackpotState();
+  const state: JackpotState | null = userId ? (data ?? null) : null;
+  useEffect(() => {
+    if (stateError) console.error('Poster Jackpot state:', stateError);
+  }, [stateError]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<JackpotTab>('machine');
   const location = useLocation();
@@ -62,20 +78,11 @@ export function useJackpotDoor(): JackpotDoor {
     navigate(location.pathname + location.search, { replace: true, state: null });
   }, [requested, navigate, location.pathname, location.search]);
 
+  // Lê de novo agora (a gaveta pede ao abrir).
   const reload = useCallback(() => {
     if (!userId) return;
-    fetchJackpotState()
-      .then(setState)
-      .catch((error) => console.error('Poster Jackpot state:', error));
+    void refreshJackpotState();
   }, [userId]);
-  useEffect(() => {
-    reload();
-  }, [reload]);
-  // Uma ficha voadora pega em qualquer lugar do site atualiza as fichas.
-  useEffect(() => {
-    window.addEventListener(JACKPOT_CHIPS_EVENT, reload);
-    return () => window.removeEventListener(JACKPOT_CHIPS_EVENT, reload);
-  }, [reload]);
 
   // O presente da sexta-feira 13: quem está usando a Scary Clown ganha 3 fichas
   // especiais; na primeira vez que a home abre depois disso, um aviso conta de
@@ -93,6 +100,9 @@ export function useJackpotDoor(): JackpotDoor {
       { id: 'jackpot-gift', icon: <ChipFace kind="special" className="fc-toast-chip" />, style: JACKPOT_TOAST_STYLE, duration: 7000 },
     );
     markJackpotGiftSeen().catch(() => undefined);
+    // o estado fica guardado por 1 min: sem isto, voltar à Home nesse meio
+    // tempo mostraria o aviso de novo
+    patchJackpotState({ gift: null });
   }, [gift, t]);
 
   const enabled = !!state?.enabled;
@@ -100,7 +110,7 @@ export function useJackpotDoor(): JackpotDoor {
     if (enabled) loadJackpotFont();
   }, [enabled]);
 
-  const patch = useCallback((value: Partial<JackpotState>) => setState((prev) => (prev ? { ...prev, ...value } : prev)), []);
+  const patch = useCallback((value: Partial<JackpotState>) => patchJackpotState(value), []);
 
   // A ficha do dia: o balão estoura (~0,4 s) enquanto o banco registra a
   // ficha; depois a gaveta abre em Missões com a recompensa.
