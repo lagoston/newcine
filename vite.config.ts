@@ -22,8 +22,9 @@ function preloadLocale() {
         }
         if (!files.pt || !files.en) return html;
         const script = `<script>(function(){var l='';try{l=localStorage.getItem('i18nextLng')||''}catch(e){}l=l||navigator.language||'';var k=document.createElement('link');k.rel='modulepreload';k.crossOrigin='';k.href=/^pt/i.test(l)?'${files.pt}':'${files.en}';document.head.appendChild(k)})()</script>`;
-        // Logo no começo do <head>: um script inline depois de uma folha de
-        // estilo externa (as fontes) esperaria por ela.
+        // Logo no começo do <head> (depois do charset): um script inline depois
+        // de uma folha de estilo externa (as fontes) esperaria por ela.
+        if (/<meta charset[^>]*>/i.test(html)) return html.replace(/<meta charset[^>]*>/i, (m) => m + '\n    ' + script);
         return html.replace(/<head>/i, '<head>\n    ' + script);
       },
     },
