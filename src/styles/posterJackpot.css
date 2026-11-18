@@ -295,9 +295,13 @@
 .pj-fast .pj-bulb {
   animation-duration: 0.45s;
 }
+/* 18/11/2026 (otimização): sem `box-shadow: none` no meio do ciclo. Animar a
+   sombra repintava cada uma das 30 lâmpadas a cada quadro (1.121 repinturas
+   por segundo com a gaveta parada; 109 sem isso, medido). O brilho em volta
+   continua apagando junto, pela opacidade da lâmpada. */
 @keyframes pj-bulb {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.25; transform: scale(0.8); box-shadow: none; }
+  50% { opacity: 0.25; transform: scale(0.8); }
 }
 
 /* A janela da roleta. */
@@ -394,7 +398,10 @@
   inset: 0;
   background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%);
   background-size: 250% 100%;
-  animation: pj-shine 2.8s ease-in-out infinite;
+  /* 18/11/2026 (otimização): o brilho do botão passa 3 vezes (volta a passar
+     quando o botão é habilitado de novo); infinito, repintava o botão a cada
+     quadro com a tela parada. */
+  animation: pj-shine 2.8s ease-in-out 3 forwards;
   pointer-events: none;
 }
 .pj-spin:disabled {
@@ -404,8 +411,11 @@
   animation: none;
   background: none;
 }
+/* 18/11/2026 (otimização): "pronto para girar" respira 3 vezes (de novo a
+   cada vez que o botão volta a ficar pronto). A respiração anima box-shadow,
+   que repinta o botão a cada quadro; infinita, era custo com a tela parada. */
 .pj-ready {
-  animation: pj-breathe 2.2s ease-in-out infinite;
+  animation: pj-breathe 2.2s ease-in-out 3;
 }
 @keyframes pj-breathe {
   0%, 100% { box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), inset 0 -4px 0 rgba(120, 70, 0, 0.55), 0 12px 30px -10px rgba(244, 196, 84, 0.8); }
@@ -621,7 +631,8 @@
   box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.7), inset 0 -6px 0 rgba(120, 70, 0, 0.55), 0 8px 18px -6px rgba(244, 196, 84, 0.85);
 }
 .pj-spin-round.pj-ready {
-  animation: pj-dome 2.2s ease-in-out infinite;
+  /* 18/11/2026 (otimização): o domo respira 3 vezes (como o .pj-ready acima) */
+  animation: pj-dome 2.2s ease-in-out 3;
 }
 @keyframes pj-dome {
   0%, 100% { box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.7), inset 0 -6px 0 rgba(120, 70, 0, 0.55), 0 8px 18px -6px rgba(244, 196, 84, 0.85); }
