@@ -21,6 +21,8 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { shareImageFile } from '../lib/shareImage';
 import { cache, CACHE_KEYS } from '../lib/cache';
+import { markSeasonalStale } from '../contexts/SeasonalEventContext';
+import { useOpenedOnce } from '../hooks/useOpenedOnce';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -47,6 +49,11 @@ import {
 // No celular abre como gaveta de baixo pra cima; no desktop, centralizado.
 // Fecha no X, no fundo escuro e no Esc (o Esc fecha primeiro o trailer ou
 // as temporadas, se estiverem abertos).
+
+// 18/11/2026 (otimização): quanto o menu espera pelos detalhes completos do
+// título (quem abre pela Home ou pela busca troca o item da lista por eles logo
+// depois) antes de buscar à parte o orçamento e a classificação.
+const DETAILS_GRACE_MS = 1500;
 
 // As mesmas 9 categorias usadas pra organizar as prateleiras na Biblioteca
 // dos Oráculos (ver OracleLibraries.tsx) — "random-surprise" não entra por
@@ -272,6 +279,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // qualquer temporizador pendente daquele oráculo.
   const [visibleOracleBubbles, setVisibleOracleBubbles] = useState<Set<string>>(new Set());
   const bubbleTimersRef = React.useRef<Record<string, { showTimer?: ReturnType<typeof setTimeout>; hideTimer?: ReturnType<typeof setTimeout> }>>({});
+  // A raiz do modal (para saber se ele é a camada de cima no Esc).
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // 18/11/2026 (otimização): os modais filhos (indicar, adicionar, confirmar,
+  // DNA, página da pessoa) só montam depois da primeira vez que abrem. Antes
+  // os 8 ficavam montados fechados e re-renderizavam a cada um dos 7–8
+  // commits da abertura (80 renders de componente → 14 na prévia).
+  const recommendMounted = useOpenedOnce(showRecommendModal);
+  const quickAddMounted = useOpenedOnce(showQuickAdd);
+  const deleteConfirmMounted = useOpenedOnce(showDeleteConfirmation);
+  const dnaMounted = useOpenedOnce(showDna);
+  const personMounted = useOpenedOnce(!!personSheet);
 
   const clearBubbleTimers = (source: string) => {
     const timers = bubbleTimersRef.current[source];
@@ -334,6 +353,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // antigo sem ele, busca no TMDB uma vez e grava (lib/tmdb.ts).
   //   undefined = carregando · null = erro (some) · 0 = não divulgado
   const [budget, setBudget] = useState<number | null | undefined>(typeof movie.budget === 'number' ? movie.budget : undefined);
+  // 18/11/2026 (otimização, rede.md A3): quem abre pela Home ou pela busca
+  // monta o menu primeiro com o item da lista do TMDB (sem orçamento) e troca
+  // pelos detalhes completos logo depois — e eles já trazem o orçamento do
+  // cache. Pedir o orçamento antes disso era 1 função de borda que devolvia a
+  // linha inteira de novo. Agora: com os detalhes completos (têm `credits`),
+  // pede na hora se faltar; com o item da lista, espera um pouco pelos
+  // detalhes e só pede se eles não vierem.
+  const detailsReady = movie.credits !== undefined;
   useEffect(() => {
     if (movie.media_type === 'tv' || !movie.id) {
       setBudget(null);
@@ -345,13 +372,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
     setBudget(undefined);
     let cancelled = false;
-    fetchAndStoreBudget(movie.id).then((value) => {
-      if (!cancelled) setBudget(value);
-    });
+    const load = () =>
+      fetchAndStoreBudget(movie.id).then((value) => {
+        if (!cancelled) setBudget(value);
+      });
+    const timer = detailsReady ? null : window.setTimeout(load, DETAILS_GRACE_MS);
+    if (detailsReady) load();
     return () => {
       cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
     };
-  }, [movie.id, movie.media_type, movie.budget]);
+  }, [movie.id, movie.media_type, movie.budget, detailsReady]);
 
   // Balão do selo de orçamento (abre/fecha no toque, como os selos da capa).
   const [budgetBubbleOpen, setBudgetBubbleOpen] = useState(false);
@@ -397,9 +428,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   useEffect(() => {
     if (session?.user?.id) {
-      checkIfInLibrary();
+      loadMyRelation();
       loadFriendRatings();
-      loadUserRating();
       loadPredictedRating();
       prefetchPatronus(session.user.id);
       loadMovieMood();
@@ -501,42 +531,64 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // (provavelmente pegando o índice [0] sem checar o país, ou lendo um outro
   // campo qualquer). Aqui filtramos explicitamente pelo país certo e lemos
   // SÓ o campo "certification", nunca outra coisa.
+  // 18/11/2026 (otimização, rede.md A3): quando o título já veio com a linha
+  // do cache inteira (content_ratings junto), a classificação sai dela, sem
+  // outra consulta. Sem o campo, consulta como antes — e, se o menu abriu com
+  // o item da lista, espera um pouco pelos detalhes completos primeiro.
+  const rowRatings = (movie as Movie & { content_ratings?: unknown }).content_ratings;
+  const ratingsFromRow = Array.isArray(rowRatings) ? rowRatings : null;
   useEffect(() => {
     const isPt = i18n.language.startsWith('pt');
-    supabase
-      .from('movie_cache')
-      .select('content_ratings')
-      .eq('tmdb_id', movie.id)
-      .eq('media_type', movie.media_type || 'movie')
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error || !data?.content_ratings || !Array.isArray(data.content_ratings)) {
-          setCertification(null);
-          return;
-        }
-        const ratings: { iso_3166_1?: string; certification?: string }[] = data.content_ratings;
-        const preferredRegion = isPt ? 'BR' : 'US';
+    let cancelled = false;
+    const pick = (list: unknown) => {
+      if (cancelled) return;
+      if (!Array.isArray(list)) {
+        setCertification(null);
+        return;
+      }
+      const ratings: { iso_3166_1?: string; certification?: string }[] = list;
+      const preferredRegion = isPt ? 'BR' : 'US';
 
-        // Tenta o país preferido primeiro, depois US, depois qualquer um —
-        // cada candidato passa pela padronização; só aceita o primeiro que
-        // a função realmente reconhece (evita mostrar sigla de país que
-        // ainda não mapeamos).
-        const candidates = [
-          ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification),
-          ratings.find((r) => r.iso_3166_1 === 'US' && r.certification),
-          ...ratings.filter((r) => r.certification)
-        ];
+      // Tenta o país preferido primeiro, depois US, depois qualquer um —
+      // cada candidato passa pela padronização; só aceita o primeiro que
+      // a função realmente reconhece (evita mostrar sigla de país que
+      // ainda não mapeamos).
+      const candidates = [
+        ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification),
+        ratings.find((r) => r.iso_3166_1 === 'US' && r.certification),
+        ...ratings.filter((r) => r.certification)
+      ];
 
-        let standardized: string | null = null;
-        for (const candidate of candidates) {
-          if (candidate?.certification) {
-            standardized = standardizeCertification(candidate.certification);
-            if (standardized) break;
-          }
+      let standardized: string | null = null;
+      for (const candidate of candidates) {
+        if (candidate?.certification) {
+          standardized = standardizeCertification(candidate.certification);
+          if (standardized) break;
         }
-        setCertification(standardized);
-      });
-  }, [movie.id, movie.media_type, i18n.language]);
+      }
+      setCertification(standardized);
+    };
+    if (ratingsFromRow) {
+      pick(ratingsFromRow);
+      return () => {
+        cancelled = true;
+      };
+    }
+    const query = () =>
+      supabase
+        .from('movie_cache')
+        .select('content_ratings')
+        .eq('tmdb_id', movie.id)
+        .eq('media_type', movie.media_type || 'movie')
+        .maybeSingle()
+        .then(({ data, error }) => pick(error ? null : data?.content_ratings));
+    const timer = detailsReady ? null : window.setTimeout(query, DETAILS_GRACE_MS);
+    if (detailsReady) query();
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [movie.id, movie.media_type, i18n.language, ratingsFromRow, detailsReady]);
 
   useEffect(() => {
     if (isOpen) {
@@ -562,6 +614,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // 18/11/2026 (modais.md F3): só responde se este menu for a camada de
+      // cima — a última [aria-modal="true"] do documento é ele ou está dentro
+      // dele (trailer, temporadas). Uma gaveta aberta por cima (pessoa, DNA,
+      // listas…) recebe o Esc/voltar sozinha, sem fechar este junto.
+      const layers = document.querySelectorAll('[aria-modal="true"]');
+      const top = layers[layers.length - 1];
+      const root = rootRef.current;
+      if (root && top && top !== root && !root.contains(top)) return;
       if (showTrailerModal) { setShowTrailerModal(false); return; }
       if (showSeasonsModal) { setShowSeasonsModal(false); return; }
       if (childModalOpen) return;
@@ -571,16 +631,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, showTrailerModal, showSeasonsModal, childModalOpen, onClose]);
 
-  const checkIfInLibrary = async () => {
+  // 18/11/2026 (otimização, rede.md A3): "está na minha biblioteca?" e "minha
+  // nota" numa consulta só (eram duas), já com o tipo do título — a nota antes
+  // vinha sem filtrar filme/série, e um filme e uma série com o mesmo número
+  // no TMDB faziam o maybeSingle falhar (a nota sumia).
+  const loadMyRelation = async () => {
+    if (!session?.user?.id) return;
+    setUserRatingLoaded(false);
+
     try {
-      // Check if movie is in library with correct media_type
       const { data, error } = await supabase
         .from('user_movies')
         .select(`
           id,
+          rating,
           movies!inner(media_type)
         `)
-        .eq('user_id', session?.user?.id)
+        .eq('user_id', session.user.id)
         .eq('movie_id', movie.id)
         .eq('movies.media_type', movie.media_type || 'movie')
         .maybeSingle();
@@ -591,8 +658,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       }
 
       setIsInLibrary(data !== null);
+      setUserRating(data?.rating !== undefined ? data.rating : null);
     } catch (error) {
       console.error('Error checking library:', error);
+    } finally {
+      setUserRatingLoaded(true);
     }
   };
 
@@ -834,27 +904,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setFriendRatings([]);
     } finally {
       setLoadingFriends(false);
-    }
-  };
-
-  const loadUserRating = async () => {
-    if (!session?.user?.id) return;
-    setUserRatingLoaded(false);
-
-    try {
-      const { data, error } = await supabase
-        .from('user_movies')
-        .select('rating')
-        .eq('user_id', session.user.id)
-        .eq('movie_id', movie.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setUserRating(data?.rating !== undefined ? data.rating : null);
-    } catch (error) {
-      console.error('Error loading user rating:', error);
-    } finally {
-      setUserRatingLoaded(true);
     }
   };
 
@@ -1341,6 +1390,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setUserRating(rating !== undefined ? rating : null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
     cache.invalidatePattern('stats:');
+    // pode ter avançado o evento sazonal: confere na próxima troca de página
+    markSeasonalStale();
     toast.success(t('library.inLibrary'));
     if (onAddToLibrary) {
       onAddToLibrary();
@@ -1369,6 +1420,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setUserRating(null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
     cache.invalidatePattern('stats:');
+    markSeasonalStale();
     toast.success(t('library.movieRemovedSuccess'));
     if (onAddToLibrary) {
       onAddToLibrary();
@@ -1714,7 +1766,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // transform via style inline), o modal ficava preso no contexto de
   // empilhamento desse container e a navbar passava por cima dele.
   return createPortal(
-    <div className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div ref={rootRef} className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -2516,6 +2568,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         </motion.div>
       </div>
 
+      {recommendMounted && (
       <RecommendModal
         isOpen={showRecommendModal}
         onClose={() => setShowRecommendModal(false)}
@@ -2524,14 +2577,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         moviePoster={movie.poster_path}
         mediaType={movie.media_type}
       />
+      )}
 
+      {quickAddMounted && (
       <QuickAddMenu
         movieTitle={movie.title}
         isOpen={showQuickAdd}
         onClose={() => setShowQuickAdd(false)}
         onAdd={handleAddToLibrary}
       />
+      )}
 
+      {deleteConfirmMounted && (
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         onClose={() => setShowDeleteConfirmation(false)}
@@ -2539,6 +2596,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         title={t('common.delete')}
         message={t('library.movieRemoved')}
       />
+      )}
 
       {/* ---------- Trailer ---------- */}
       <AnimatePresence>
@@ -2883,9 +2941,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         />
       )}
 
-      {session?.user && (
+      {session?.user && dnaMounted && (
         <OracleDnaSheet
           open={showDna}
+          zIndexClass={zIndexClass}
           onClose={() => setShowDna(false)}
           titleId={movie.id}
           mediaType={isTvShow ? 'tv' : 'movie'}
@@ -2898,7 +2957,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         />
       )}
 
+      {/* 18/11/2026 (modais.md F2): pessoa e DNA no mesmo z deste menu (abertos
+          depois, ficam por cima). Com o menu vindo do Jackpot (z-[10010]) ou
+          das Resenhas (z-[10001]) eles abriam escondidos atrás em z-[9999]. */}
+      {personMounted && (
       <PersonPageSheet
+        zIndexClass={zIndexClass}
         person={personSheet}
         onClose={() => setPersonSheet(null)}
         currentMovieId={movie.media_type === 'tv' ? undefined : movie.id}
@@ -2906,6 +2970,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         loadingMovieId={loadingNestedMovieId}
         escapeEnabled={!nestedMovie}
       />
+      )}
 
       {nestedMovie && (
         <MovieDetailsModal

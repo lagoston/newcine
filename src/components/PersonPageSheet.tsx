@@ -49,6 +49,9 @@ interface PersonPageSheetProps {
   loadingMovieId?: number | null;
   // Com o menu de outro filme aberto por cima, o Esc é dele.
   escapeEnabled?: boolean;
+  // 18/11/2026: o z do menu do título que abriu a pessoa (ele pode estar acima
+  // do padrão, vindo do Jackpot ou das Resenhas); sem ele a pessoa abria atrás.
+  zIndexClass?: string;
 }
 
 type MineMap = Record<number, number | null>;
@@ -56,7 +59,7 @@ type MineMap = Record<number, number | null>;
 const formatDate = (iso: string, lang: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
 
-const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose, currentMovieId, onOpenMovie, loadingMovieId = null, escapeEnabled = true }) => {
+const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose, currentMovieId, onOpenMovie, loadingMovieId = null, escapeEnabled = true, zIndexClass = 'z-[9999]' }) => {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user?.id || null;
@@ -302,7 +305,7 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
       title={name}
       subtitle={subtitle}
       size="lg"
-      zIndexClass="z-[9999]"
+      zIndexClass={zIndexClass}
       escapeEnabled={escapeEnabled}
       contentKey={personId}
     >

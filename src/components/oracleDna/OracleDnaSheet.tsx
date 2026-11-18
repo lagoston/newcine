@@ -52,6 +52,9 @@ interface OracleDnaSheetProps {
   // Muda quando o menu aberto por cima fecha: o DNA é lido de novo sem
   // apagar a tela (a pessoa pode ter dado nota a um parente).
   refreshKey?: number;
+  // 18/11/2026: o z do menu do título que abriu o DNA (ele pode estar acima
+  // do padrão, vindo do Jackpot ou das Resenhas); sem ele o DNA abria atrás.
+  zIndexClass?: string;
 }
 
 const PCT_TONES: { min: number; color: string }[] = [
@@ -97,6 +100,7 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   loadingId = null,
   escapeEnabled = true,
   refreshKey = 0,
+  zIndexClass = 'z-[9999]',
 }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || 'pt';
@@ -650,7 +654,7 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
         </span>
       }
       size="lg"
-      zIndexClass="z-[9999]"
+      zIndexClass={zIndexClass}
       escapeEnabled={escapeEnabled}
       contentKey={key}
     >

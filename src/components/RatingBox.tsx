@@ -6,6 +6,7 @@ import {
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { ShelfEntry, TitleMediaType, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
 import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
+import { useOpenedOnce } from '../hooks/useOpenedOnce';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -97,14 +98,16 @@ const LOAD_STEP = 12;
 
 // Lugar de um pôster que ainda não chegou (mesmas medidas do pôster de
 // verdade, pra a faixa não pular).
-const SkeletonTile: React.FC<{ withAction?: boolean }> = ({ withAction }) => (
+// 18/11/2026 (otimização): memorizado — eram 266–329 renders de esqueleto só
+// para abrir a Biblioteca (cada render da prateleira refazia todos).
+const SkeletonTile = React.memo<{ withAction?: boolean }>(({ withAction }) => (
   <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
     <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
     <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
     <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
     {withAction && <span className="mt-2 block h-8 rounded-lg poster-skeleton" />}
   </li>
-);
+));
 
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
@@ -158,6 +161,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     tile && myPosters ? myPosters.filter((p) => p.tmdb_id === tile.id && p.media_type === (tile.media_type === 'tv' ? 'tv' : 'movie')) : [];
   // Título sendo aberto (detalhes completos a caminho): mostra um giro no pôster.
   const [openingKey, setOpeningKey] = useState<string | null>(null);
+
+  // 18/11/2026 (otimização): os modais da prateleira só montam depois da
+  // primeira vez que abrem. Antes cada prateleira carregava 5 modais fechados
+  // (3 OracleSheet, ConfirmationModal e o AllMoviesModal, que ainda montava 30
+  // pôsteres invisíveis) e todos renderizavam junto com ela: 1/3 dos renders
+  // ao abrir a Biblioteca e 88 componentes para abrir "Ajustes" (10–16 depois).
+  const deleteMounted = useOpenedOnce(deleteMovieId !== null);
+  const allMoviesMounted = useOpenedOnce(showAllMovies);
+  const menuMounted = useOpenedOnce(!!menuMovie);
+  const pickerMounted = useOpenedOnce(!!posterPicker);
 
   // Cada título da prateleira: id, tipo, nota da pessoa e, quando quem chama
   // já tinha, o título inteiro.
@@ -634,6 +647,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       {/* Modais — via portal, fora de qualquer contexto de empilhamento */}
       {createPortal(
         <>
+          {deleteMounted && (
           <ConfirmationModal
             isOpen={deleteMovieId !== null}
             onClose={() => setDeleteMovieId(null)}
@@ -645,6 +659,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             title={t('common.delete')}
             message={t('library.movieRemoved')}
           />
+          )}
 
           {selectedMovie && (
             <MovieDetailsModal
@@ -658,6 +673,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             />
           )}
 
+          {allMoviesMounted && (
           <AllMoviesModal
             isOpen={showAllMovies}
             onClose={() => setShowAllMovies(false)}
@@ -668,6 +684,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             profileUserId={profileUserId}
             onAddToLibrary={onAddToLibrary}
           />
+          )}
 
           {showAddToList && (
             <AddToListMenu
@@ -696,6 +713,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       )}
 
       {/* Ações de um título (botão "…" no pôster) */}
+      {menuMounted && (
       <OracleSheet
         open={!!menuMovie}
         onClose={() => setMenuMovie(null)}
@@ -792,8 +810,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           </ul>
         )}
       </OracleSheet>
+      )}
 
       {/* Pôster da coleção (Poster Jackpot): a capa original ou um dos pôsteres que a pessoa tem do título */}
+      {pickerMounted && (
       <OracleSheet
         open={!!posterPicker}
         onClose={() => setPosterPicker(null)}
@@ -867,6 +887,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           );
         })()}
       </OracleSheet>
+      )}
     </>
   );
 };

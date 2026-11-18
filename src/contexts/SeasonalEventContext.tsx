@@ -53,6 +53,22 @@ export const requestSeasonalRefresh = () => {
   window.dispatchEvent(new Event(REFRESH_EVENT));
 };
 
+// 18/11/2026 (otimização): a troca de página não busca mais o evento toda vez
+// (era 1 RPC por navegação e um re-render dos consumidores mesmo sem nada
+// mudar). Na troca de página só busca se a resposta tem mais de 5 minutos, se
+// a pessoa está saindo de uma página onde se avalia, ou se algo marcou o
+// evento como "talvez mudou" (markSeasonalStale, ao avaliar no menu do título
+// ou na Biblioteca) — sem RPC na hora, só na próxima troca de página.
+const ROUTE_REFRESH_MS = 5 * 60 * 1000;
+const RATING_PAGES = ['/library', '/add-movies', '/lists'];
+let seasonalStale = false;
+export const markSeasonalStale = () => {
+  seasonalStale = true;
+};
+// A resposta sem o relógio do servidor (`now` muda a cada chamada): duas
+// respostas iguais aqui são o mesmo estado do evento.
+const eventSignature = (event: SeasonalEventState | null) => (event ? JSON.stringify({ ...event, now: null }) : 'null');
+
 // Prévia de um evento fora da época. Desde 16/11/2026 (Conta Diretor) é só do
 // diretor: o banco ignora p_preview de qualquer outra conta. ?evento=natal liga
 // a prévia na tela do diretor (guardada no aparelho, como a escolha feita no
@@ -74,6 +90,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [celebration, setCelebration] = useState<SeasonalStep[]>([]);
   const lastFetch = useRef(0);
+  const lastSignature = useRef<string | null>(null);
   const requestId = useRef(0);
   const seenInMemory = useRef<string[]>([]);
   const trialSeenInMemory = useRef<Record<string, string[]>>({});
@@ -93,11 +110,18 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const refresh = useCallback(async () => {
     const id = ++requestId.current;
     lastFetch.current = Date.now();
+    seasonalStale = false;
     const { data, error } = await supabase.rpc('get_seasonal_event_state', { p_preview: preview });
     if (id !== requestId.current) return;
     if (!error) {
-      const next = data as SeasonalEventState | null;
-      setEvent(next && isSeasonalEventId(next.id) ? next : null);
+      const raw = data as SeasonalEventState | null;
+      const next = raw && isSeasonalEventId(raw.id) ? raw : null;
+      // mesma resposta: fica o objeto que já estava (consumidores não re-renderizam)
+      const signature = eventSignature(next);
+      if (signature !== lastSignature.current) {
+        lastSignature.current = signature;
+        setEvent(next);
+      }
     }
     setLoading(false);
     // userId: a sessão do supabase muda junto e o estado é de outra pessoa
@@ -108,14 +132,16 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
     refresh();
   }, [refresh]);
 
-  // Trocou de página: atualiza (a pessoa pode ter avaliado na Biblioteca).
-  const firstPath = useRef(true);
+  // Trocou de página: atualiza se a pessoa pode ter avaliado (saiu da
+  // Biblioteca, de Adicionar filmes ou das listas, ou avaliou no menu de um
+  // título) ou se a resposta está velha (ver ROUTE_REFRESH_MS).
+  const previousPath = useRef<string | null>(null);
   useEffect(() => {
-    if (firstPath.current) {
-      firstPath.current = false;
-      return;
-    }
-    refresh();
+    const from = previousPath.current;
+    previousPath.current = location.pathname;
+    if (from === null) return;
+    const leftRatingPage = RATING_PAGES.some((page) => from === page || from.startsWith(`${page}/`));
+    if (seasonalStale || leftRatingPage || Date.now() - lastFetch.current > ROUTE_REFRESH_MS) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 

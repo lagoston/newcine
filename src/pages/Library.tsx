@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Plus, ListPlus, MessageSquare, SlidersHorizontal, Library as LibraryIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -20,6 +20,7 @@ import {
   fetchRatedLayout, groupByDecade, hasCineElite, readLegacyLayout, saveDecadeOrder, saveRatedLayout,
 } from '../lib/libraryLayouts';
 import DecadeOrganizer from '../components/DecadeOrganizer';
+import { markSeasonalStale } from '../contexts/SeasonalEventContext';
 
 // Biblioteca — "a estante".
 //   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
@@ -223,6 +224,8 @@ export default function Library() {
 
       storeRows((prev) => prev.map((r) => (sameTitle(r, movieId, mediaType) ? { ...r, rating } : r)));
       cache.invalidatePattern('stats:');
+      // a nota pode ter avançado o evento sazonal: confere na próxima página
+      markSeasonalStale();
       toast.success(rating === null ? t('library.ratingRemoved') : t('library.ratingUpdated'));
     } catch (error) {
       console.error('Error updating rating:', error);
@@ -245,6 +248,7 @@ export default function Library() {
 
       storeRows((prev) => prev.filter((r) => !sameTitle(r, movieId, mediaType)));
       cache.invalidatePattern('stats:');
+      markSeasonalStale();
       toast.success(t('library.movieDeleted'));
     } catch (error) {
       console.error('Error deleting movie:', error);
@@ -453,6 +457,37 @@ export default function Library() {
     if (had === true) toast(t('library.eliteLost', { emoji: CINE_ELITE.emoji, tag: CINE_ELITE.name, min: CINE_ELITE.min }), { icon: CINE_ELITE.emoji });
   }, [initialLoadComplete, eliteUnlocked, ratedLayout, t]);
 
+  // 18/11/2026 (otimização): callbacks estáveis para as prateleiras. O
+  // RatingBox é React.memo, mas recebia funções novas a cada render da página
+  // (abrir um modal, filtrar), então as 12 prateleiras re-renderizavam todas:
+  // tocar em "Ajustes" re-renderizava 88 componentes (~175 ms com CPU 4×).
+  // A ref guarda a versão mais nova (que enxerga as linhas atuais).
+  const rateRef = useRef(handleRate);
+  rateRef.current = handleRate;
+  const deleteRef = useRef(handleDelete);
+  deleteRef.current = handleDelete;
+  const onShelfRate = useCallback(
+    (movieId: number, rating: number | null, mediaType?: TitleMediaType) => rateRef.current(movieId, rating, mediaType),
+    []
+  );
+  const onShelfDelete = useCallback((movieId: number, mediaType?: TitleMediaType) => deleteRef.current(movieId, mediaType), []);
+  const openStreamingFilter = useCallback(() => setShowStreamingFilter(true), []);
+  const openWatchlistDuel = useCallback(() => setShowWatchlistDuel(true), []);
+  // One Grid e Melhores da Década: as listas e o "Organizar" de cada década
+  // também estáveis (eram arrays e funções novas a cada render).
+  const oneGrid = useMemo(() => {
+    const allRated: LibraryItem[] = [];
+    for (let r = 10; r >= 0; r--) allRated.push(...(moviesByRating[r] || []));
+    return {
+      ratedMovies: allRated.filter((m) => m.media_type !== 'tv'),
+      ratedSeries: allRated.filter((m) => m.media_type === 'tv'),
+    };
+  }, [moviesByRating]);
+  const organizeHandlers = useMemo(
+    () => new Map(decadeShelves.map((shelf) => [shelf.decade, () => setOrganizing(shelf)] as const)),
+    [decadeShelves]
+  );
+
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
@@ -537,14 +572,14 @@ export default function Library() {
             items={filteredWatchlistMovies}
             pending={watchlistFilterPending}
             rating={null}
-            onRate={handleRate}
-            onDelete={handleDelete}
+            onRate={onShelfRate}
+            onDelete={onShelfDelete}
             isNotRated
             chromaBoxEnabled={chromaBoxEnabled}
-            onFilterClick={() => setShowStreamingFilter(true)}
+            onFilterClick={openStreamingFilter}
             activeFilterCount={selectedStreamingProviders.length + (oracleFilterActive ? 1 : 0)}
             showPredictedRating={oracleFilterActive}
-            onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
+            onDuelClick={moviesByRating.unrated.length >= 4 ? openWatchlistDuel : undefined}
           />
 
           {shownLayout === 'decades' ? (
@@ -559,20 +594,15 @@ export default function Library() {
                 accentColor={decadeColor(shelf.decade)}
                 average={shelf.average}
                 rating={null}
-                onRate={handleRate}
-                onDelete={handleDelete}
+                onRate={onShelfRate}
+                onDelete={onShelfDelete}
                 chromaBoxEnabled={false}
                 ranked
-                onOrganizeClick={() => setOrganizing(shelf)}
+                onOrganizeClick={organizeHandlers.get(shelf.decade)}
               />
             ))
           ) : shownLayout === 'onegrid' ? (() => {
-            const allRated: LibraryItem[] = [...Array(11)].reduce((acc: LibraryItem[], _, i) => {
-              const r = 10 - i;
-              return [...acc, ...(moviesByRating[r] || [])];
-            }, []);
-            const ratedMovies = allRated.filter((m) => m.media_type !== 'tv');
-            const ratedSeries = allRated.filter((m) => m.media_type === 'tv');
+            const { ratedMovies, ratedSeries } = oneGrid;
             return (
               <>
                 {ratedMovies.length > 0 && (
@@ -582,8 +612,8 @@ export default function Library() {
                     title={t('library.ratedMoviesTitle')}
                     items={ratedMovies}
                     rating={null}
-                    onRate={handleRate}
-                    onDelete={handleDelete}
+                    onRate={onShelfRate}
+                    onDelete={onShelfDelete}
                     chromaBoxEnabled={false}
                     isOneGrid
                   />
@@ -595,8 +625,8 @@ export default function Library() {
                     title={t('library.ratedSeriesTitle')}
                     items={ratedSeries}
                     rating={null}
-                    onRate={handleRate}
-                    onDelete={handleDelete}
+                    onRate={onShelfRate}
+                    onDelete={onShelfDelete}
                     chromaBoxEnabled={chromaBoxEnabled}
                     isOneGrid
                     isOneGridTv
@@ -615,8 +645,8 @@ export default function Library() {
                   title={t('library.rating', { value: rating })}
                   items={moviesByRating[rating] || []}
                   rating={rating}
-                  onRate={handleRate}
-                  onDelete={handleDelete}
+                  onRate={onShelfRate}
+                  onDelete={onShelfDelete}
                   chromaBoxEnabled={chromaBoxEnabled}
                 />
               );
