@@ -34,12 +34,12 @@ export type AnyQuery = Query<unknown, Error, unknown, QueryKey>;
 export const isPublic = (query: { meta?: Record<string, unknown> }) => query.meta?.owner === 'pub';
 
 // As opções de uma consulta a partir da linha dela em keys.ts.
-export function optionsOf<T>(spec: QuerySpec<T>, queryFn: () => Promise<T>) {
+export function optionsOf<T>(spec: QuerySpec, queryFn: () => Promise<T>) {
   const { staleTime } = spec;
   return {
     queryKey: spec.key,
     queryFn,
-    staleTime: typeof staleTime === 'function' ? (query: { state: { data: unknown } }) => staleTime(query.state.data as T | undefined) : staleTime,
+    staleTime: typeof staleTime === 'function' ? (query: { state: { data: unknown } }) => staleTime(query.state.data) : staleTime,
     gcTime: spec.gcTime,
     meta: metaOf(spec),
   };
@@ -60,13 +60,13 @@ export function refetchIfStale(prefix: QueryKey): Promise<void> {
 }
 
 // O que está guardado agora, sem ir à rede (undefined se não há).
-export function peekCached<T>(spec: QuerySpec<T>): T | undefined {
+export function peekCached<T>(spec: QuerySpec): T | undefined {
   return queryClient.getQueryData<T>(spec.key);
 }
 
 // Corrige o que está guardado com um valor que a tela já conhece (ex.: o saldo
 // de fichas devolvido por um giro). Só mexe se já houver resposta guardada.
-export function patchCached<T>(spec: QuerySpec<T>, patch: (current: T) => T): void {
+export function patchCached<T>(spec: QuerySpec, patch: (current: T) => T): void {
   if (queryClient.getQueryData(spec.key) === undefined) return;
   queryClient.setQueryData<T>(spec.key, (current) => (current === undefined ? current : patch(current)));
 }

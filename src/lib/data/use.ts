@@ -54,7 +54,7 @@ export interface UseCachedOptions<T> {
   keep?: (previous: T, next: T) => boolean;
 }
 
-export function useCached<T>(spec: QuerySpec<T>, fetcher: () => Promise<T>, options: UseCachedOptions<T> = {}): Cached<T> {
+export function useCached<T>(spec: QuerySpec, fetcher: () => Promise<T>, options: UseCachedOptions<T> = {}): Cached<T> {
   const ready = useScopeReady(spec.owner);
   const { keep } = options;
   return useQuery<T, Error>(

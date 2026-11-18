@@ -32,12 +32,12 @@ export const PERSIST_VERSION = 'reborn2a-1';
 export type Owner = 'pub' | string | null | undefined;
 export type QueryKey = readonly unknown[];
 
-export interface QuerySpec<T = unknown> {
+export interface QuerySpec {
   key: QueryKey;
   owner: Owner;
   // por quanto tempo a resposta vale sem pedir de novo (ms); função quando
   // depende do que veio (ex.: resposta vazia não vale nada)
-  staleTime: number | ((data: T | undefined) => number);
+  staleTime: number | ((data: unknown) => number);
   // por quanto tempo fica na memória sem ninguém usando (ms)
   gcTime: number;
   // vai para o aparelho (IndexedDB)?
@@ -46,7 +46,7 @@ export interface QuerySpec<T = unknown> {
   guard?: string;
 }
 
-function spec<T>(owner: Owner, key: QueryKey, staleTime: QuerySpec<T>['staleTime'], persist = false, guard?: string): QuerySpec<T> {
+function spec(owner: Owner, key: QueryKey, staleTime: QuerySpec['staleTime'], persist = false, guard?: string): QuerySpec {
   const longest = typeof staleTime === 'number' ? staleTime : HOUR;
   return {
     key,
@@ -87,7 +87,7 @@ export const Q = {
   // O catálogo depende de a roleta estar liberada para a conta (o banco devolve
   // [] para quem não tem): é guardado por pessoa, e lista vazia não vale nada.
   jackpotCatalog: (uid: Owner) =>
-    spec<unknown[]>(uid, ['jackpot', 'catalog', uid], (data) => (Array.isArray(data) && data.length > 0 ? HOUR : 0), true),
+    spec(uid, ['jackpot', 'catalog', uid], (data) => (Array.isArray(data) && data.length > 0 ? HOUR : 0), true),
   // fichas, missões, ficha do dia: muda toda hora, não vai para o aparelho
   jackpotState: (uid: Owner) => spec(uid, ['jackpot', 'state', uid], 1 * MIN),
 
@@ -122,7 +122,7 @@ export interface SpecMeta extends Record<string, unknown> {
   persist: boolean;
   guard?: string;
 }
-export const metaOf = (s: QuerySpec<never> | QuerySpec): SpecMeta => ({
+export const metaOf = (s: QuerySpec): SpecMeta => ({
   owner: s.owner === 'pub' ? 'pub' : String(s.owner),
   persist: s.persist,
   ...(s.guard ? { guard: s.guard } : {}),

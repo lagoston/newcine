@@ -20,7 +20,7 @@ import { startDataEvents } from './events';
 startDataSession();
 startDataEvents();
 
-export async function fetchCached<T>(spec: QuerySpec<T>, fetcher: () => Promise<T>): Promise<T> {
+export async function fetchCached<T>(spec: QuerySpec, fetcher: () => Promise<T>): Promise<T> {
   if (spec.owner === 'pub') {
     await whenPubReady();
   } else {
