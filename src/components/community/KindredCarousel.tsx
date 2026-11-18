@@ -226,7 +226,12 @@ const KindredCarousel: React.FC<KindredCarouselProps> = ({ items, statuses, busy
   const measure = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    setEdges({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+    const start = el.scrollLeft <= 4;
+    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+    // 18/11/2026 (otimização): só troca o estado quando uma borda muda (antes
+    // era um objeto novo a cada evento de rolagem, re-renderizando o carrossel
+    // inteiro durante o arrasto) — como já faz o PersonaWorks.
+    setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
   }, []);
 
   useEffect(() => {

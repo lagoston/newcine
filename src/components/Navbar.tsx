@@ -53,6 +53,52 @@ function useScrolled(threshold = 4) {
   return scrolled;
 }
 
+// Item de navegação (computador) — compacto o bastante pra 5 links +
+// busca + sino + idioma + sair caberem sem espremer nada.
+// 18/11/2026 (otimização): definido fora do Navbar. Dentro dele, cada render
+// da barra (troca de rota, passar dos 4 px de rolagem, volta do app) criava um
+// componente novo e os 5 links eram desmontados e montados de novo.
+const NavLink = ({ to, icon: Icon, children, labelClassName = 'hidden xl:inline', active }: {
+  to: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  labelClassName?: string;
+  // Acesa por outra regra que não "caminho igual ao link" (a aba Oráculo).
+  active?: boolean;
+}) => {
+  const location = useLocation();
+  // As salas secretas moram atrás das portas da home (a Central dos
+  // Oráculos foi extinta em 02/11/2026) e acendem o Início.
+  const isActive = active ?? (location.pathname === to || (to === '/' && location.pathname.startsWith('/sala/')));
+  return (
+    <Link
+      to={to}
+      onClick={(e) => {
+        // Aba Oráculo já dentro do Acervo (09/11/2026; era a Mesa): não navega
+        // (perderia o filtro da vez, ?ocasiao= / ?mood=) e só volta ao topo. O
+        // Acervo é uma camada por cima da barra, então isso quase nunca
+        // dispara; fica coerente com a barra do celular.
+        if (active && location.pathname === '/oracle/acervo') {
+          e.preventDefault();
+          // O Acervo rola dentro da própria camada (.ac-scroll, AcervoLayer).
+          const acervoScroll = document.querySelector<HTMLElement>('.ac-scroll');
+          if (acervoScroll) acervoScroll.scrollTo({ top: 0, behavior: 'smooth' });
+          else window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }}
+      aria-current={isActive ? 'page' : undefined}
+      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
+        isActive
+          ? 'text-white bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-400/40'
+          : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent'
+      }`}
+    >
+      <Icon className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={isActive ? 2.25 : 2} />
+      <span className={labelClassName}>{children}</span>
+    </Link>
+  );
+};
+
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,48 +115,6 @@ function Navbar() {
   // Tocar na marca estando no Início: volta ao topo.
   const handleBrandClick = () => {
     if (onHome) window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Item de navegação (computador) — compacto o bastante pra 5 links +
-  // busca + sino + idioma + sair caberem sem espremer nada.
-  const NavLink = ({ to, icon: Icon, children, labelClassName = 'hidden xl:inline', active }: {
-    to: string;
-    icon: React.ElementType;
-    children: React.ReactNode;
-    labelClassName?: string;
-    // Acesa por outra regra que não "caminho igual ao link" (a aba Oráculo).
-    active?: boolean;
-  }) => {
-    // As salas secretas moram atrás das portas da home (a Central dos
-    // Oráculos foi extinta em 02/11/2026) e acendem o Início.
-    const isActive = active ?? (location.pathname === to || (to === '/' && location.pathname.startsWith('/sala/')));
-    return (
-      <Link
-        to={to}
-        onClick={(e) => {
-          // Aba Oráculo já dentro do Acervo (09/11/2026; era a Mesa): não navega
-          // (perderia o filtro da vez, ?ocasiao= / ?mood=) e só volta ao topo. O
-          // Acervo é uma camada por cima da barra, então isso quase nunca
-          // dispara; fica coerente com a barra do celular.
-          if (active && location.pathname === '/oracle/acervo') {
-            e.preventDefault();
-            // O Acervo rola dentro da própria camada (.ac-scroll, AcervoLayer).
-            const acervoScroll = document.querySelector<HTMLElement>('.ac-scroll');
-            if (acervoScroll) acervoScroll.scrollTo({ top: 0, behavior: 'smooth' });
-            else window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }}
-        aria-current={isActive ? 'page' : undefined}
-        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
-          isActive
-            ? 'text-white bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-400/40'
-            : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent'
-        }`}
-      >
-        <Icon className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={isActive ? 2.25 : 2} />
-        <span className={labelClassName}>{children}</span>
-      </Link>
-    );
   };
 
   const brandLabel = t('nav.brandHome');
