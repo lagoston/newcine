@@ -248,19 +248,29 @@
     radial-gradient(1.2px 1.2px at 6% 88%, #fff 50%, transparent 51%),
     radial-gradient(1px 1px at 55% 92%, #ffe8a3 50%, transparent 51%);
   background-size: 260px 260px;
-  opacity: 0.8;
-  animation: pj-twinkle 3.6s ease-in-out infinite alternate;
+  /* 18/11/2026 (otimização): as duas camadas do tamanho da tela piscavam para
+     sempre e mantinham o celular compondo 60 quadros/s com a tela parada (a
+     tela "Pôster Poker em breve" gastava ~575 ms de CPU por segundo, ~80 sem
+     as estrelas e o brilho do título). Agora piscam 3 vezes ao aparecer e
+     descansam no brilho de sempre (--pj-stars-rest, o mesmo do "reduzir
+     movimento"), sem salto no fim. */
+  opacity: var(--pj-stars-rest, 0.8);
+  animation: pj-twinkle 3.6s ease-in-out 3;
 }
 .pj-stars::after {
   content: '';
+  /* a camada de dentro descansa no 0.8 de sempre (não herda o descanso do
+     contexto, que já vale para a de fora) */
+  --pj-stars-rest: 0.8;
   background-size: 190px 190px;
   background-position: 60px 40px;
   animation-duration: 2.7s;
   animation-delay: -1.3s;
 }
 @keyframes pj-twinkle {
-  0% { opacity: 0.35; }
-  100% { opacity: 0.9; }
+  0%, 100% { opacity: var(--pj-stars-rest, 0.8); }
+  35% { opacity: 0.35; }
+  70% { opacity: 0.9; }
 }
 
 /* Título dourado com o brilho passando. */
@@ -270,7 +280,11 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: pj-shine 4.5s ease-in-out infinite;
+  /* 18/11/2026 (otimização): o brilho anda com background-position, que
+     repinta o título a cada quadro; passava para sempre (~60 repinturas/s
+     com a tela parada). Agora passa 3 vezes e o título descansa onde o
+     brilho termina (forwards: sem salto). */
+  animation: pj-shine 4.5s ease-in-out 3 forwards;
   filter: drop-shadow(0 2px 0 rgba(80, 40, 0, 0.7)) drop-shadow(0 0 18px rgba(244, 196, 84, 0.35));
 }
 @keyframes pj-shine {
@@ -1139,7 +1153,8 @@
   pointer-events: none;
 }
 .pj-daily-clip .pj-stars {
-  opacity: 0.55;
+  /* 18/11/2026: o descanso das estrelas (ver .pj-stars) */
+  --pj-stars-rest: 0.55;
   background-size: 120px 120px;
 }
 .pj-daily-sheen {
@@ -1423,7 +1438,8 @@
   box-shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.95), 0 0 40px -22px rgba(61, 220, 151, 0.45);
 }
 .pj-contract-den .pj-stars {
-  opacity: 0.45;
+  /* 18/11/2026: o descanso das estrelas (ver .pj-stars) */
+  --pj-stars-rest: 0.45;
 }
 
 /* A fumaça: três nuvens verdes que andam devagar (parada com movimento reduzido). */
