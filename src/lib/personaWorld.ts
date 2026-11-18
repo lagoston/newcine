@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { MOODS, MOOD_BY_KEY, MOOD_BY_LETTER } from './moods';
 import { parseUserPersona, type UserPersona } from './persona';
+import { isStudioPreviewOwner } from './studioPreviewOwner';
 
 // A Persona viva (13/11/2026): a cabine e a mariposa.
 //
@@ -346,10 +347,8 @@ export async function saveMoodPick(moodKey: string, title: WorldTitle): Promise<
 // 17/11/2026 (Bruno: "o estúdio 'completo' não está de fato completo em seu
 // nível máximo, não tem nem a cadeira nem o tapete"): agora é o nível máximo,
 // com todos os móveis (worldState lê `preview`), e a caixa do Arquivo.
-let studioPreviewOwner: string | null = null;
-export function setStudioPreviewOwner(userId: string | null): void {
-  studioPreviewOwner = userId;
-}
+// 18/11/2026 (otimização): de quem é a prévia fica em lib/studioPreviewOwner.ts
+// (o DirectorContext grava lá sem trazer este arquivo para a abertura do app).
 
 function withStudioPreview(world: PersonaWorld): PersonaWorld {
   const first = Math.max(1, world.rated);
@@ -369,7 +368,7 @@ export async function fetchPersonaWorld(userId: string): Promise<PersonaWorld | 
   const { data, error } = await supabase.rpc('get_persona_world', { p_user_id: userId });
   if (error) throw error;
   const world = parsePersonaWorld(data);
-  return world && studioPreviewOwner === userId ? withStudioPreview(world) : world;
+  return world && isStudioPreviewOwner(userId) ? withStudioPreview(world) : world;
 }
 
 const sortByMoodOrder = (letters: string[]): string => letters.slice().sort((a, b) => LETTERS.indexOf(a) - LETTERS.indexOf(b)).join('');
