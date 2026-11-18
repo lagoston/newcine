@@ -8,7 +8,8 @@ import { Movie, getTrending, getComingSoon, getBestOfYear } from '../lib/tmdb';
 import { asMediaType, getFullTitle, prefetchFullTitle } from '../lib/titleCards';
 import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal } from '../hooks/useLazyList';
 import { supabase } from '../lib/supabase';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 18/11/2026 (otimização): o modal do filme só baixa quando um filme é aberto (ver LazyMovieDetailsModal).
+import MovieDetailsModal from '../components/LazyMovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingFriendBubbles';

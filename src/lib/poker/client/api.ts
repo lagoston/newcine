@@ -1,28 +1,22 @@
 /**
- * Qual API a mesa usa (03/11/2026): o `src/lib/pokerApi.ts` do pacote C quando ele
- * existir, senão o `mockApi`. O `import.meta.glob` devolve {} enquanto o arquivo
- * não existe, então o build não quebra e a troca acontece sozinha no próximo build.
+ * Qual API a mesa usa: a real, do `src/lib/pokerApi.ts`.
  *
- * Na prévia (VITE_POKER_PREVIEW=1) o mock vale sempre, para jogar sem servidor.
+ * 18/11/2026 (otimização): antes este arquivo importava o `mockApi` sempre, só
+ * como reserva (`real ?? mockApi`). Com isso o mock, o `mockFriends` e o motor
+ * do pôquer (≈150 KB) entravam no pacote da home pela porta do pôquer
+ * (StudioDoor → usePokerDoor → usePokerHome → aqui), mesmo sem ninguém jogar.
+ * Agora a produção usa só a API real (o pedaço "pokerMeta" da home caiu de
+ * 161 KB para 8 KB, medido).
+ *
+ * Para jogar sem servidor numa prévia (o antigo VITE_POKER_PREVIEW=1): no
+ * vite.config da prévia, troque este arquivo por um que exporte o mock —
+ * `export { mockApi as pokerApi } from './mockApi.ts'; export const usingMockApi = true;`
+ * — com o mesmo plugin `resolveId` dos stubs do Supabase.
  */
 import type { PokerApiLike } from './apiTypes.ts';
-import { mockApi } from './mockApi.ts';
-import { POKER_PREVIEW } from './flags.ts';
+import { pokerApi as realPokerApi } from '../../pokerApi.ts';
 
-const realModules = import.meta.glob('../../pokerApi.ts', { eager: true }) as Record<string, Record<string, unknown>>;
-
-function pickReal(): PokerApiLike | null {
-  const mod = Object.values(realModules)[0];
-  if (!mod) return null;
-  // Aceita `export const pokerApi`, `export default` ou as funções soltas no módulo.
-  const cand = (mod.pokerApi ?? mod.default ?? mod) as Partial<PokerApiLike>;
-  if (cand && typeof cand.getHome === 'function' && cand.bounty && typeof cand.bounty.start === 'function') {
-    return cand as PokerApiLike;
-  }
-  return null;
-}
-
-const real = POKER_PREVIEW ? null : pickReal();
-
-export const pokerApi: PokerApiLike = real ?? mockApi;
-export const usingMockApi = real === null;
+// Os tipos do pokerApi.ts e do apiTypes.ts andaram um pouco separados (ex.:
+// prize.article_pt); o código antigo já convertia com `as PokerApiLike`.
+export const pokerApi: PokerApiLike = realPokerApi as unknown as PokerApiLike;
+export const usingMockApi = false;

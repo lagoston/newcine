@@ -1,0 +1,19 @@
+# Cabeçalhos do Netlify (18/11/2026, otimização).
+#
+# /static/* = JS e CSS do build, todos com hash no nome (o Vite troca o nome
+# quando o conteúdo muda). O navegador pode guardar por 1 ano sem nem
+# perguntar ao servidor: menos pedidos e menos dados a cada visita.
+# Atenção: NÃO pôr cache longo em /assets/* — ali ficam as imagens do public/
+# (cartas, ícones, og-image), sem hash; trocar uma delas não chegaria a quem
+# já visitou.
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# O HTML, o service worker e o manifesto precisam ser conferidos a cada
+# visita (é por eles que o site descobre os arquivos novos).
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate

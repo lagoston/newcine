@@ -11,6 +11,7 @@ import WhispersNotificationPopup from './components/WhispersNotificationPopup';
 import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
 import GlassLoader from './components/GlassLoader';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PageBackground from './components/PageBackground';
 import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
 import { DirectorProvider } from './contexts/DirectorContext';
@@ -129,6 +130,10 @@ function App() {
               <FlyingChip />
             </Suspense>
             <main>
+              {/* 18/11/2026 (otimização): se uma tela quebrar ou o pedaço dela não
+                  chegar (ex.: deploy com o site aberto), o aviso fica só aqui, em
+                  vez da tela branca. Ver components/RouteErrorBoundary.tsx. */}
+              <RouteErrorBoundary>
               <Suspense fallback={<GlassLoader fullPage size="lg" label={t('common.loading')} />}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
@@ -169,6 +174,7 @@ function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
+              </RouteErrorBoundary>
             </main>
             {/* "Instalar o app" só faz sentido no navegador. */}
             {!IS_NATIVE_APP && <InstallPrompt />}

@@ -5,7 +5,8 @@ import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } f
 import { ShelfEntry, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
 import { useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import { useAuth } from '../lib/auth';
-import MovieDetailsModal from './MovieDetailsModal';
+// 18/11/2026 (otimização): o modal do filme só baixa quando um filme é aberto (ver LazyMovieDetailsModal).
+import MovieDetailsModal from './LazyMovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import PosterArt from './posterJackpot/PosterArt';
 import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
