@@ -1141,9 +1141,14 @@
   transform: skewX(-18deg);
   animation: pj-daily-sheen 4.6s ease-in-out infinite 1.6s;
 }
+/* 18/11/2026 (otimização): o brilho andava com `left`, que refazia o layout
+   e repintava a página a cada quadro enquanto a ficha do dia esperava (o dia
+   todo, na home). Com transform ele anda só no compositor: na home, layouts
+   14/s → 0 e repinturas 106/s → 35/s (medido). Mesmo caminho: de -50% a 130%
+   da largura do balão = 180% ÷ 38% (a largura do brilho) = 474% dele. */
 @keyframes pj-daily-sheen {
-  0%, 62% { left: -50%; }
-  86%, 100% { left: 130%; }
+  0%, 62% { transform: translateX(0) skewX(-18deg); }
+  86%, 100% { transform: translateX(474%) skewX(-18deg); }
 }
 
 /* O rabicho: aponta de volta para o leque de pôsteres, de onde o balão
