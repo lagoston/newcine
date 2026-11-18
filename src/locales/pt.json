@@ -52,6 +52,10 @@
     "noMoviesFound": "Nenhum título encontrado",
     "changeLanguage": "Trocar idioma"
   },
+  "appUpdate": {
+    "ready": "Tem versão nova do CineOracle.",
+    "reload": "Atualizar"
+  },
   "auth": {
     "signIn": "Entrar",
     "signUp": "Cadastrar",

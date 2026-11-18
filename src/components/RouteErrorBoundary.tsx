@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { reloadFresh } from '../lib/appUpdate';
 
 // 18/11/2026 (otimização): rede de segurança das telas. Antes não havia
 // nenhum ErrorBoundary: se uma tela quebrasse — ou se o pedaço dela não
@@ -20,7 +21,9 @@ function ErrorFallback() {
       </p>
       <button
         type="button"
-        onClick={() => window.location.reload()}
+        // 18/11/2026 (Reborn, pacote): recarrega já com o service worker novo,
+        // se houver (senão a casca antiga voltaria; ver lib/appUpdate.ts)
+        onClick={() => void reloadFresh()}
         className={`h-11 px-5 rounded-xl ring-1 ring-white/15 bg-violet-500/20 hover:bg-violet-500/30 text-sm font-medium transition ${FOCUS_RING}`}
         style={{ color: MIST }}
       >

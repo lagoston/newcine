@@ -52,6 +52,10 @@
     "noMoviesFound": "No titles found",
     "changeLanguage": "Change language"
   },
+  "appUpdate": {
+    "ready": "A new version of CineOracle is ready.",
+    "reload": "Update"
+  },
   "auth": {
     "signIn": "Sign In",
     "signUp": "Sign Up",
