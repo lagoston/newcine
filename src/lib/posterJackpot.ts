@@ -123,9 +123,11 @@ export interface JackpotState {
   specialTickets: number;
   specialAvailable: boolean;
   specialCount: number;
-  // A barra da sorte: a cada LUCKY_GOAL giros pagos, um Giro da Sorte grátis
-  // (50% épico, 50% lendário). luckyProgress vai de 0 a 9; luckySpins são
-  // os Giros da Sorte guardados (acumulam).
+  // A barra da sorte: a cada LUCKY_GOAL giros com ficha, um Giro da Sorte
+  // guardado. Desde 18/11/2026 ele é um bônus, não um giro grátis: o próximo
+  // giro com ficha (comum ou especial) sai com as chances do Giro da Sorte
+  // (LUCKY_ODDS) e gasta a ficha. luckyProgress vai de 0 a 9; luckySpins são
+  // os bônus guardados (acumulam; cada giro com ficha usa um).
   luckyProgress: number;
   luckySpins: number;
   luckyGoal: number;
@@ -168,8 +170,12 @@ export interface CatalogPoster {
   tmdb_id: number;
 }
 
-// Com o que se gira: ficha comum, ficha especial ou o Giro da Sorte.
+// Com o que se gira: ficha comum ou especial. 'lucky' era o Giro da Sorte
+// grátis, que o banco recusa desde 18/11/2026 (o Giro da Sorte virou o bônus
+// do próximo giro com ficha); fica no tipo porque o banco ainda devolve
+// kind = 'lucky' num giro que veio com o bônus.
 export type PullKind = 'normal' | 'special' | 'lucky';
+export type PullChip = 'normal' | 'special';
 
 export const LUCKY_GOAL = 10;
 // O Giro da Sorte (16/11/2026, pedido do Bruno): raro 20%, épico 50%, lendário
@@ -180,6 +186,9 @@ export interface PullResult {
   item: PosterItem;
   effect: PosterEffect;
   kind: PullKind;
+  // A ficha que entrou e se o giro veio com o bônus do Giro da Sorte (18/11/2026).
+  chip: PullChip;
+  lucky: boolean;
   tickets: number;
   specialTickets: number;
   specialWeekly: boolean;
@@ -365,8 +374,8 @@ export const pullErrorCode = (error: unknown): string => {
   return ['no_tickets', 'no_special', 'no_lucky', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
 };
 
-export async function pullJackpot(kind: PullKind): Promise<PullResult> {
-  const { data, error } = await supabase.rpc('jackpot_pull', { p_kind: kind });
+export async function pullJackpot(chip: PullChip): Promise<PullResult> {
+  const { data, error } = await supabase.rpc('jackpot_pull', { p_kind: chip });
   if (error) throw error;
   const raw = data as Row;
   notifyPostersChanged();
@@ -374,6 +383,8 @@ export async function pullJackpot(kind: PullKind): Promise<PullResult> {
     item: raw.item as PosterItem,
     effect: raw.effect as PosterEffect,
     kind: raw.kind as PullKind,
+    chip: raw.chip === 'special' || raw.chip === 'normal' ? raw.chip : chip,
+    lucky: raw.lucky === true || raw.kind === 'lucky',
     tickets: num(raw.tickets),
     specialTickets: num(raw.special_tickets),
     specialWeekly: raw.special_weekly === true,

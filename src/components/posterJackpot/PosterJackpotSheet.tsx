@@ -43,7 +43,6 @@ import {
   type OwnedPoster,
   type PosterEffect,
   type PosterRarity,
-  type PullKind,
   type PullResult,
 } from '../../lib/posterJackpot';
 import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '../../lib/jackpotSound';
@@ -92,15 +91,16 @@ const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
 };
 
 // Monta o sorteador da fita: só versões que ainda podem sair para a pessoa
-// (com esta ficha ou no Giro da Sorte), nas mesmas chances do banco. No Giro
-// da Sorte a fita só mostra raros, épicos e lendários (20/50/30, sem comuns).
-const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: PullKind) => {
+// com esta ficha, nas mesmas chances do banco. Com o bônus do Giro da Sorte a
+// fita só mostra raros, épicos e lendários (20/50/30, sem comuns); os efeitos
+// seguem a ficha (a especial sempre tem efeito).
+const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: ChipKind, luckyBonus: boolean) => {
   const versions: PosterEffect[] = kind === 'special' ? EFFECTS : ['none', ...EFFECTS];
   const open = (item: CatalogPoster) => versions.filter((effect) => !owned.has(`${item.id}:${effect}`));
   const obtainable = catalog.filter((item) => open(item).length > 0);
-  const lucky = kind === 'lucky' ? obtainable.filter((item) => LUCKY_ODDS[item.rarity]) : [];
+  const lucky = luckyBonus ? obtainable.filter((item) => LUCKY_ODDS[item.rarity]) : [];
   const pool = lucky.length ? lucky : obtainable.length ? obtainable : catalog;
-  const odds = (r: PosterRarity) => (kind === 'lucky' && LUCKY_ODDS[r]) || RARITY_META[r].odds;
+  const odds = (r: PosterRarity) => (luckyBonus && LUCKY_ODDS[r]) || RARITY_META[r].odds;
   return (want?: PosterRarity): ReelCard | null => {
     if (!pool.length) return null;
     let rarity = want;
@@ -186,7 +186,8 @@ const Machine: React.FC<{
   const [catalog, setCatalog] = useState<CatalogPoster[] | null>(() => catalogMemo);
   // A ficha escolhida no porta-fichas.
   const [kind, setKind] = useState<ChipKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
-  // Um Giro da Sorte em andamento (do toque na barra até fechar a revelação).
+  // Um giro com o bônus do Giro da Sorte em andamento (do toque em girar até
+  // fechar a revelação).
   const [luckyRun, setLuckyRun] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'landed' | 'revealed'>('idle');
   const [result, setResult] = useState<PullResult | null>(null);
@@ -266,9 +267,15 @@ const Machine: React.FC<{
     };
   }, []);
 
-  const reelMode: PullKind = luckyRun ? 'lucky' : kind;
+  // O Giro da Sorte (18/11/2026, pedido do Bruno): não é mais um giro grátis.
+  // Com um guardado, o próximo giro com ficha (comum ou especial) sai com as
+  // chances dele e gasta a ficha; o banco aplica sozinho. Parada, a máquina já
+  // fica dourada e mostra as chances do Giro da Sorte ("armada"); durante o
+  // giro e a revelação vale o que era na hora de girar (luckyRun).
+  const armed = state.luckySpins > 0;
+  const luckyMode = luckyRun || (phase === 'idle' && armed);
   const ownedSet = useMemo(() => new Set((owned || []).map((p) => `${p.id}:${p.effect}`)), [owned]);
-  const filler = useMemo(() => makeFiller(catalog || [], ownedSet, reelMode), [catalog, ownedSet, reelMode]);
+  const filler = useMemo(() => makeFiller(catalog || [], ownedSet, kind, luckyMode), [catalog, ownedSet, kind, luckyMode]);
 
   const left = kind === 'special' ? state.remainingSpecial : state.remaining;
   const complete = state.remaining <= 0;
@@ -276,27 +283,24 @@ const Machine: React.FC<{
   const canSpin = hasChip && left > 0;
   const spinning = phase === 'spinning';
 
-  const run = async (pullKind: PullKind) => {
+  const run = async () => {
     if (busyRef.current || !catalog?.length) return;
     if (complete) {
       toast(t('jackpot.machine.complete'));
       return;
     }
-    if (pullKind === 'lucky') {
-      if (state.luckySpins < 1) return;
-    } else {
-      if (!hasChip) {
-        toast(kind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
-        return;
-      }
-      if (left <= 0) {
-        toast(t('jackpot.machine.specialComplete'));
-        return;
-      }
+    const pullKind = kind;
+    if (!hasChip) {
+      toast(pullKind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
+      return;
+    }
+    if (left <= 0) {
+      toast(t('jackpot.machine.specialComplete'));
+      return;
     }
     busyRef.current = true;
     primeJackpotAudio();
-    setLuckyRun(pullKind === 'lucky');
+    setLuckyRun(armed);
     setPhase('spinning');
     setWinnerKey(null);
     setEquipped(false);
@@ -328,6 +332,8 @@ const Machine: React.FC<{
       busyRef.current = false;
       return;
     }
+    // O banco é quem decide se o bônus entrou (outro aparelho pode ter usado).
+    setLuckyRun(res.lucky);
     // Giro com ficha especial: o banco já decidiu se veio kit; a pergunta
     // corre junto com a fita.
     const kitsAfter = pullKind === 'special' ? cobra.reload() : Promise.resolve(null);
@@ -342,7 +348,6 @@ const Machine: React.FC<{
     onState({
       tickets: res.tickets,
       ...specialFields(res.specialWeekly, res.specialTickets),
-      ...(pullKind === 'lucky' ? { luckySpins: res.luckySpins } : {}),
       owned: state.owned + 1,
       remaining: Math.max(0, state.remaining - 1),
       remainingSpecial: Math.max(0, state.remainingSpecial - (res.effect !== 'none' ? 1 : 0)),
@@ -354,10 +359,9 @@ const Machine: React.FC<{
     setWinnerKey(prize.key);
     setPhase('landed');
     playReveal(res.item.rarity, res.effect !== 'none');
-    if (pullKind !== 'lucky') {
-      onState({ luckyProgress: res.luckyProgress, luckySpins: res.luckySpins });
-      setFreshCell(res.luckyEarned ? null : res.luckyProgress - 1);
-    }
+    // Todo giro gasta ficha, então todo giro anda a barra (inclusive o que usou o bônus).
+    onState({ luckyProgress: res.luckyProgress, luckySpins: res.luckySpins });
+    setFreshCell(res.luckyEarned ? null : res.luckyProgress - 1);
     try {
       if (res.item.rarity === 'legendary') navigator.vibrate?.([30, 40, 60]);
       else if (res.item.rarity === 'epic' || res.luckyEarned) navigator.vibrate?.(40);
@@ -399,16 +403,14 @@ const Machine: React.FC<{
   // Sem contagem de "faltam N pôsteres" (pedido do Bruno, 31/10).
   const status = complete
     ? t('jackpot.machine.complete')
-    : luckyRun
-      ? ''
-      : kind === 'special'
-        ? state.remainingSpecial > 0
-          ? `${t('jackpot.machine.specialHint')}${kitsMissing ? ` ${t('jackpot.kits.chanceHint', { pct: kitPct })}` : ''}`
-          : t('jackpot.machine.specialComplete')
-        : '';
+    : kind === 'special'
+      ? state.remainingSpecial > 0
+        ? `${t('jackpot.machine.specialHint')}${kitsMissing ? ` ${t('jackpot.kits.chanceHint', { pct: kitPct })}` : ''}`
+        : t('jackpot.machine.specialComplete')
+      : '';
 
-  // As chances no letreiro: as do giro com ficha ou as do Giro da Sorte.
-  const odds: { rarity: PosterRarity; odds: number }[] = luckyRun
+  // As chances no letreiro: as do giro com ficha ou, com o bônus, as do Giro da Sorte.
+  const odds: { rarity: PosterRarity; odds: number }[] = luckyMode
     ? (['rare', 'epic', 'legendary'] as PosterRarity[]).map((rarity) => ({ rarity, odds: LUCKY_ODDS[rarity] || 0 }))
     : RARITY_ASC.map((rarity) => ({ rarity, odds: RARITY_META[rarity].odds }));
 
@@ -425,9 +427,9 @@ const Machine: React.FC<{
       </button>
 
       <div className="pj-stage-frame" style={{ borderRadius: '50% 50% 30px 30px / 70px 70px 30px 30px' }}>
-        <div className={`pj-stage ${luckyRun ? 'pj-lucky' : ''} px-3 sm:px-5 pt-[64px] sm:pt-[66px] pb-8`} style={{ borderRadius: '50% 50% 27px 27px / 67px 67px 27px 27px' }}>
+        <div className={`pj-stage ${luckyMode ? 'pj-lucky' : ''} px-3 sm:px-5 pt-[64px] sm:pt-[66px] pb-8`} style={{ borderRadius: '50% 50% 27px 27px / 67px 67px 27px 27px' }}>
           <span className="pj-stars" aria-hidden />
-          {luckyRun && <span className="pj-lucky-wash" aria-hidden />}
+          {luckyMode && <span className="pj-lucky-wash" aria-hidden />}
           <Marquee fast={spinning} />
 
           <div className="relative text-center">
@@ -437,7 +439,7 @@ const Machine: React.FC<{
               <Twinkle className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#8FE9FF" />
             </div>
             <p className="mt-1.5 text-[12.5px] sm:text-[13px]" style={{ color: '#CFC6EC' }}>
-              {luckyRun ? t('jackpot.lucky.tagline') : t('jackpot.machine.tagline')}
+              {luckyMode ? t('jackpot.lucky.tagline') : t('jackpot.machine.tagline')}
             </p>
             <ul className="mt-3 flex flex-wrap justify-center gap-x-2 sm:gap-x-3.5 gap-y-1">
               {odds.map(({ rarity, odds: chance }) => (
@@ -448,7 +450,7 @@ const Machine: React.FC<{
                 </li>
               ))}
               {/* Com a ficha especial, a chance do kit da Cobra (enquanto faltar algum). */}
-              {kind === 'special' && !luckyRun && kitsMissing && (
+              {kind === 'special' && kitsMissing && (
                 <li className="inline-flex items-center gap-[3px] sm:gap-1.5 text-[10.5px] sm:text-[12px]" style={{ color: '#CFE9DA' }}>
                   <img src="/avatar-cobra.webp" alt="" className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full" />
                   {t('jackpot.kits.oddsLabel')}
@@ -484,8 +486,9 @@ const Machine: React.FC<{
             goal={state.luckyGoal}
             fresh={freshCell}
             active={luckyRun}
+            hasChip={hasChip}
             disabled={phase !== 'idle' || complete || !catalog?.length}
-            onUse={() => run('lucky')}
+            onUse={run}
           />
         </div>
       </div>
@@ -504,7 +507,7 @@ const Machine: React.FC<{
         <span className="pj-spin-collar">
           <motion.button
             type="button"
-            onClick={spinning ? () => reelRef.current?.skip() : () => run(kind)}
+            onClick={spinning ? () => reelRef.current?.skip() : run}
             disabled={phase === 'landed' || (!spinning && (complete || !catalog?.length))}
             aria-label={spinning ? t('jackpot.machine.skipAria') : complete ? t('jackpot.machine.completeShort') : t('jackpot.machine.spin')}
             whileTap={reduceMotion ? undefined : { scale: 0.95 }}
@@ -544,7 +547,7 @@ const Machine: React.FC<{
             onEquip={equip}
             backLabel={t('jackpot.machine.back')}
             ribbon={
-              result.kind === 'lucky' ? (
+              result.lucky ? (
                 <motion.span
                   initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}

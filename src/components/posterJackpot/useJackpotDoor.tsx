@@ -140,7 +140,9 @@ export function useJackpotDoor(): JackpotDoor {
   }, []);
 
   const claimable = state ? state.missions.filter((m) => !m.claimed && m.progress >= m.target).length : 0;
-  const waiting = state && enabled ? claimable + state.luckySpins : 0;
+  // O Giro da Sorte guardado só conta como "esperando" quando há ficha para
+  // usá-lo (desde 18/11/2026 ele é o bônus de um giro com ficha).
+  const waiting = state && enabled ? claimable + (state.tickets > 0 || state.specialAvailable ? state.luckySpins : 0) : 0;
 
   const sheet =
     state && enabled ? (

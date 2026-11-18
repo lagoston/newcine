@@ -6,9 +6,14 @@ import { RarityGem } from './CollectorMark';
 import '../../styles/posterJackpot.css';
 
 // A barra da sorte (01/11/2026), presa na base da máquina: 10 lâmpadas, uma
-// por giro com ficha. Na 10ª, a barra libera um Giro da Sorte grátis (50%
-// épico, 50% lendário). O medalhão da ponta mostra o prêmio: os dois
-// cristais. Pronta, a barra inteira vira o botão do giro.
+// por giro com ficha. Na 10ª, a barra guarda um Giro da Sorte. O medalhão da
+// ponta mostra o prêmio: os cristais. Pronta, a barra inteira vira o botão do
+// giro.
+//
+// Desde 18/11/2026 (pedido do Bruno) o Giro da Sorte não é mais grátis: é o
+// bônus do próximo giro com ficha (comum ou especial), que sai com as chances
+// dele e gasta a ficha. Tocar na barra pronta gira com a ficha escolhida no
+// porta-fichas, igual ao botão GIRAR; sem ficha, a barra diz que falta uma.
 
 const LuckyMeter: React.FC<{
   progress: number;
@@ -18,9 +23,11 @@ const LuckyMeter: React.FC<{
   fresh?: number | null;
   // Um Giro da Sorte está rodando agora.
   active?: boolean;
+  // Há ficha da escolhida no porta-fichas para usar o bônus.
+  hasChip?: boolean;
   disabled?: boolean;
   onUse: () => void;
-}> = ({ progress, spins, goal = LUCKY_GOAL, fresh = null, active = false, disabled = false, onUse }) => {
+}> = ({ progress, spins, goal = LUCKY_GOAL, fresh = null, active = false, hasChip = true, disabled = false, onUse }) => {
   const { t } = useTranslation();
   const ready = spins > 0;
   const lit = ready || active ? goal : Math.min(progress, goal);
@@ -57,7 +64,7 @@ const LuckyMeter: React.FC<{
         <span className="pj-meter-bolt right" aria-hidden />
         <span className="pj-meter-head">
           <span className="pj-meter-title pj-display">{spins > 1 ? t('jackpot.lucky.readyMany', { count: spins }) : t('jackpot.lucky.ready')}</span>
-          <span className="pj-meter-cta">{t('jackpot.lucky.use')}</span>
+          <span className={`pj-meter-cta ${hasChip ? '' : 'is-waiting'}`}>{hasChip ? t('jackpot.lucky.use') : t('jackpot.lucky.needChip')}</span>
         </span>
         {cells}
         <span className="pj-meter-odds">{t('jackpot.lucky.odds')}</span>

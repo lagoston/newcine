@@ -802,6 +802,12 @@
   background: linear-gradient(180deg, #ffe9a6, #f4c454 50%, #c8901f);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
+/* 18/11/2026: sem ficha para usar o bônus, o selo fica apagado. */
+.pj-meter-cta.is-waiting {
+  color: #e8e1ff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.45);
+}
 .pj-meter-odds {
   display: block;
   margin-top: 6px;

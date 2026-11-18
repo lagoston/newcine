@@ -2627,7 +2627,7 @@
       "specialSaved_other": "You also have {{count}} saved special chips, which never expire.",
       "friday13Next": "With Scary Clown on your profile, you get 3 special chips every Friday the 13th. The next one is {{date}}.",
       "friday13Today": "It's Friday the 13th: with Scary Clown on your profile, you get 3 special chips.",
-      "luckyRule": "Every {{count}} spins with chips, the luck meter unlocks a free Lucky Spin: 20% rare, 50% epic, 30% legendary."
+      "luckyRule": "Every {{count}} spins with chips, the luck meter fills and your next chip spin (regular or special) becomes a Lucky Spin: 20% rare, 50% epic, 30% legendary."
     },
     "library": {
       "menuItem": "Collection poster",
@@ -2665,12 +2665,13 @@
       "ready": "Lucky Spin ready!",
       "readyMany_one": "{{count}} Lucky Spin ready!",
       "readyMany_other": "{{count}} Lucky Spins ready!",
-      "use": "Spin for free",
-      "useAria_one": "Use your Lucky Spin: a rare, epic or legendary poster, for free",
-      "useAria_other": "Use one of your {{count}} Lucky Spins: a rare, epic or legendary poster, for free",
-      "odds": "20% rare, 50% epic, 30% legendary. Costs no chip.",
+      "use": "Spin with a chip",
+      "needChip": "You need a chip",
+      "useAria_one": "Spin with the chosen chip as a Lucky Spin: a rare, epic or legendary poster",
+      "useAria_other": "Spin with the chosen chip using one of your {{count}} Lucky Spins: a rare, epic or legendary poster",
+      "odds": "20% rare, 50% epic, 30% legendary. Applies to your next chip spin, regular or special.",
       "spinning": "Rare, epic or legendary on the line",
-      "earned": "Meter full: Lucky Spin unlocked!",
+      "earned": "Meter full: your next chip spin is a Lucky Spin!",
       "none": "You don't have a Lucky Spin right now.",
       "doorReady_one": "Lucky Spin ready",
       "doorReady_other": "{{count}} Lucky Spins ready"
