@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchMyFriendIds } from '../lib/data';
 import type { FriendBubbleData } from '../components/FloatingFriendBubbles';
 
 // Atividade dos amigos em lote, para as bolhas que flutuam nas capas
@@ -9,7 +10,7 @@ import type { FriendBubbleData } from '../components/FloatingFriendBubbles';
 // Oráculos.
 //
 // A lista de amigos é buscada uma vez por pessoa e guardada por 5 minutos
-// para a página inteira (as nove prateleiras dividem a mesma busca).
+// para o app inteiro (as nove prateleiras dividem a mesma busca).
 
 export type FriendActivity = Record<string, FriendBubbleData[]>;
 
@@ -19,30 +20,12 @@ type FriendEntry = { user_id: string; movie_id: number; media_type: string | nul
 // A chave de um título nas listas de atividade: "movie:603", "tv:1396".
 export const friendKey = (title: TitleLike) => `${title.media_type === 'tv' ? 'tv' : 'movie'}:${title.id}`;
 
-const FRIENDS_TTL_MS = 5 * 60 * 1000;
-const friendIdsCache = new Map<string, { at: number; ids: Promise<string[]> }>();
-
-async function loadFriendIds(userId: string): Promise<string[]> {
-  const { data: friendships } = await supabase
-    .from('friendships')
-    .select('requester_id, addressee_id')
-    .eq('status', 'accepted')
-    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-  return (friendships ?? []).map((f: { requester_id: string; addressee_id: string }) =>
-    f.requester_id === userId ? f.addressee_id : f.requester_id
-  );
-}
-
-export function fetchFriendIds(userId: string): Promise<string[]> {
-  const cached = friendIdsCache.get(userId);
-  if (cached && Date.now() - cached.at < FRIENDS_TTL_MS) return cached.ids;
-  const ids = loadFriendIds(userId).catch((error) => {
-    friendIdsCache.delete(userId);
-    throw error;
-  });
-  friendIdsCache.set(userId, { at: Date.now(), ids });
-  return ids;
-}
+// 18/11/2026 (Reborn, onda 2a): a lista de amigos saiu do Map deste arquivo e
+// foi para a camada de dados (chave ['me','friendIds'], os mesmos 5 minutos).
+// Ganha o que o Map não tinha: o aviso 'friendship:changed' do barramento refaz
+// a lista, e ela some da memória quando a pessoa sai da conta. Fica só na
+// memória (não vai para o aparelho: é dado de outras pessoas).
+export const fetchFriendIds = (userId: string): Promise<string[]> => fetchMyFriendIds(userId);
 
 export function useFriendActivity(userId: string | undefined, titles: TitleLike[]): FriendActivity {
   const [activity, setActivity] = useState<FriendActivity>({});

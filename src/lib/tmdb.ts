@@ -1,6 +1,7 @@
 import { useDebounce } from 'use-debounce';
 import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from './cache';
+import { Q, fetchCached } from './data';
 import i18n from '../i18n';
 
 // Secure proxy endpoint
@@ -208,23 +209,17 @@ export const findByImdbId = async (imdbId: string): Promise<{ id: number; media_
 };
 
 // 18/11/2026 (otimização): as listas da Home (Popular agora, Em breve,
-// Melhores do ano) ficam guardadas na memória da aba por 30 min. Antes,
-// cada volta à Home pedia tudo de novo ao tmdb-proxy (7 pedidos, medido na
-// prévia de rede), embora o proxy guarde as mesmas listas por 6 a 12 h.
-// Pedidos simultâneos esperam o mesmo; erro não fica guardado; quem recebe
-// leva uma cópia da lista (pode recortar ou ordenar sem mexer na guardada).
-const LIST_TTL_MS = 30 * 60 * 1000;
-const listMemo = new Map<string, { at: number; list: Promise<Movie[]> }>();
+// Melhores do ano) ficam guardadas. Antes, cada volta à Home pedia tudo de
+// novo ao tmdb-proxy (7 pedidos, medido na prévia de rede), embora o proxy
+// guarde as mesmas listas por 6 a 12 h.
+// Reborn, onda 2a: o guarda deixou de ser um Map deste arquivo (30 min, só na
+// aba) e passou para a camada de dados (src/lib/data, chave ['tmdb','list',
+// nome, idioma]): vale 3 h e fica no aparelho, então reabrir o app dentro do
+// prazo não vai ao tmdb-proxy (4 pedidos a menos por abertura, medido). Como
+// antes: pedidos simultâneos esperam o mesmo, erro não fica guardado, e quem
+// recebe leva uma cópia da lista (pode recortar ou ordenar sem mexer na guardada).
 function memoList(name: string, load: () => Promise<Movie[]>): Promise<Movie[]> {
-  const key = `${name}|${getCurrentLanguage()}`;
-  const hit = listMemo.get(key);
-  if (hit && Date.now() - hit.at < LIST_TTL_MS) return hit.list.then((movies) => movies.slice());
-  const list = load();
-  listMemo.set(key, { at: Date.now(), list });
-  list.catch(() => {
-    if (listMemo.get(key)?.list === list) listMemo.delete(key);
-  });
-  return list.then((movies) => movies.slice());
+  return fetchCached(Q.tmdbList(name, getCurrentLanguage()), load).then((movies) => movies.slice());
 }
 
 export const getTrending = (): Promise<Movie[]> =>
