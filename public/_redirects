@@ -1,1 +1,7 @@
+# 18/11/2026 (otimização): um arquivo de /static que não existe (nome antigo,
+# depois de um deploy) responde 404 em vez do index.html — senão o navegador
+# guardaria o index.html com o cache imutável de /static (public/_headers) e o
+# site não conseguiria se recuperar recarregando. O Netlify só aplica estas
+# regras quando o arquivo não existe.
+/static/*  /404.html  404
 /* /index.html 200
