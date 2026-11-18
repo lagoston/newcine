@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Library as LibraryIcon, Eye, Users, User, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { refreshMyProfile, useMyProfile } from '../lib/data';
 import { PAPER, MIST, ORACLES, FOCUS_RING } from '../lib/oracleTheme';
 import { Movie } from '../lib/tmdb';
 import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
@@ -66,7 +66,6 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
   const location = useLocation();
   const { user } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const typing = useTypingOnTouch();
   const path = location.pathname;
   const onProfile = path === '/profile';
@@ -78,23 +77,18 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
     return () => html.classList.remove('has-mobile-dock');
   }, []);
 
-  // Foto do perfil na aba Perfil (de novo ao voltar do Perfil, onde ela
-  // pode ter mudado).
+  // Foto do perfil na aba Perfil. 18/11/2026 (Reborn, onda 2a): vem da leitura
+  // única do próprio perfil (src/lib/data). Antes esta barra lia a foto a cada
+  // entrada e saída do Perfil (4 leituras numa sessão de 6 telas, medido).
+  // Ao SAIR do Perfil, onde a foto pode ter mudado, o perfil é lido de novo —
+  // isto sai quando o Perfil avisar 'profile:updated' ao salvar (2b).
+  const { data: me } = useMyProfile();
+  const avatarUrl = user?.id ? (me?.avatar_url ?? null) : null;
+  const wasOnProfile = useRef(onProfile);
   useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    supabase
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setAvatarUrl((data as { avatar_url: string | null } | null)?.avatar_url ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, onProfile]);
+    if (wasOnProfile.current && !onProfile) void refreshMyProfile();
+    wasOnProfile.current = onProfile;
+  }, [onProfile]);
 
   // Trocou de página: a busca fecha.
   useEffect(() => {
