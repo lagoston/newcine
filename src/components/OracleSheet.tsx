@@ -138,6 +138,8 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   const { t } = useTranslation();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  // A raiz do diálogo (para o Esc saber se esta gaveta é a de cima).
+  const rootRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -270,19 +272,40 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
     };
   }, [open]);
 
+  // 18/11/2026 (otimização, modais F3): o Esc (e o voltar do Android, que o
+  // nativeShell transforma em Esc) fecha só a camada de cima. Antes, toda
+  // gaveta aberta fechava junto se o pai não desligasse escapeEnabled — e o
+  // pai nem sempre sabe que o neto abriu algo (Listas de outro perfil →
+  // pôster → menu do título: um voltar fechava as duas, medido 2 → 0). Os
+  // diálogos entram no <body> na ordem em que abrem (portais), então a de cima
+  // é a última [aria-modal="true"] do documento; esta gaveta só responde se
+  // for ela. escapeEnabled continua valendo como antes.
   useEffect(() => {
     if (!open || !escapeEnabled) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      const root = rootRef.current;
+      const modals = document.querySelectorAll('[aria-modal="true"]');
+      const top = modals[modals.length - 1];
+      if (root && top && top !== root) return;
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, escapeEnabled, onClose]);
 
+  // A gaveta que está saindo (a animação leva ~0,3 s) deixa de contar como
+  // diálogo aberto: sem isso, dois voltar seguidos e rápidos perdiam o
+  // segundo (a de baixo achava que a que sai ainda estava por cima). Reabrir
+  // no meio da saída devolve o aria-modal.
+  useEffect(() => {
+    rootRef.current?.setAttribute('aria-modal', open ? 'true' : 'false');
+  }, [open]);
+
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div ref={rootRef} className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             className="absolute inset-0 bg-black/75"
             initial={{ opacity: 0 }}
