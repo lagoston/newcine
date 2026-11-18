@@ -12,6 +12,7 @@ import { FURNITURE, LEVEL_AT, LETTERS, MAX_LEVEL, PET_GOAL, levelText, worldStat
 import { ORACLE_TAGS, PROGRESSION_TAGS } from '../../lib/tags';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL } from '../../lib/oracleTheme';
 import PersonasModal from '../PersonasModal';
+import { LayerScope, useLayerEntry } from '../../overlays';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
 import { drawLarva, drawMoth, drawRoom, GOLD, mothSpec, NO_IMAGES, paintFrame, RH, RW, studioItemArt, studioItemRect, studioSpots, type MothSpec } from './draw';
 import { MOOD_ITEMS, MOOD_ITEM_GOAL, hasMoodItem, type MoodItem, type MoodItemId } from './moodItems';
@@ -554,23 +555,20 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     dialogRef.current?.focus();
     return () => {
-      document.body.style.overflow = previousOverflow;
       before?.focus?.();
     };
   }, []);
+  // 18/11/2026 (Protocolo Reborn, onda 2a): o guia entra na pilha de camadas do
+  // app (src/overlays). A trava de rolagem e o Esc saíram daqui: o Esc e o
+  // voltar fecham a camada de cima (a ficha de uma personalidade, se estiver
+  // aberta, e só depois o livro). O 9996 virou o piso do z-index.
+  const layer = useLayerEntry(true, onClose, { z: 9996 });
   useEffect(() => {
     // com a ficha de uma personalidade aberta por cima, o teclado é dela
     if (personaCode) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        onClose();
-        return;
-      }
       const next = event.key === 'ArrowRight' || event.key === 'PageDown';
       const previous = event.key === 'ArrowLeft' || event.key === 'PageUp';
       if (!next && !previous && event.key !== 'Home' && event.key !== 'End') return;
@@ -580,7 +578,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, page, onClose, personaCode, last]);
+  }, [go, page, personaCode, last]);
 
   // ---- o toque: metade direita avança, metade esquerda volta; arrastar também ----
   const drag = useRef<{ x: number; y: number } | null>(null);
@@ -1106,14 +1104,16 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   };
 
   return createPortal(
+    <LayerScope layer={layer}>
     <div
       ref={dialogRef}
+      {...layer.rootProps}
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={g('dialogAria')}
       className="fixed inset-0 z-[9996] flex flex-col items-center outline-none"
-      style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(46,30,84,0.92), rgba(8,5,18,0.96) 70%)' }}
+      style={{ ...layer.style, background: 'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(46,30,84,0.92), rgba(8,5,18,0.96) 70%)' }}
     >
       <motion.div className="flex h-full w-full flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}
         onPointerDownCapture={(event) => {
@@ -1235,7 +1235,8 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
           }}
         />
       )}
-    </div>,
+    </div>
+    </LayerScope>,
     document.body,
   );
 };

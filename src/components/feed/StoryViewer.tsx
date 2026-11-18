@@ -26,6 +26,7 @@ import {
 } from '../../lib/friendsFeed';
 import StoryRing from './StoryRing';
 import { AchievementBackdrop, AchievementCard } from './AchievementStory';
+import { LayerScope, useLayerEntry } from '../../overlays';
 import { JackpotBackdrop, JackpotCard } from './JackpotStory';
 
 // "Stories automáticos" do Feed dos Amigos: ocupa a tela, monta um cartão
@@ -273,33 +274,39 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const onVisibility = () => setHidden(document.hidden);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      document.body.style.overflow = overflow;
       document.removeEventListener('visibilitychange', onVisibility);
       previous?.focus?.();
     };
   }, []);
 
+  // 18/11/2026 (Protocolo Reborn, onda 2a): o story entra na pilha de camadas
+  // do app (src/overlays). A trava de rolagem e o Esc saíram daqui; a ordem do
+  // Esc é a de sempre (o campo, depois a gaveta de comentários, depois fechar)
+  // e agora vale também para o voltar do navegador. O 10020 virou o piso do z.
+  const layer = useLayerEntry(
+    true,
+    () => {
+      const focused = document.activeElement;
+      if (focused instanceof HTMLInputElement) return focused.blur();
+      if (drawerOpen) return setDrawerOpen(false);
+      return onClose();
+    },
+    { z: 10020 },
+  );
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const inField = (e.target as HTMLElement | null)?.tagName === 'INPUT';
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (inField) return inputRef.current?.blur();
-        if (drawerOpen) return setDrawerOpen(false);
-        return onClose();
-      }
       if (inField) return;
       if (e.key === 'ArrowRight') next();
       if (e.key === 'ArrowLeft') prev();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev, onClose, drawerOpen]);
+  }, [next, prev]);
 
   // toque: rápido = navegar; segurar = pausa; arrastar para baixo = fechar
   const onPointerDown = (e: React.PointerEvent) => {
@@ -432,7 +439,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
     );
 
   return createPortal(
-    <div className="fixed inset-0 z-[10020] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={t('feed.storyOf', { username: story.owner.username })}>
+    <LayerScope layer={layer}>
+    <div {...layer.rootProps} className="fixed inset-0 z-[10020] flex items-center justify-center" style={layer.style} role="dialog" aria-modal="true" aria-label={t('feed.storyOf', { username: story.owner.username })}>
       {/* fundo: a obra borrada, escurecida */}
       <div className="absolute inset-0" style={{ background: NIGHT }} onClick={onClose} aria-hidden>
         {ambient && (
@@ -864,7 +872,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
           </AnimatePresence>
         </motion.div>
       </AnimatePresence>
-    </div>,
+    </div>
+    </LayerScope>,
     document.body,
   );
 };
