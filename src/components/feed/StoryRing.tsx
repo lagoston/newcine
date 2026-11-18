@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { NIGHT, PAPER, PIXEL } from '../../lib/oracleTheme';
 
 // Avatar com o anel dos stories. Um gomo por story do amigo (como no
@@ -30,12 +30,42 @@ interface StoryRingProps {
 
 const storyRingOuter =(size: number, ringWidth = 3, gap = 3) => size + (ringWidth + gap) * 2;
 
+// 18/11/2026 (otimização): o anel só anima quando está na tela. Na fileira da
+// home metade dos anéis fica fora da vista (rolagem de lado) e todos seguiam
+// animando com a home rolada. Um observador só para todos os anéis; ao voltar
+// para a tela o anel chama de novo (as animações são finitas, ver feed.css).
+const ringWatchers = new Map<Element, (inView: boolean) => void>();
+let ringObserver: IntersectionObserver | null = null;
+function watchRing(el: Element, onChange: (inView: boolean) => void): () => void {
+  if (typeof IntersectionObserver === 'undefined') return () => undefined;
+  if (!ringObserver) {
+    ringObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => ringWatchers.get(entry.target)?.(entry.isIntersecting));
+    });
+  }
+  ringWatchers.set(el, onChange);
+  ringObserver.observe(el);
+  return () => {
+    ringWatchers.delete(el);
+    ringObserver?.unobserve(el);
+  };
+}
+
 const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, username, ringWidth = 3, gap = 3, still = false, gold }) => {
   const gradientId = `story-ring-${useId().replace(/:/g, '')}`;
   const goldId = `${gradientId}-gold`;
   const outer = storyRingOuter(size, ringWidth, gap);
   const anyUnseen = segments.some(Boolean);
-  const animate = anyUnseen && !still;
+  const wantsMotion = anyUnseen && !still;
+  const rootRef = useRef<HTMLSpanElement>(null);
+  // começa "na tela" (o observador corrige no primeiro aviso): sem piscar o halo ao abrir
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!wantsMotion || !el) return;
+    return watchRing(el, setInView);
+  }, [wantsMotion]);
+  const animate = wantsMotion && inView;
   const center = outer / 2;
   const radius = center - ringWidth / 2;
   const circumference = 2 * Math.PI * radius;
@@ -47,7 +77,7 @@ const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, userna
   const seenWidth = Math.max(1.5, ringWidth - 1);
 
   return (
-    <span className="relative inline-grid place-items-center shrink-0" style={{ width: outer, height: outer }}>
+    <span ref={rootRef} className="relative inline-grid place-items-center shrink-0" style={{ width: outer, height: outer }}>
       {animate && (
         <span
           aria-hidden

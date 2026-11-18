@@ -32,18 +32,30 @@
   100% { transform: translate(-50%, -70%) scale(1.06); opacity: 0; }
 }
 
+/* 18/11/2026 (otimização): o anel girava, respirava e soltava pólen para
+   sempre — 5 animações por amigo, metade fora da tela na fileira, custando
+   ~130 ms de CPU por segundo na home parada (medido). Agora cada anel chama
+   por ~40 s (3 voltas) ao aparecer na tela e descansa (o StoryRing só anima
+   os que estão visíveis). No fim: giro em 360° = parado; halo e pólen ficam
+   no último quadro (forwards), sem salto. */
 .co-ring-spin {
-  animation: co-ring-spin 14s linear infinite;
+  animation: co-ring-spin 14s linear 3;
   transform-origin: 50% 50%;
 }
 
 .co-ring-bloom {
-  animation: co-ring-bloom 3.4s ease-in-out infinite;
+  animation: co-ring-bloom 3.4s ease-in-out 12 forwards;
 }
 
 .co-pollen-orbit {
-  animation: co-ring-spin 9s linear infinite reverse;
+  animation: co-ring-spin 9s linear 5 reverse;
   transform-origin: 50% 50%;
+}
+
+/* só o pólen do anel (o dos cartões de conquista continua como era) */
+.co-pollen-orbit .co-pollen {
+  animation-iteration-count: 14;
+  animation-fill-mode: forwards;
 }
 
 .co-pollen {
