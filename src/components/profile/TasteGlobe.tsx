@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useReducedMotion, motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { geoOrthographic, geoPath, geoGraticule10, geoContains, geoCentroid, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { ArrowUpRight, Globe2 } from 'lucide-react';
 import { PAPER, MIST, PIXEL, FOCUS_RING, glassPanel } from '../../lib/oracleTheme';
 import { ModuleTitle, affinityColor, formatOne } from './observatoryKit';
+import { useCalm } from '../../lib/motion';
 
 // O atlas do perfil como um globo que gira devagar (12/10/2026). Cada país
 // acende mais quanto mais títulos de lá a pessoa avaliou (a mesma rampa
@@ -38,6 +39,14 @@ const AUTO_SPEED = 0.006; // graus por ms
 // 18/11/2026 (otimização): quanto dura o giro sozinho, ao entrar na tela e
 // depois de cada toque (antes girava para sempre).
 const AUTO_MS = 8000;
+// 18/11/2026 (Reborn, onda 2): o giro freia no último trecho (antes parava
+// seco) e é um giro DE CHEGADA: começa "antes" e termina olhando para o país
+// com mais títulos. Na onda 1 ele partia desse país e andava 48° para o lado:
+// o globo descansava mostrando o oceano, com o país principal espremido na
+// borda (visto nas capturas). ARRIVAL_DEG é quanto o globo anda num giro
+// inteiro (velocidade cheia + a freada).
+const AUTO_EASE_MS = 1500;
+const ARRIVAL_DEG = AUTO_SPEED * (AUTO_MS - AUTO_EASE_MS / 2);
 const LIST_SIZE = 6;
 
 const fillFor = (count: number, max: number) => {
@@ -79,7 +88,9 @@ const flagOf = (code: string) =>
 
 const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRatings, overallAvg = null, language, onViewMovies }) => {
   const { t } = useTranslation();
-  const reduceMotion = useReducedMotion();
+  // 18/11/2026 (Reborn): "menos movimento" = o sistema pediu OU o modo economia
+  // está ligado (lib/motion.ts). Com ele o globo não gira sozinho.
+  const reduceMotion = useCalm();
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [features, setFeatures] = useState<Feature[] | null>(null);
@@ -96,8 +107,24 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
   const resumeTimer = useRef<number | undefined>(undefined);
   // começa fora: o observador avisa a entrada (e com ela começa o giro)
   const visible = useRef(false);
+  // 18/11/2026 (Reborn): a pose de descanso (o país com mais títulos em cena)
+  const homePose = useRef<[number, number] | null>(null);
+  const calmRef = useRef(false);
+  calmRef.current = Boolean(reduceMotion);
+  const selectedRef = useRef<string | null>(null);
+  selectedRef.current = selected;
   const gesture = useRef({ active: false, dragging: false, x: 0, y: 0, rot: [0, 0] as [number, number], pointerId: 0 });
   const drawRef = useRef<() => void>(() => undefined);
+  // O giro de chegada: volta ARRIVAL_DEG "para trás" e gira por AUTO_MS, para
+  // parar na pose de descanso. Com um país escolhido ou o dedo no globo, só
+  // gira de onde está. Com "menos movimento", nada: fica na pose de descanso.
+  const arrive = useCallback(() => {
+    if (calmRef.current) return;
+    const home = homePose.current;
+    if (home && !selectedRef.current && !gesture.current.active) rotation.current = [home[0] - ARRIVAL_DEG, home[1]];
+    autoUntil.current = performance.now() + AUTO_MS;
+    kickRef.current();
+  }, []);
 
   const regionNames = useMemo(() => {
     try {
@@ -150,7 +177,10 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
       const top = ranking[0] && list.find((f) => f.id === ranking[0].code);
       if (top) {
         const [lon, lat] = geoCentroid(top as unknown as GeoPermissibleObjects);
-        rotation.current = [-lon + 25, Math.max(-35, Math.min(35, -lat))];
+        homePose.current = [-lon + 25, Math.max(-35, Math.min(35, -lat))];
+        rotation.current = [homePose.current[0], homePose.current[1]];
+        // já está na tela (o mapa chegou depois): começa o giro de chegada daqui
+        if (visible.current) arrive();
       }
     });
     return () => {
@@ -171,10 +201,8 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
       const entering = entry.isIntersecting && !visible.current;
       visible.current = entry.isIntersecting;
       // 18/11/2026 (otimização): entrou na tela: gira por AUTO_MS e para
-      if (entering) {
-        autoUntil.current = performance.now() + AUTO_MS;
-        kickRef.current();
-      }
+      // (onda 2: o giro de chegada, que termina no país com mais títulos)
+      if (entering) arrive();
     });
     io.observe(el);
     return () => {
@@ -182,7 +210,7 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
       io.disconnect();
       window.clearTimeout(resumeTimer.current);
     };
-  }, []);
+  }, [arrive]);
 
   // Desenho.
   useEffect(() => {
@@ -282,13 +310,16 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
         if (k >= 1) anim.current = null;
         draw();
       } else if (!reduceMotion && visible.current && !document.hidden && !gesture.current.dragging && !selected && now > idleUntil.current && now < autoUntil.current) {
-        rotation.current = [rotation.current[0] + AUTO_SPEED * dt, rotation.current[1]];
+        // freia no último trecho (AUTO_EASE_MS) em vez de parar seco
+        const speed = AUTO_SPEED * Math.min(1, (autoUntil.current - now) / AUTO_EASE_MS);
+        rotation.current = [rotation.current[0] + speed * dt, rotation.current[1]];
         if (now - lastAuto >= 33) {
           lastAuto = now;
           draw();
         }
       } else {
-        // nada para animar: o laço para aqui
+        // nada para animar: o laço para aqui (com o último quadro desenhado)
+        if (last && lastAuto) draw();
         last = 0;
         return;
       }
