@@ -62,6 +62,27 @@ function OracleRedirect() {
   return <Navigate to="/" replace state={location.state} />;
 }
 
+// 18/11/2026 (otimização, modais F1): cada modal trava a rolagem salvando e
+// devolvendo o valor anterior de body.style.overflow. Com dois abertos (Ver
+// todos + menu do título) e a página saindo (voltar, bolha do amigo), o React
+// limpa de pai para filho e o de cima devolve 'hidden' por último: a página
+// seguinte nascia sem rolar (medido: 0 px contra 700 px). Depois de cada troca
+// de página, sem nenhum diálogo na tela, a trava sai. O Acervo (.ac-layer) e
+// as folhas do pôquer (.pp-layer) travam de propósito e ficam de fora.
+function ScrollLockJanitor() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      // espera as animações de saída (as gavetas levam ~0,3 s para sair)
+      if (document.querySelector('[aria-modal="true"], .ac-layer, .pp-layer')) return;
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }, 450);
+    return () => window.clearTimeout(id);
+  }, [pathname]);
+  return null;
+}
+
 
 
 function App() {
@@ -101,6 +122,7 @@ function App() {
             <SeasonalBackdrop />
             <Navbar />
             <WhispersNotificationPopup />
+            <ScrollLockJanitor />
             {/* Fichas voadoras (02/11/2026): a ficha do Poster Jackpot que às vezes
                 atravessa a tela — rara, no máximo uma por dia (o banco decide). */}
             <Suspense fallback={null}>
