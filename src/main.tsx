@@ -1,17 +1,33 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { initI18n } from './i18n';
 import { IS_NATIVE_APP } from './lib/platform';
 import { captureInviteFromUrl } from './lib/invite';
 
 // Link de convite (?convite=código): guarda o código antes de qualquer tela.
 captureInviteFromUrl();
 
-// Create root and render without StrictMode to avoid double renders
-createRoot(document.getElementById('root')!).render(<App />);
+// 18/11/2026 (otimização): idiomas sob demanda — só o da pessoa é baixado
+// (antes os dois iam no pacote principal, ≈335 KB). Os import() ficam aqui, na
+// entrada, para o nome com hash do idioma não "contaminar" o código comum (ver
+// o comentário em i18n.ts).
+const i18nReady = initI18n({
+  pt: () => import('./locales/pt.json'),
+  en: () => import('./locales/en.json'),
+});
 
-// Dentro do app nativo (Android/iOS): barras do sistema, botão voltar e a
-// tela de abertura. O site não baixa esse pedaço.
-if (IS_NATIVE_APP) {
-  import('./lib/nativeShell').then(({ setupNativeShell }) => setupNativeShell());
-}
+// Desenha depois que o idioma chegou (no app vem de dentro do APK; no site o
+// index.html já começou a baixá-lo). Se der erro, desenha mesmo assim.
+// Create root and render without StrictMode to avoid double renders
+const root = createRoot(document.getElementById('root')!);
+i18nReady.finally(() => {
+  root.render(<App />);
+
+  // Dentro do app nativo (Android/iOS): barras do sistema, botão voltar e a
+  // tela de abertura (sai depois deste primeiro desenho). O site não baixa
+  // esse pedaço.
+  if (IS_NATIVE_APP) {
+    import('./lib/nativeShell').then(({ setupNativeShell }) => setupNativeShell());
+  }
+});

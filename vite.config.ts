@@ -2,9 +2,38 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// 18/11/2026 (otimização): o idioma da pessoa começa a baixar junto com o resto
+// da abertura, sem esperar o JavaScript principal rodar. Um <link
+// rel="modulepreload"> escolhido no próprio HTML com a mesma regra do i18n.ts
+// (localStorage, senão o idioma do aparelho). Sem isto o idioma sob demanda
+// ficava em série depois do JS principal e a abertura não ganhava nada (medido).
+function preloadLocale() {
+  return {
+    name: 'preload-locale',
+    enforce: 'post' as const,
+    transformIndexHtml: {
+      order: 'post' as const,
+      handler(html: string, ctx: { bundle?: Record<string, { type: string; facadeModuleId?: string | null; fileName: string }> }) {
+        if (!ctx.bundle) return html; // servidor de desenvolvimento: nada a fazer
+        const files: Record<string, string> = {};
+        for (const out of Object.values(ctx.bundle)) {
+          const m = out.type === 'chunk' && out.facadeModuleId?.match(/locales\/(pt|en)\.json$/);
+          if (m) files[m[1]] = '/' + out.fileName;
+        }
+        if (!files.pt || !files.en) return html;
+        const script = `<script>(function(){var l='';try{l=localStorage.getItem('i18nextLng')||''}catch(e){}l=l||navigator.language||'';var k=document.createElement('link');k.rel='modulepreload';k.crossOrigin='';k.href=/^pt/i.test(l)?'${files.pt}':'${files.en}';document.head.appendChild(k)})()</script>`;
+        // Logo no começo do <head>: um script inline depois de uma folha de
+        // estilo externa (as fontes) esperaria por ela.
+        return html.replace(/<head>/i, '<head>\n    ' + script);
+      },
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    preloadLocale(),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'brand/*.svg'],
@@ -86,6 +115,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  // 18/11/2026 (otimização): os JSON (os idiomas) viram JSON.parse('…'), que o
+  // navegador interpreta mais rápido que um objeto literal do mesmo tamanho.
+  json: { stringify: true },
   build: {
     rollupOptions: {
       output: {
