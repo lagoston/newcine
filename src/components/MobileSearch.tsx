@@ -497,10 +497,11 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
             transition={{ duration: 0.2 }}
             // 18/11/2026 (otimização, bateria.md A4): sem o backdrop-blur-xl de tela
             // inteira — o desfoque era refeito a cada quadro com a Home animando por
-            // baixo (1.150 → ~540 ms de CPU por segundo com a busca aberta). O véu
-            // ficou um pouco mais escuro (0,82 → 0,9) para os resultados lerem igual.
+            // baixo (1.150 → ~540 ms de CPU por segundo com a busca aberta). Sem o
+            // desfoque, o véu ficou quase opaco (0,82 → 0,98): a Home por trás
+            // aparecia nítida atrás dos resultados; assim fica como antes.
             className="lg:hidden fixed inset-0 z-[90]"
-            style={{ background: 'rgba(12, 8, 24, 0.9)', touchAction: 'none' }}
+            style={{ background: 'rgba(12, 8, 24, 0.98)', touchAction: 'none' }}
             aria-hidden
           />
 
