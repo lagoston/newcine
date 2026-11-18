@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { X, Loader2, GripVertical, ArrowUpDown } from 'lucide-react';
@@ -104,6 +104,8 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
   // um alvo que também está se movendo por causa da própria reordenação.
   const orderAtDragStartRef = useRef<Movie[]>([]);
   const lastSwapTargetRef = useRef<number | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (isOpen) setReorderedMovies(movies);
@@ -117,6 +119,23 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
       return () => { document.body.style.overflow = originalOverflow; };
     }
   }, [isOpen]);
+
+  // 18/11/2026 (otimização, modais F6): sem role="dialog" o voltar do Android
+  // (nativeShell) não via esta janela e trocava de página com a nova ordem por
+  // salvar. Agora é diálogo e fecha no Esc (= voltar), só se for a camada de
+  // cima e fora do salvamento.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || saving) return;
+      const modals = document.querySelectorAll('[aria-modal="true"]');
+      const top = modals[modals.length - 1];
+      if (rootRef.current && top && top !== rootRef.current) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, saving, onClose]);
 
   const registerRef = useCallback((id: number, el: HTMLDivElement | null) => {
     if (el) itemRefs.current.set(id, el);
@@ -182,7 +201,7 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div ref={rootRef} className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -200,7 +219,7 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
             <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative flex-shrink-0 flex items-center justify-between p-5 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+              <h2 id={titleId} className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30">
                   <ArrowUpDown className="w-5 h-5 text-blue-500" />
                 </div>

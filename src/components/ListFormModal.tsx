@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Loader2, Star, Film, ListPlus, Check } from 'lucide-react';
@@ -43,6 +43,8 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allLibraryMovies, setAllLibraryMovies] = useState<Movie[]>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (isOpen) {
@@ -61,6 +63,23 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
       return () => { document.body.style.overflow = originalOverflow; };
     }
   }, [isOpen]);
+
+  // 18/11/2026 (otimização, modais F6): o formulário não era diálogo para o
+  // app — sem role="dialog" o voltar do Android (nativeShell) não o via e
+  // trocava de página, perdendo a lista sendo criada/editada. Agora é diálogo
+  // e fecha no Esc (= voltar), só se for a camada de cima e fora do salvamento.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || saving) return;
+      const modals = document.querySelectorAll('[aria-modal="true"]');
+      const top = modals[modals.length - 1];
+      if (rootRef.current && top && top !== rootRef.current) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, saving, onClose]);
 
   const fetchUserMovies = async () => {
     try {
@@ -210,7 +229,7 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div ref={rootRef} className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -228,7 +247,7 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
             <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+              <h2 id={titleId} className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30">
                   <ListPlus className="w-5 h-5 text-blue-500" />
                 </div>
