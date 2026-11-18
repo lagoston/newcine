@@ -9,6 +9,7 @@ import OracleSheet from './OracleSheet';
 import { LANGUAGES } from '../lib/languages';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 import { invalidateConnections } from '../lib/connection';
+import { setEcoSetting, useMotion, type EcoSetting } from '../lib/motion';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [dangerOpen, setDangerOpen] = useState(false);
+  // Modo economia (18/11/2026, Reborn): a escolha fica neste aparelho (lib/motion.ts).
+  const motion = useMotion();
   const feedbackId = useId();
   const deleteInputId = useId();
 
@@ -265,6 +268,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { value: 'friends_only', icon: Users, label: t('settings.friendsOnly'), desc: t('settings.friendsOnlyDescription') },
   ];
 
+  const ecoOptions: { value: EcoSetting; label: string }[] = [
+    { value: 'auto', label: t('settings.ecoAuto') },
+    { value: 'on', label: t('settings.ecoOn') },
+    { value: 'off', label: t('settings.ecoOff') },
+  ];
+  // a linha de baixo diz o que a escolha faz e, no automático, se está valendo agora
+  const ecoHint =
+    motion.ecoSetting === 'on'
+      ? t('settings.ecoOnHint')
+      : motion.ecoSetting === 'off'
+        ? t('settings.ecoOffHint')
+        : motion.eco
+          ? t('settings.ecoAutoActive', { reason: t(`settings.ecoReason.${motion.ecoReason}`) })
+          : t('settings.ecoAutoIdle');
+
   return (
     <OracleSheet
       open={isOpen}
@@ -412,6 +430,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             );
           })}
         </div>
+      </section>
+
+      {/* Modo economia (18/11/2026, Reborn): menos animação de enfeite, menos bateria. */}
+      <section>
+        {sectionTitle(t('settings.ecoTitle'))}
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+          {t('settings.ecoDescription')}
+        </p>
+        <div role="radiogroup" aria-label={t('settings.ecoTitle')} className="mt-3 grid grid-cols-3 gap-2.5">
+          {ecoOptions.map(({ value, label }) => {
+            const selected = motion.ecoSetting === value;
+            return (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={selected}
+                data-eco-option={value}
+                onClick={() => setEcoSetting(value)}
+                className={`w-full justify-center h-12 px-2 rounded-xl text-center text-sm font-semibold ring-1 transition ${FOCUS_RING} ${
+                  selected ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+                }`}
+                style={{ background: selected ? undefined : VELVET, color: PAPER }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2.5 text-xs leading-snug" style={{ color: MIST }} aria-live="polite" data-eco-hint>
+          {ecoHint}
+        </p>
       </section>
 
       {/* Suporte */}
