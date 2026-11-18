@@ -25,6 +25,7 @@ import {
   claimMission,
   equipPoster,
   fetchJackpotCatalog,
+  peekJackpotCatalog,
   getContractBoard,
   loadJackpotFont,
   loadMyPosters,
@@ -72,12 +73,12 @@ const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
 const ARCH_BULBS = 17;
 const BASE_BULBS = 13;
 
-// 04/11/2026 (piscada ao voltar para a Roleta): o catálogo já buscado nesta
-// visita. A busca fica guardada em lib/posterJackpot, mas como promessa: a
-// Roleta remontada abria um quadro com o "carregando" (e a janela da fita
-// 20 px mais baixa) antes da fita, a cada troca de aba. Com o catálogo à mão,
-// a fita já sai no primeiro quadro.
-let catalogMemo: CatalogPoster[] | null = null;
+// 04/11/2026 (piscada ao voltar para a Roleta): a Roleta remontada abria um
+// quadro com o "carregando" (e a janela da fita 20 px mais baixa) antes da
+// fita, a cada troca de aba. Com o catálogo à mão, a fita já sai no primeiro
+// quadro. 18/11/2026 (Reborn, onda 2a): o "à mão" era uma cópia guardada neste
+// arquivo (catalogMemo); agora é a leitura na hora da camada de dados
+// (peekJackpotCatalog), a mesma consulta que fetchJackpotCatalog alimenta.
 
 const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
@@ -183,7 +184,7 @@ const Machine: React.FC<{
   const isPt = i18n.language.startsWith('pt');
   const reduceMotion = !!useReducedMotion();
   const reelRef = useRef<JackpotReelHandle>(null);
-  const [catalog, setCatalog] = useState<CatalogPoster[] | null>(() => catalogMemo);
+  const [catalog, setCatalog] = useState<CatalogPoster[] | null>(() => peekJackpotCatalog());
   // A ficha escolhida no porta-fichas.
   const [kind, setKind] = useState<ChipKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
   // Um giro com o bônus do Giro da Sorte em andamento (do toque em girar até
@@ -255,7 +256,6 @@ const Machine: React.FC<{
     let alive = true;
     fetchJackpotCatalog()
       .then((list) => {
-        catalogMemo = list;
         if (alive) setCatalog(list);
       })
       .catch((error) => {
