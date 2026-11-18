@@ -11,7 +11,9 @@
     "app:android": "cap open android",
     "app:ios": "cap open ios",
     "app:assets": "python3 scripts/brand/build-brand.py && npx @capacitor/assets@3.0.5 generate --android --ios --iconBackgroundColor '#120D22' --iconBackgroundColorDark '#120D22' --splashBackgroundColor '#120D22' --splashBackgroundColorDark '#120D22'",
-    "brand": "python3 scripts/brand/build-brand.py"
+    "brand": "python3 scripts/brand/build-brand.py",
+    "check:motion": "node scripts/check-motion.mjs",
+    "prebuild": "node scripts/check-motion.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
