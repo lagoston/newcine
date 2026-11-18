@@ -119,6 +119,7 @@ const EMPTY: PersonaWorld = {
   stored: [],
   turn: {},
   oracle: { bogart: 0, fincher: 0, cypher: 0 },
+  picks: {},
   pets: { frog: null, fox: null, snake: null },
 };
 

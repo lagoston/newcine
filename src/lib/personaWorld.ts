@@ -135,6 +135,10 @@ export interface PersonaWorld {
   preview?: boolean;
   // quantos títulos da curadoria de cada oráculo a pessoa avaliou
   oracle: { bogart: number; fincher: number; cypher: number };
+  // 17/11/2026 (noite): a recomendação que a pessoa escolheu em cada humor
+  // (letra → título), para o cartão dos móveis dos humores. Sem escolha, o
+  // cartão usa o mais bem avaliado da prateleira (best).
+  picks: Record<string, WorldTitle>;
   // os bichinhos: em que nota (a contagem de títulos avaliados) cada um
   // chegou, isto é, a 200ª da curadoria do oráculo dele (null = ainda não)
   pets: Record<PetId, number | null>;
@@ -248,6 +252,13 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
       if (MOOD_BY_LETTER[letter]) best[letter] = parseTitles(list);
     });
   }
+  const picks: Record<string, WorldTitle> = {};
+  if (raw.picks && typeof raw.picks === 'object') {
+    Object.entries(raw.picks as Row).forEach(([letter, title]) => {
+      const parsed = MOOD_BY_LETTER[letter] ? parseTitle(title) : null;
+      if (parsed) picks[letter] = parsed;
+    });
+  }
   const oracle = (raw.oracle && typeof raw.oracle === 'object' ? raw.oracle : {}) as Row;
   const pets = (raw.pets && typeof raw.pets === 'object' ? raw.pets : {}) as Row;
   const petAt = (value: unknown): number | null => (typeof value === 'number' && value > 0 ? value : null);
@@ -289,6 +300,7 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
     stored: parseStored(raw.layout),
     turn: parseTurn(raw.layout),
     oracle: { bogart: num(oracle.bogart), fincher: num(oracle.fincher), cypher: num(oracle.cypher) },
+    picks,
     pets: { frog: petAt(pets.frog), fox: petAt(pets.fox), snake: petAt(pets.snake) },
   };
 }
@@ -300,6 +312,28 @@ export async function savePersonaLayout(arrangement: StudioArrangement): Promise
   const { data, error } = await supabase.rpc('set_persona_studio_layout', { p_layout: { v: 2, at: arrangement.at, off: arrangement.off, rot: arrangement.rot } });
   if (error) throw error;
   return { at: parseLayout(data), off: parseStored(data), rot: parseTurn(data) };
+}
+
+// A recomendação de um humor (17/11/2026, noite). Pedido do Bruno: "Troque
+// 'Seu Favorito da Prateleira' por 'Sua Recomendação'. Adicione um botão para
+// o usuário escolher um título avaliado dessa prateleira."
+//   • fetchMyMoodTitles: os títulos que a pessoa avaliou numa prateleira, da
+//     maior nota para a menor (para escolher);
+//   • saveMoodPick: grava a escolha (o banco confere que o título é dela e da
+//     prateleira) e guarda aqui, para o cartão mostrar na hora, sem buscar o
+//     estúdio de novo (myMoodPick).
+export async function fetchMyMoodTitles(moodKey: string): Promise<WorldTitle[]> {
+  const { data, error } = await supabase.rpc('get_my_mood_titles', { p_mood: moodKey });
+  if (error) throw error;
+  return parseTitles(data);
+}
+const myPicks = new Map<string, WorldTitle>();
+export const myMoodPick = (letter: string): WorldTitle | null => myPicks.get(letter) ?? null;
+export async function saveMoodPick(moodKey: string, title: WorldTitle): Promise<void> {
+  const { error } = await supabase.rpc('set_persona_mood_pick', { p_mood: moodKey, p_media_type: title.type, p_tmdb_id: title.id });
+  if (error) throw error;
+  const mood = MOOD_BY_KEY[moodKey];
+  if (mood) myPicks.set(mood.letter, { ...title, letter: mood.letter });
 }
 
 // Conta Diretor (16/11/2026): "estúdio completo" na tela do diretor mostra, só

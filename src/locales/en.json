@@ -4125,7 +4125,7 @@
       "slot": "the Jackpot machine",
       "book": "the guide's bookcase",
       "table": "the poker table",
-      "terror": "the Terror Club box",
+      "terror": "the Terror Club portal",
       "archive": "the Archive box",
       "armchair": "the armchair",
       "popcorn": "the popcorn cart",
@@ -4205,8 +4205,8 @@
       "films": "titles from this shelf",
       "average": "your average",
       "averageOf": "{{name}}'s average",
-      "favorite": "Your favorite from this shelf",
-      "favoriteOf": "{{name}}'s favorite from this shelf",
+      "favorite": "Your recommendation",
+      "favoriteOf": "{{name}}'s recommendation",
       "rating": "rating",
       "openShelf": "See the {{mood}} shelf",
       "preview": "Director's full studio: the piece shows up before the tag, which takes {{goal}} titles from the shelf.",
@@ -4218,7 +4218,16 @@
         "loveseat": "The S-shaped sofa where two people sit face to face.",
         "fort": "The bedsheet fort of family movie night.",
         "fridge": "What's left after comedy night with friends."
-      }
+      },
+      "choose": "Choose",
+      "cancel": "Cancel",
+      "chooseAria": "Choose your {{mood}} recommendation",
+      "pickTitle": "Pick a title you rated in {{mood}}:",
+      "pickLoading": "Loading your titles",
+      "pickEmpty": "You haven't rated any title from this shelf yet.",
+      "pickError": "Couldn't load your titles. Close and try again.",
+      "saved": "Recommendation saved.",
+      "saveError": "Couldn't save the recommendation. Try again."
     }
   },
   "personaWorld": {
@@ -4361,8 +4370,8 @@
         "pokerWhat": "Leads to Poster Poker. It shows up for those who have poker unlocked.",
         "book": "This guide",
         "bookWhat": "It sits on top of the wooden bookcase.",
-        "terror": "The Terror Club box",
-        "terrorWhat": "A cardboard box with a portal inside. It arrives with the Deadly Sleeping tag and leads to the Terror Club.",
+        "terror": "The Terror Club portal",
+        "terrorWhat": "The portal burst out of its cardboard box and spins in the air. It arrives with the Deadly Sleeping tag and leads to the Terror Club.",
         "has": "Already in the studio",
         "missing": "Not in the studio yet",
         "more": "You can also tap: the screen and the moth (they open the Persona), the frames on the wall (the last 4 posters won in the Jackpot; they open the collection) and the shelves of cans (they lead to the Library; the only one that does not glow).",

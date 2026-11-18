@@ -1,10 +1,11 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, Film } from 'lucide-react';
+import { ArrowUpRight, Check, Film, Loader2, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 import OracleSheet from '../OracleSheet';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../../lib/moods';
-import { worldState, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
+import { fetchMyMoodTitles, myMoodPick, saveMoodPick, worldState, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
 import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { PROGRESSION_TAGS } from '../../lib/tags';
@@ -30,6 +31,14 @@ const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
 // @fulano"): vira uma indicação de amigo. O fim leva à prateleira no Acervo.
 // Tudo já vem com o estúdio (get_persona_world): a contagem e a soma das
 // notas de cada prateleira (worldState) e os mais bem avaliados (world.best).
+//
+// 17/11/2026 (noite), pedido do Bruno: "Troque 'Seu Favorito da Prateleira'
+// por 'Sua Recomendação'. Adicione um botão para o usuário escolher um título
+// avaliado dessa prateleira." O favorito virou a recomendação: a que a pessoa
+// escolheu (world.picks) ou, sem escolha, o mais bem avaliado. No próprio
+// estúdio, "Escolher" abre os títulos que ela avaliou naquela prateleira, do
+// mais bem avaliado para baixo; tocar num grava (saveMoodPick). Quem visita
+// vê "A recomendação de @fulano".
 
 interface Props {
   id: MoodItemId;
@@ -68,10 +77,49 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
 
   const films = st.films[item.letter] ?? 0;
   const average = films > 0 ? (st.score[item.letter] ?? 0) / films : null;
-  const favorite: WorldTitle | null = world.best[item.letter]?.[0] ?? null;
+  // a recomendação: a escolhida agora mesmo, a escolhida antes, ou o mais bem avaliado
+  const [chosen, setChosen] = useState<WorldTitle | null>(() => (isOwn ? myMoodPick(item.letter) : null));
+  const favorite: WorldTitle | null = chosen ?? world.picks[item.letter] ?? world.best[item.letter]?.[0] ?? null;
   const favoriteName = favorite ? (pt ? favorite.titlePt || favorite.titleEn : favorite.titleEn || favorite.titlePt) || t('personaWorld.untitled') : '';
   // o estúdio completo da Conta Diretor mostra o móvel antes da tag
   const previewOnly = Boolean(world.preview) && films < MOOD_ITEM_GOAL;
+
+  // escolher a recomendação (só no próprio estúdio): os títulos da prateleira
+  const [picking, setPicking] = useState(false);
+  const [options, setOptions] = useState<WorldTitle[] | null>(null);
+  const [optionsFailed, setOptionsFailed] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const keyOf = (title: WorldTitle) => `${title.type}:${title.id}`;
+  const nameOf = (title: WorldTitle) => (pt ? title.titlePt || title.titleEn : title.titleEn || title.titlePt) || t('personaWorld.untitled');
+  useEffect(() => {
+    if (!picking || options) return;
+    let alive = true;
+    setOptionsFailed(false);
+    fetchMyMoodTitles(mood.key)
+      .then((list) => alive && setOptions(list))
+      .catch((error) => {
+        console.error('Mood titles:', error);
+        if (alive) setOptionsFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [picking, options, mood.key]);
+  const choose = async (title: WorldTitle) => {
+    if (saving) return;
+    setSaving(keyOf(title));
+    try {
+      await saveMoodPick(mood.key, title);
+      setChosen({ ...title, letter: item.letter });
+      setPicking(false);
+      toast.success(t('studio.moodCard.saved'));
+    } catch (error) {
+      console.error('Mood pick:', error);
+      toast.error(t('studio.moodCard.saveError'));
+    } finally {
+      setSaving(null);
+    }
+  };
 
   // o favorito abre por cima do cartão
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -149,9 +197,24 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
 
           {favorite && (
             <div>
-              <p className="text-[12px] font-medium" style={{ color: MIST }}>
-                {isOwn ? t('studio.moodCard.favorite') : t('studio.moodCard.favoriteOf', { name })}
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-medium" style={{ color: MIST }}>
+                  {isOwn ? t('studio.moodCard.favorite') : t('studio.moodCard.favoriteOf', { name })}
+                </p>
+                {isOwn && films > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPicking((open) => !open)}
+                    aria-expanded={picking}
+                    aria-label={t('studio.moodCard.chooseAria', { mood: moodLabel })}
+                    className={`inline-flex items-center gap-1.5 h-9 min-h-0 px-3 rounded-full text-[13px] font-semibold transition hover:bg-white/[0.06] ${FOCUS_RING}`}
+                    style={{ color: mood.color, boxShadow: `inset 0 0 0 1px ${withMoodAlpha(mood, 0.45)}` }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" aria-hidden />
+                    {picking ? t('studio.moodCard.cancel') : t('studio.moodCard.choose')}
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={openFavorite}
@@ -181,6 +244,76 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
                   </span>
                 </span>
               </button>
+
+              {/* escolher: os títulos avaliados da prateleira, do mais bem avaliado para baixo */}
+              {picking && (
+                <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(0,0,0,0.28)', boxShadow: `inset 0 0 0 1px ${withMoodAlpha(mood, 0.3)}` }}>
+                  <p className="text-[13px] leading-snug" style={{ color: PAPER }}>
+                    {t('studio.moodCard.pickTitle', { mood: moodLabel })}
+                  </p>
+                  {optionsFailed ? (
+                    <p className="mt-2 text-xs" style={{ color: '#FCA5A5' }} role="status">
+                      {t('studio.moodCard.pickError')}
+                    </p>
+                  ) : !options ? (
+                    <div className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-2" aria-busy="true" aria-label={t('studio.moodCard.pickLoading')}>
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span key={i} className="block aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
+                      ))}
+                    </div>
+                  ) : options.length === 0 ? (
+                    <p className="mt-2 text-xs" style={{ color: MIST }}>
+                      {t('studio.moodCard.pickEmpty')}
+                    </p>
+                  ) : (
+                    <ul className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-[300px] overflow-y-auto pr-1">
+                      {options.map((title) => {
+                        const key = keyOf(title);
+                        const current = favorite && keyOf(favorite) === key;
+                        const tone = ratingTone(Math.round(title.rating));
+                        return (
+                          <li key={key} className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => choose(title)}
+                              disabled={Boolean(saving)}
+                              aria-pressed={Boolean(current)}
+                              aria-label={`${nameOf(title)}, ${fmtRating(title.rating)}`}
+                              title={nameOf(title)}
+                              className={`relative block w-full aspect-[2/3] min-h-0 overflow-hidden rounded-lg transition hover:brightness-110 disabled:opacity-60 ${FOCUS_RING}`}
+                              style={{ background: VELVET, boxShadow: current ? `0 0 0 2px ${mood.color}` : 'inset 0 0 0 1px rgba(255,255,255,0.1)' }}
+                            >
+                              {title.poster ? (
+                                <img src={`https://image.tmdb.org/t/p/w185${title.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                              ) : (
+                                <span className="absolute inset-0 grid place-items-center px-1 text-center text-[10px] leading-tight" style={{ color: MIST }}>
+                                  {nameOf(title)}
+                                </span>
+                              )}
+                              <span
+                                className="absolute bottom-1 right-1 h-5 min-w-[20px] px-1 grid place-items-center rounded-md text-[12px] leading-none"
+                                style={{ ...PIXEL, background: 'rgba(18,13,34,0.86)', color: tone.color, boxShadow: `inset 0 0 0 1px ${tone.ring}` }}
+                              >
+                                {fmtRating(title.rating)}
+                              </span>
+                              {current && (
+                                <span className="absolute top-1 left-1 grid h-5 w-5 place-items-center rounded-full" style={{ background: mood.color, color: '#120D22' }}>
+                                  <Check className="w-3.5 h-3.5" aria-hidden />
+                                </span>
+                              )}
+                              {saving === key && (
+                                <span className="absolute inset-0 grid place-items-center bg-black/55">
+                                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: PAPER }} aria-hidden />
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

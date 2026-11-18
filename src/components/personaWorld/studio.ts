@@ -2,6 +2,7 @@ import { PET_ORACLE, type PersonaWorld, type PetId, type WorldState } from '../.
 import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from './glow';
 import { disc, faceX, faceY, sprite, type Ctx, type Pt } from './pixel';
 import { MOOD_ITEMS, hasMoodItem, isMoodItem, type MoodItemId } from './moodItems';
+import { TERROR_PORTAL, drawTerrorPortal, paintTerrorPortal } from './terrorPortal';
 
 // O estúdio (14/11/2026): os objetos da sala, os lugares do chão e os bichinhos.
 //
@@ -183,7 +184,7 @@ interface ItemDef {
   pad?: number;
 }
 
-// A caixa do Clube do Terror aparece para quem tem a Deadly Sleeping (qualquer edição).
+// O portal do Clube do Terror (até 17/11/2026, a caixa) aparece para quem tem a Deadly Sleeping (qualquer edição).
 export const hasTerrorBox = (world: PersonaWorld): boolean => world.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id));
 export const hasPet = (world: PersonaWorld, pet: PetId): boolean => world.pets[pet] !== null;
 
@@ -314,55 +315,10 @@ const drawTable: Draw = (k, ctx, x, y) => {
   k.px(ctx, c[0] - 8, c[1] + 1, '#E5484D', 2, 2);
 };
 
-// ----- A caixa velha de papelão do Clube do Terror: abas abertas, amassada,
-// com uma tira de fita adesiva fechando a quina (sem nada escrito: o nome
-// aparece na etiqueta, ao passar o mouse ou o foco). O portal gira dentro dela.
-const TERROR_BOX = { w: 1, d: 1, h: 11 };
-const drawTerrorBox: Draw = (k, ctx, x, y) => {
-  const { w, d, h } = TERROR_BOX;
-  const card = '#94704A';
-  k.box(ctx, x, y, 0, w, d, h, card);
-  // por dentro, escuro (a boca da caixa)
-  k.poly(ctx, [k.iso(x + 0.08, y + 0.08, h), k.iso(x + w - 0.08, y + 0.08, h), k.iso(x + w - 0.08, y + d - 0.08, h), k.iso(x + 0.08, y + d - 0.08, h)], '#1A0D14');
-  // as abas abertas
-  k.poly(ctx, [k.iso(x, y + d, h), k.iso(x + w, y + d, h), k.iso(x + w + 0.05, y + d + 0.3, h + 2), k.iso(x + 0.05, y + d + 0.3, h + 2)], k.dark(card, 0.12));
-  k.poly(ctx, [k.iso(x + w, y, h), k.iso(x + w, y + d, h), k.iso(x + w + 0.3, y + d + 0.05, h + 2), k.iso(x + w + 0.3, y + 0.05, h + 2)], k.dark(card, 0.05));
-  const left = k.iso(x, y + d, 0);
-  const right = k.iso(x + w, y, 0);
-  // a fita adesiva: uma tira clara que dá a volta na quina, mais gasta de um lado
-  faceY(ctx, left, 5, 4, 7, 3, '#D9C9A0');
-  faceX(ctx, right, 6, 4, 6, 3, '#CDBD94');
-  faceY(ctx, left, 5, 4, 1, 3, k.dark(card, 0.08));
-  // amassados e uma mancha
-  faceY(ctx, left, 1, 0, 1, 2, k.dark(card, 0.25));
-  faceY(ctx, left, 2, 8, 2, 1, k.dark(card, 0.2));
-  faceX(ctx, right, 1, 9, 2, 1, k.dark(card, 0.25));
-  faceX(ctx, right, 3, 1, 1, 2, k.dark(card, 0.22));
-};
-// o portal do Clube do Terror, dentro da caixa: uma espiral à luz de vela
-const paintTerrorBox: Paint = (k, ctx, x, y, _env, tick, still) => {
-  const mouth = k.iso(x + TERROR_BOX.w / 2, y + TERROR_BOX.d / 2, TERROR_BOX.h);
-  const turn = still ? 0 : tick >> 1;
-  ctx.fillStyle = 'rgba(255,181,71,0.2)';
-  ctx.fillRect(mouth[0] - 5, mouth[1] - 8, 11, 9);
-  disc(ctx, mouth[0], mouth[1] - 1, 4, 2, '#8E1B2B');
-  const arms: Pt[] = [
-    [-3, -1],
-    [-1, -2],
-    [2, -2],
-    [3, 0],
-    [1, 1],
-    [-2, 1],
-  ];
-  arms.forEach(([dx, dy], i) => k.px(ctx, mouth[0] + dx, mouth[1] - 1 + dy, (i + turn) % 3 === 0 ? '#FFF3C4' : '#FFB547', 1, 1));
-  k.px(ctx, mouth[0], mouth[1] - 1, '#FFF3C4', 1, 1);
-  // as brasas que sobem
-  if (!still) {
-    const rise = tick % 8;
-    k.px(ctx, mouth[0] - 2 + (tick % 3), mouth[1] - 4 - rise, 'rgba(255,181,71,0.85)', 1, 1);
-    k.px(ctx, mouth[0] + 2 - (tick % 2), mouth[1] - 3 - ((rise + 4) % 8), 'rgba(255,243,196,0.7)', 1, 1);
-  }
-};
+// ----- O portal do Clube do Terror: desde 17/11/2026 (noite) é o vórtice,
+// a versão II do plano da festa sazonal (terrorPortal.ts). Até então era a
+// caixa velha de papelão com o portal dentro; o Bruno pediu a troca: "não
+// estou gostando do design da atual".
 
 // ----- O Arquivo: os títulos de fora das prateleiras (fichas creme numa caixa).
 const drawArchive: Draw = (k, ctx, x, y, env) => {
@@ -636,7 +592,7 @@ const ITEMS: ItemDef[] = [
   { id: 'slot', ...SLOT, home: 1, owned: (env) => env.extras.jackpot !== 'off', draw: drawSlot, paint: paintSlot, spot: 'jackpot', pad: 2 },
   { id: 'book', w: BOOKCASE.w, d: BOOKCASE.d, h: BOOKCASE.h + 9, home: 2, owned: () => true, draw: drawBookcase, paint: paintBookcase, spot: 'book' },
   { id: 'table', w: TABLE.r * 2, d: TABLE.r * 2, h: TABLE.h + 2, home: 8, owned: (env) => env.extras.poker, draw: drawTable, spot: 'poker', pad: 0 },
-  { id: 'terror', w: TERROR_BOX.w, d: TERROR_BOX.d, h: TERROR_BOX.h + 8, home: 11, owned: (env) => hasTerrorBox(env.world), draw: drawTerrorBox, paint: paintTerrorBox, spot: 'terror', pad: 3 },
+  { id: 'terror', ...TERROR_PORTAL, home: 11, owned: (env) => hasTerrorBox(env.world), draw: drawTerrorPortal, paint: paintTerrorPortal, spot: 'terror', pad: 3 },
   { id: 'archive', w: 0.8, d: 0.8, h: 10, home: 0, owned: (env) => env.st.out > 0 || Boolean(env.world.preview), draw: drawArchive },
   { id: 'armchair', w: 1.2, d: 1.3, h: 16, home: 6, owned: (env) => levelOf(env) >= 2, draw: drawArmchair },
   { id: 'popcorn', w: 0.8, d: 0.8, h: 18, home: 10, owned: (env) => levelOf(env) >= 5, draw: drawPopcorn },

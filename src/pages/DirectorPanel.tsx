@@ -44,7 +44,7 @@ const COPY = {
     eventHint: 'Só você vê. O painel, a decoração e as missões aparecem como se fosse a época, num ensaio: avaliar e resenhar filmes da lista conta só ali, as missões podem ser marcadas à mão e a comemoração aparece. Nenhuma tag é concedida.',
     off: 'Sem prévia',
     studioLabel: 'Estúdio completo',
-    studioHint: 'O estúdio no nível máximo, com todos os móveis, os três bichinhos e a caixa do Clube do Terror, na sua cena da Persona, só neste aparelho.',
+    studioHint: 'O estúdio no nível máximo, com todos os móveis (os dos humores também), os três bichinhos e o portal do Clube do Terror, na sua cena da Persona, só neste aparelho.',
     menusTitle: 'Menus de teste',
     menus: [
       { to: '/curadoria/posteres', label: 'Curadoria de pôsteres', hint: 'Todos os pôsteres da roleta, por raridade e lote' },
@@ -90,7 +90,7 @@ const COPY = {
     eventHint: 'Only you see it. The event panel, decorations and missions show up as if it were the season, as a rehearsal: rating and reviewing films from the list counts only there, missions can be marked by hand and the celebration shows up. No tag is granted.',
     off: 'No preview',
     studioLabel: 'Full studio',
-    studioHint: 'The studio at the top level, with every piece of furniture, the three pets and the Terror Club box, in your Persona scene, on this device only.',
+    studioHint: 'The studio at the top level, with every piece of furniture (the mood pieces too), the three pets and the Terror Club portal, in your Persona scene, on this device only.',
     menusTitle: 'Test menus',
     menus: [
       { to: '/curadoria/posteres', label: 'Poster curation', hint: 'Every poster in the wheel, by rarity and batch' },

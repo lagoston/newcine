@@ -4124,7 +4124,7 @@
       "slot": "a máquina do Jackpot",
       "book": "a estante do guia",
       "table": "a mesa de pôquer",
-      "terror": "a caixa do Clube do Terror",
+      "terror": "o portal do Clube do Terror",
       "archive": "a caixa do Arquivo",
       "armchair": "a poltrona",
       "popcorn": "a pipoqueira",
@@ -4204,8 +4204,8 @@
       "films": "títulos da prateleira",
       "average": "sua média",
       "averageOf": "média de {{name}}",
-      "favorite": "Seu favorito da prateleira",
-      "favoriteOf": "O favorito de {{name}} na prateleira",
+      "favorite": "Sua recomendação",
+      "favoriteOf": "A recomendação de {{name}}",
       "rating": "nota",
       "openShelf": "Ver a prateleira {{mood}}",
       "preview": "Estúdio completo do diretor: o móvel aparece antes da tag, que pede {{goal}} títulos da prateleira.",
@@ -4217,7 +4217,16 @@
         "loveseat": "O sofá em S onde dois se sentam frente a frente.",
         "fort": "O forte de lençol da sessão de cinema em família.",
         "fridge": "O que sobrou da noite de comédia com os amigos."
-      }
+      },
+      "choose": "Escolher",
+      "cancel": "Cancelar",
+      "chooseAria": "Escolher a sua recomendação de {{mood}}",
+      "pickTitle": "Escolha um título que você avaliou em {{mood}}:",
+      "pickLoading": "Carregando os seus títulos",
+      "pickEmpty": "Você ainda não avaliou nenhum título desta prateleira.",
+      "pickError": "Não deu para carregar os seus títulos. Feche e tente de novo.",
+      "saved": "Recomendação salva.",
+      "saveError": "Não deu para salvar a recomendação. Tente de novo."
     }
   },
   "personaWorld": {
@@ -4360,8 +4369,8 @@
         "pokerWhat": "Leva ao Pôster Poker. Aparece para quem tem o pôquer liberado.",
         "book": "Este guia",
         "bookWhat": "Fica em cima da estante de madeira.",
-        "terror": "A caixa do Clube do Terror",
-        "terrorWhat": "Uma caixa de papelão com um portal dentro. Chega com a tag Deadly Sleeping e leva ao Clube do Terror.",
+        "terror": "O portal do Clube do Terror",
+        "terrorWhat": "O portal estourou a caixa de papelão e gira no ar. Chega com a tag Deadly Sleeping e leva ao Clube do Terror.",
         "has": "Já está no estúdio",
         "missing": "Ainda não está no estúdio",
         "more": "Também se tocam: a tela e a mariposa (abrem a Persona), os quadros da parede (os 4 últimos pôsteres ganhos no Jackpot; abrem a coleção) e a estante das latas (leva à Biblioteca; é a única que não brilha).",

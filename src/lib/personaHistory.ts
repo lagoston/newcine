@@ -203,6 +203,8 @@ export function worldAt(history: PersonaHistory, k: number, today: PersonaWorld,
     // o arranjo é o de hoje (não há história dele); os bichinhos, só os que já tinham chegado naquela nota
     layout: today.layout,
     stored: today.stored,
+    // as recomendações dos humores são as de hoje (17/11/2026; não há história delas)
+    picks: today.picks,
     turn: today.turn,
     oracle: today.oracle,
     pets: {
