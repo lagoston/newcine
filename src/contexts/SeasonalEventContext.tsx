@@ -2,6 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { emit } from '../lib/bus';
+import { Q, applyRules, invalidate, refetchIfStale, useCached, useOwner } from '../lib/data';
 import { useDirector } from './DirectorContext';
 import {
   SEASONAL_THEMES,
@@ -21,10 +23,11 @@ import SeasonalCelebration from '../components/seasonal/SeasonalCelebration';
 // do topo ganham a decoração do tema. A decoração dos perfis depende da tag
 // em uso (useTagDecoration), não do evento.
 //
-// O estado vem de get_seasonal_event_state() e é atualizado ao trocar de
-// página, ao voltar para a aba e quando alguém pede (requestSeasonalRefresh,
-// por exemplo ao fechar o modal de um filme). Quando uma tag do evento é
-// conquistada, a comemoração aparece aqui, em qualquer página.
+// O estado vem de get_seasonal_event_state(), guardado pela camada de dados
+// (src/lib/data, chave ['seasonal']): vale 5 minutos, é refeito ao voltar para
+// o app depois disso, quando alguém pede (requestSeasonalRefresh) e, se algo o
+// marcou como "talvez mudou", na próxima troca de página. Quando uma tag do
+// evento é conquistada, a comemoração aparece aqui, em qualquer página.
 
 interface SeasonalEventContextValue {
   event: SeasonalEventState | null;
@@ -41,33 +44,42 @@ const SeasonalEventContext = createContext<SeasonalEventContextValue>({
 });
 
 const PREVIEW_KEY = 'cineoracle:eventPreview';
-const REFRESH_EVENT = 'cineoracle:seasonal-refresh';
 const seenKey = (userId: string) => `cineoracle:seasonalSeen:${userId}`;
 // O ensaio da Conta Diretor (17/11/2026) comemora à parte, e de novo a cada
 // "Recomeçar": nada do ensaio entra na lista do evento de verdade.
 const trialSeenKey = (userId: string, event: SeasonalEventState) =>
   `cineoracle:seasonalTrialSeen:${userId}:${event.id}:${event.edition}:${event.trial_started_at ?? ''}`;
 
-// Pede uma atualização do evento (depois de avaliar, sussurrar…).
+// Pede uma atualização do evento agora (depois de sussurrar, de recomeçar o
+// ensaio…). 18/11/2026 (Reborn, onda 2a): virou um aviso do barramento
+// ('seasonal:stale'); a camada de dados escuta e refaz a consulta. O aviso
+// antigo de window ('cineoracle:seasonal-refresh') continua saindo junto.
 export const requestSeasonalRefresh = () => {
-  window.dispatchEvent(new Event(REFRESH_EVENT));
+  emit('seasonal:stale', {});
 };
 
-// 18/11/2026 (otimização): a troca de página não busca mais o evento toda vez
-// (era 1 RPC por navegação e um re-render dos consumidores mesmo sem nada
-// mudar). Na troca de página só busca se a resposta tem mais de 5 minutos, se
-// a pessoa está saindo de uma página onde se avalia, ou se algo marcou o
-// evento como "talvez mudou" (markSeasonalStale, ao avaliar no menu do título
-// ou na Biblioteca) — sem RPC na hora, só na próxima troca de página.
-const ROUTE_REFRESH_MS = 5 * 60 * 1000;
-const RATING_PAGES = ['/library', '/add-movies', '/lists'];
-let seasonalStale = false;
+// "O evento pode ter mudado" (a pessoa avaliou algo), sem pedir nada na hora:
+// a consulta fica marcada como vencida e é refeita na próxima troca de página
+// ou volta ao app. 18/11/2026 (Reborn, onda 2a): a marca saiu de uma variável
+// deste arquivo e foi para a camada de dados. É o mesmo efeito que o aviso
+// 'title:rated' do barramento tem no evento sazonal e no estado do Jackpot;
+// quando o menu do título e a Biblioteca passarem a emitir 'title:rated' (2b),
+// esta função some.
 export const markSeasonalStale = () => {
-  seasonalStale = true;
+  applyRules([
+    [['seasonal'], 'later'],
+    [['jackpot', 'state'], 'later'],
+  ]);
 };
+
+// Sair de uma destas páginas refaz a consulta: nelas se avalia por caminhos que
+// ainda não avisam ninguém (Adicionar filmes, listas, edição em lote). Sai
+// daqui quando todos emitirem 'title:rated' (2b).
+const RATING_PAGES = ['/library', '/add-movies', '/lists'];
 // A resposta sem o relógio do servidor (`now` muda a cada chamada): duas
 // respostas iguais aqui são o mesmo estado do evento.
 const eventSignature = (event: SeasonalEventState | null) => (event ? JSON.stringify({ ...event, now: null }) : 'null');
+const sameEvent = (a: SeasonalEventState | null, b: SeasonalEventState | null) => eventSignature(a) === eventSignature(b);
 
 // Prévia de um evento fora da época. Desde 16/11/2026 (Conta Diretor) é só do
 // diretor: o banco ignora p_preview de qualquer outra conta. ?evento=natal liga
@@ -86,12 +98,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const director = useDirector();
   const preview = director.isDirector ? director.prefs.eventPreview : null;
-  const [event, setEvent] = useState<SeasonalEventState | null>(null);
-  const [loading, setLoading] = useState(true);
   const [celebration, setCelebration] = useState<SeasonalStep[]>([]);
-  const lastFetch = useRef(0);
-  const lastSignature = useRef<string | null>(null);
-  const requestId = useRef(0);
   const seenInMemory = useRef<string[]>([]);
   const trialSeenInMemory = useRef<Record<string, string[]>>({});
 
@@ -107,60 +114,41 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
     if (wanted !== undefined && isDirector) setPref('eventPreview', wanted);
   }, [location.search, isDirector, setPref]);
 
-  const refresh = useCallback(async () => {
-    const id = ++requestId.current;
-    lastFetch.current = Date.now();
-    seasonalStale = false;
-    const { data, error } = await supabase.rpc('get_seasonal_event_state', { p_preview: preview });
-    if (id !== requestId.current) return;
-    if (!error) {
+  // 18/11/2026 (Reborn, onda 2a): o estado do evento é uma consulta da camada
+  // de dados. Medido na prévia de rede: a abertura pedia o evento 2× (uma antes
+  // de o login chegar, descartada) e agora pede 1×; a resposta fica guardada 5
+  // min (e no aparelho: ao reabrir o app a decoração já vem, sem esperar a
+  // rede). Resposta igual à guardada devolve o MESMO objeto: quem consome não
+  // redesenha.
+  const owner = useOwner();
+  const query = useCached<SeasonalEventState | null>(
+    Q.seasonal(owner, preview ?? null),
+    async () => {
+      const { data, error } = await supabase.rpc('get_seasonal_event_state', { p_preview: preview });
+      if (error) throw error;
       const raw = data as SeasonalEventState | null;
-      const next = raw && isSeasonalEventId(raw.id) ? raw : null;
-      // mesma resposta: fica o objeto que já estava (consumidores não re-renderizam)
-      const signature = eventSignature(next);
-      if (signature !== lastSignature.current) {
-        lastSignature.current = signature;
-        setEvent(next);
-      }
-    }
-    setLoading(false);
-    // userId: a sessão do supabase muda junto e o estado é de outra pessoa
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, userId]);
+      return raw && isSeasonalEventId(raw.id) ? raw : null;
+    },
+    { keep: sameEvent },
+  );
+  const event = query.data ?? null;
+  // carregando até a primeira resposta (ou o primeiro erro)
+  const loading = query.isPending && !query.error;
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const refresh = useCallback(() => invalidate(['seasonal']), []);
 
   // Trocou de página: atualiza se a pessoa pode ter avaliado (saiu da
-  // Biblioteca, de Adicionar filmes ou das listas, ou avaliou no menu de um
-  // título) ou se a resposta está velha (ver ROUTE_REFRESH_MS).
+  // Biblioteca, de Adicionar filmes ou das listas) ou se a resposta venceu
+  // (5 min, ou marcada por markSeasonalStale / 'title:rated').
   const previousPath = useRef<string | null>(null);
   useEffect(() => {
     const from = previousPath.current;
     previousPath.current = location.pathname;
     if (from === null) return;
     const leftRatingPage = RATING_PAGES.some((page) => from === page || from.startsWith(`${page}/`));
-    if (seasonalStale || leftRatingPage || Date.now() - lastFetch.current > ROUTE_REFRESH_MS) refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (leftRatingPage) void invalidate(['seasonal']);
+    else void refetchIfStale(['seasonal']);
   }, [location.pathname]);
-
-  useEffect(() => {
-    const onWake = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastFetch.current > 30_000) refresh();
-    };
-    const onRequest = () => {
-      refresh();
-    };
-    window.addEventListener('focus', onWake);
-    document.addEventListener('visibilitychange', onWake);
-    window.addEventListener(REFRESH_EVENT, onRequest);
-    return () => {
-      window.removeEventListener('focus', onWake);
-      document.removeEventListener('visibilitychange', onWake);
-      window.removeEventListener(REFRESH_EVENT, onRequest);
-    };
-  }, [refresh]);
 
   // Tags do evento conquistadas nesta edição e ainda não comemoradas
   // neste aparelho. No ensaio do diretor, as missões feitas no ensaio.
