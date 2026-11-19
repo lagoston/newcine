@@ -1,28 +1,13 @@
-import React, { useState, useEffect, useId, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
-import {
-  X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
-  ChevronDown, Wand2, Plus, Check, Eye, Layers, 
-} from 'lucide-react';
-import PredictionGauge from './PredictionGauge';
-import { prefetchPatronus } from './patronus/patronus';
-import { fetchTitlePrediction, peekTitlePrediction, type PredictionScope } from '../lib/titlePrediction';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons } from '../lib/tmdb';
-import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
-import { getPeoplePhotos, getStoredPersonPhoto } from '../lib/peoplePhotos';
-import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
-import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
-import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
+import { X, ChevronRight } from 'lucide-react';
+import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { shareImageFile } from '../lib/shareImage';
-import { cache, CACHE_KEYS } from '../lib/cache';
-import { markSeasonalStale } from '../contexts/SeasonalEventContext';
 import { useOpenedOnce } from '../hooks/useOpenedOnce';
+import { useEvent } from '../hooks/useEvent';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -31,11 +16,28 @@ import PersonPageSheet, { type PersonSeed } from './PersonPageSheet';
 import OracleDnaSheet from './oracleDna/OracleDnaSheet';
 import DnaHelix from './oracleDna/DnaHelix';
 import { GENE_COLORS } from '../lib/oracleDna';
-import PosterArt from './posterJackpot/PosterArt';
-import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
 import {
-  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone, withAlpha,
+  NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, withAlpha,
 } from '../lib/oracleTheme';
+import { SECTION_CLASS, mediaTypeOf, type TitleMovie } from './movieDetails/shared';
+import { useTitleRelation } from './movieDetails/useTitleRelation';
+import { useTitleMood } from './movieDetails/useTitleMood';
+import { useOracleComments } from './movieDetails/useOracleComments';
+import { useTitleEpisodes } from './movieDetails/useTitleEpisodes';
+import TitleBackdrop from './movieDetails/TitleBackdrop';
+import TitlePoster from './movieDetails/TitlePoster';
+import TitleHeading from './movieDetails/TitleHeading';
+import TitleGenres from './movieDetails/TitleGenres';
+import TitleScoreboard from './movieDetails/TitleScoreboard';
+import TitleQuickActions from './movieDetails/TitleQuickActions';
+import TitleSeasonsButton from './movieDetails/TitleSeasonsButton';
+import TitleSynopsis from './movieDetails/TitleSynopsis';
+import TitleWhereToWatch from './movieDetails/TitleWhereToWatch';
+import TitleCredits from './movieDetails/TitleCredits';
+import TitleCast from './movieDetails/TitleCast';
+import TitleFooter from './movieDetails/TitleFooter';
+import TrailerLayer from './movieDetails/TrailerLayer';
+import SeasonsLayer from './movieDetails/SeasonsLayer';
 
 // Detalhes de um filme/série — "a ficha na mesa do oráculo".
 //   • Topo: o fundo (backdrop) do filme se dissolvendo na noite, o pôster
@@ -49,115 +51,19 @@ import {
 // No celular abre como gaveta de baixo pra cima; no desktop, centralizado.
 // Fecha no X, no fundo escuro e no Esc (o Esc fecha primeiro o trailer ou
 // as temporadas, se estiverem abertos).
-
-// 18/11/2026 (otimização): quanto o menu espera pelos detalhes completos do
-// título (quem abre pela Home ou pela busca troca o item da lista por eles logo
-// depois) antes de buscar à parte o orçamento e a classificação.
-const DETAILS_GRACE_MS = 1500;
-
-// As mesmas 9 categorias usadas pra organizar as prateleiras na Biblioteca
-// dos Oráculos (ver OracleLibraries.tsx) — "random-surprise" não entra por
-// ser uma pool coringa, não uma categoria de verdade. Cada uma com a sua cor
-// clara (texto e pontinho), pensada pro fundo noite.
-const MOOD_TAG_CONFIG: Record<string, { labelKey: string; color: string }> = {
-  'adventures': { labelKey: 'oracle.moods.adventures', color: '#7DD3FC' },
-  'catharsis': { labelKey: 'oracle.moods.catharsis', color: '#93C5FD' },
-  'adrenaline': { labelKey: 'oracle.moods.adrenaline', color: '#FCA5A5' },
-  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', color: '#F9A8D4' },
-  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', color: '#86EFAC' },
-  'drug-trip': { labelKey: 'oracle.moods.drugTrip', color: '#6EE7B7' },
-  'romantic': { labelKey: 'oracle.moods.romantic', color: '#FDBA74' },
-  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', color: '#D1D5DB' },
-  'family-time': { labelKey: 'oracle.moods.familyTime', color: '#FDE047' },
-};
-
-// Gêneros mostrados embaixo do título: no máximo 3, sem os que repetem o
-// que quase todo filme é ou o que a prateleira já diz — Drama, Família e
-// Aventura (na série, "Action & Adventure" vira só Ação). Thriller vira
-// Suspense em português. Pelo id do TMDB e, no cache sem id, pelo nome.
-// A mesma cor, mais clara (misturada com branco): os gêneros que "saem"
-// da prateleira usam o tom dela, mais suave.
-const lighten = (hex: string, amount: number): string => {
-  const n = hex.replace('#', '');
-  const channel = (i: number) => {
-    const v = parseInt(n.slice(i, i + 2), 16);
-    return Math.round(v + (255 - v) * amount);
-  };
-  return `rgb(${channel(0)}, ${channel(2)}, ${channel(4)})`;
-};
-
-const HIDDEN_GENRE_IDS = new Set([18, 10751, 12]);
-const HIDDEN_GENRE_NAMES = new Set(['drama', 'família', 'familia', 'family', 'aventura', 'aventuras', 'adventure']);
-const displayGenres = (genres: { id?: number; name: string }[] | undefined, isPt: boolean): string[] => {
-  const out: string[] = [];
-  for (const genre of genres || []) {
-    const name = (genre.name || '').trim();
-    const lower = name.toLowerCase();
-    if (!name || (genre.id && HIDDEN_GENRE_IDS.has(genre.id)) || HIDDEN_GENRE_NAMES.has(lower)) continue;
-    let label = name;
-    if (genre.id === 53 || lower === 'thriller') label = isPt ? 'Suspense' : 'Thriller';
-    else if (genre.id === 10759 || lower === 'action & adventure' || lower === 'ação e aventura') label = isPt ? 'Ação' : 'Action';
-    if (!out.includes(label)) out.push(label);
-    if (out.length === 3) break;
-  }
-  return out;
-};
-
-// Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
-// pra escala brasileira única (L, +10, +12, +14, +16, +18). Não existe
-// "+13" oficial no ClassInd — "PG-13" arredonda pra +14, o balde real mais
-// próximo. Qualquer coisa não reconhecida (incluindo "NR") volta null:
-// melhor não mostrar nada do que mostrar um selo enganoso.
-const standardizeCertification = (raw: string): string | null => {
-  const upper = raw.trim().toUpperCase();
-  if (upper === 'L') return 'L';
-  if (['10', '12', '14', '16', '18'].includes(upper)) return `+${upper}`;
-  const usMap: Record<string, string> = { 'G': 'L', 'PG': '+10', 'PG-13': '+14', 'R': '+16', 'NC-17': '+18' };
-  if (usMap[upper]) return usMap[upper];
-  const ukMap: Record<string, string> = { 'U': 'L', '12A': '+12', '15': '+16' };
-  if (ukMap[upper]) return ukMap[upper];
-  return null;
-};
-
-// Cores oficiais do selo ClassInd: Livre=verde, 10=azul, 12=amarelo,
-// 14=laranja, 16=vermelho, 18=preto (com contorno, pra não sumir na noite).
-const certificationClasses = (standardized: string): string => {
-  if (standardized === '+18') return 'bg-black text-white ring-1 ring-white/40';
-  if (standardized === '+16') return 'bg-red-600 text-white';
-  if (standardized === '+14') return 'bg-orange-500 text-white';
-  if (standardized === '+12') return 'bg-yellow-400 text-gray-900';
-  if (standardized === '+10') return 'bg-blue-500 text-white';
-  return 'bg-green-600 text-white';
-};
-
-const countryFlag = (countryCode: string) => {
-  if (!countryCode || countryCode.length !== 2) return '🌍';
-  const codePoints = countryCode.toUpperCase().split('').map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-};
-
-// Posições das bolhas dos amigos sobre o pôster. A 5ª fica logo à direita
-// de onde nasce o balão do oráculo (canto inferior esquerdo), "quase
-// raspando" sem sobrepor.
-const FRIEND_POSITIONS: React.CSSProperties[] = [
-  { top: '14%', left: '8%' },
-  { top: '24%', right: '10%' },
-  { top: '48%', left: '6%' },
-  { top: '62%', right: '8%' },
-  { bottom: '4%', left: '52%' },
-];
-
-// Fundo translúcido dos balões e selos sobre o pôster.
-const BUBBLE_BG = 'rgba(18,13,34,0.94)';
-
-interface FriendRating {
-  user_id: string;
-  username: string;
-  avatar_url: string | null;
-  rating: number | null;
-  review_title?: string | null;
-  is_watchlist_only?: boolean;
-}
+//
+// 18/11/2026 (Protocolo Reborn, render.md A4): este arquivo é a CASCA do menu.
+// Eram 3 mil linhas e 47 estados num componente só: cada resposta do banco
+// (21 chamadas ao abrir) re-renderizava a ficha inteira, 7 a 11 vezes por
+// abertura. Agora cada parte da ficha é uma seção memorizada em
+// src/components/movieDetails/, com o próprio dado (previsão no placar,
+// amigos nas bolhas, classificação no cabeçalho, orçamento na direção, fotos
+// no elenco, saga na sinopse...), e só ela re-renderiza quando ele chega.
+// Aqui ficam: as camadas (trailer, temporadas, resenhas, pessoa, DNA, outro
+// filme por cima), o Esc, a trava de rolagem e o que mais de uma seção usa
+// (a biblioteca e a nota de quem olha, a prateleira do título, os selos dos
+// oráculos, os episódios vistos). Mesma aparência, mesmo comportamento, mesmas
+// props e o mesmo `export default`.
 
 interface MovieDetailsModalProps {
   movie: Movie;
@@ -197,70 +103,36 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   onReplaceMovie
 }) => {
   const { session } = useAuth();
-  const { t, i18n } = useTranslation();
-  // Poster Jackpot: o pôster da coleção que o dono da biblioteca equipou
-  // neste título substitui a capa aqui também.
-  const equippedPosters = useEquippedPosters(isOtherUserProfile && profileUserId ? profileUserId : session?.user?.id);
-  const equippedPoster = equippedPosters.get(posterKey(movie.media_type, movie.id));
-  const [isInLibrary, setIsInLibrary] = useState(false);
-  const navigate = useNavigate();
-  const [friendRatings, setFriendRatings] = useState<FriendRating[]>([]);
-  // Qual bolha de amigo tem o balãozinho com o nome ativo no momento —
-  // primeiro clique numa bolha mostra o balão; um segundo clique NA
-  // MESMA bolha (ela já ativa) navega pro perfil desse usuário.
-  const [activeFriendBubble, setActiveFriendBubble] = useState<string | null>(null);
-  const [loadingFriends, setLoadingFriends] = useState(true);
+  const { t } = useTranslation();
+  const userId = session?.user?.id ?? null;
+  const loggedIn = !!session?.user;
+  const mediaType = mediaTypeOf(movie);
+  const isTvShow = movie.media_type === 'tv';
+
+  // O que mais de uma seção usa mora aqui; o resto mora na própria seção.
+  //  • a biblioteca e a nota de quem olha: placar, rodapé, temporadas, resenhas;
+  //  • a prateleira do título: a linha de gêneros e o placar;
+  //  • os oráculos com selo: os selos sobre o pôster e o selo do orçamento;
+  //  • as temporadas e os episódios vistos: o botão e a gaveta das temporadas.
+  const relation = useTitleRelation(movie.id, mediaType, userId, onAddToLibrary);
+  const { isInLibrary, userRating, userRatingLoaded } = relation;
+  const { moodKey, moodLoaded } = useTitleMood(movie.id, mediaType, userId);
+  const oracle = useOracleComments(movie.id, mediaType);
+  const episodes = useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile, profileUserId, onEpisodeToggle });
+
   const [showRecommendModal, setShowRecommendModal] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const [showSeasonsModal, setShowSeasonsModal] = useState(false);
   // Vazio por padrão — todas as temporadas nascem recolhidas, mostrando
   // só o cabeçalho (pôster, nome, contagem de episódios). Um clique na
   // seta expande e revela a lista de episódios daquela temporada.
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
-  const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
-  const [pendingEpisodes, setPendingEpisodes] = useState<Set<string>>(new Set());
-  const [userRating, setUserRating] = useState<number | null>(null);
-  const [predictedRating, setPredictedRating] = useState<number | null>(null);
-  // Chance de o título virar nota 10 da pessoa (0 a 1) — aparece no menu
-  // quando a nota prevista é 9 ou menos (ver lib/prediction).
-  const [tenChance, setTenChance] = useState<number | null>(null);
-  // A expectativa e a largura da previsão (14/11/2026): o medidor do placar
-  // desenha o espectro das notas e o balanço da agulha a partir delas.
-  const [predictionSpread, setPredictionSpread] = useState<{ mu: number | null; sigma: number | null }>({ mu: null, sigma: null });
-  const [predictionLoading, setPredictionLoading] = useState(true);
-  // De onde veio a previsão (15/11/2026): 'shelf' = título de prateleira (v4),
-  // 'outside' = filme de fora, pela fórmula paralela (lib/titlePrediction).
-  const [predictionScope, setPredictionScope] = useState<PredictionScope | null>(null);
-  // de qual título é a previsão que está chegando (trocar de título no meio
-  // da conta não pode pôr a previsão do anterior no novo)
-  const predictionFor = useRef('');
-  const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
-  // A prateleira já foi consultada (a linha de gêneros espera por ela, pra
-  // não aparecer e depois ser empurrada).
-  const [moodLoaded, setMoodLoaded] = useState(false);
-  const [loadingSeasons, setLoadingSeasons] = useState(false);
-  const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
-  const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
-  const [loadingTrailer, setLoadingTrailer] = useState(false);
-  const [oracleSources, setOracleSources] = useState<string[]>([]);
-  const [certification, setCertification] = useState<string | null>(null);
-  // A nota do próprio usuário chega por uma consulta separada — até ela
-  // voltar, o espaço da nota fica com um esqueleto (sem piscar a prevista).
-  const [userRatingLoaded, setUserRatingLoaded] = useState(false);
-  const [posterFailed, setPosterFailed] = useState(false);
-  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const titleId = useId();
   const seasonsTitleId = useId();
 
-  // Diretor: tocar abre a página da pessoa na aba Direção (13/10/2026 — o
-  // Top 10 que abria dentro deste menu foi aposentado). Sem o id no título,
-  // ele é procurado pelo nome no clique; a foto vem do banco quando há id.
-  const [directorPhoto, setDirectorPhoto] = useState<string | null>(null);
-  const [resolvingDirector, setResolvingDirector] = useState(false);
   // Outro filme aberto por cima deste (saga, página da pessoa). Numa camada
   // aninhada, troca o filme dela em vez de abrir outra.
   const [nestedMovie, setNestedMovie] = useState<Movie | null>(null);
@@ -272,13 +144,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // cima da gaveta) fecha: o DNA é lido de novo, sem apagar a tela.
   const [showDna, setShowDna] = useState(false);
   const [dnaRefresh, setDnaRefresh] = useState(0);
-  const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
-  // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
-  // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
-  // abaixo). Um toque no selo ou no balão alterna manualmente e cancela
-  // qualquer temporizador pendente daquele oráculo.
-  const [visibleOracleBubbles, setVisibleOracleBubbles] = useState<Set<string>>(new Set());
-  const bubbleTimersRef = React.useRef<Record<string, { showTimer?: ReturnType<typeof setTimeout>; hideTimer?: ReturnType<typeof setTimeout> }>>({});
   // A raiz do modal (para saber se ele é a camada de cima no Esc).
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -292,54 +157,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const dnaMounted = useOpenedOnce(showDna);
   const personMounted = useOpenedOnce(!!personSheet);
 
-  const clearBubbleTimers = (source: string) => {
-    const timers = bubbleTimersRef.current[source];
-    if (timers?.showTimer) clearTimeout(timers.showTimer);
-    if (timers?.hideTimer) clearTimeout(timers.hideTimer);
-    bubbleTimersRef.current[source] = {};
-  };
-
-  const toggleOracleBubble = (source: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    // O toque "quebra a cadeia" — cancela as aparições/desaparições
-    // automáticas pendentes, e dali em diante é controle manual. Um balão
-    // por vez: abrir o de um oráculo fecha o do outro (os selos ficam
-    // lado a lado e os balões se cobririam).
-    Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
-    setVisibleOracleBubbles((prev) => (prev.has(source) ? new Set() : new Set([source])));
-  };
-
-  // Reset seasons when movie changes
-  useEffect(() => {
-    setSeasons(movie.seasons || []);
-    setLoadingSeasons(false);
-    setPosterFailed(false);
-    setSynopsisExpanded(false);
-    setActiveFriendBubble(null);
-  }, [movie.id]);
-
   // Necessário desde que o aninhamento passou a REAPROVEITAR a mesma
   // instância do modal (troca de filme via onReplaceMovie) em vez de criar
-  // uma instância nova do zero a cada clique: a página da pessoa e o
-  // diretor do filme anterior não podem ficar para trás.
+  // uma instância nova do zero a cada clique: a página da pessoa do filme
+  // anterior não pode ficar para trás.
   useEffect(() => {
     setPersonSheet(null);
     setShowDna(false);
-    setResolvingDirector(false);
   }, [movie.id]);
-
-  // Foto do diretor (só do banco, e só quando o título tem o id dele).
-  const directorCrew = movie.credits?.crew?.find((person) => person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer');
-  const directorCrewId = directorCrew && directorCrew.id > 0 ? directorCrew.id : null;
-  useEffect(() => {
-    setDirectorPhoto(null);
-    if (!directorCrewId) return;
-    let cancelled = false;
-    getStoredPersonPhoto(directorCrewId).then((photo) => !cancelled && setDirectorPhoto(photo));
-    return () => {
-      cancelled = true;
-    };
-  }, [directorCrewId]);
 
   // Fechou o menu: a página da pessoa e o DNA fecham junto.
   useEffect(() => {
@@ -348,247 +173,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setShowDna(false);
     }
   }, [isOpen]);
-
-  // Orçamento (só filmes). Vem do movie_cache; se o filme veio de um cache
-  // antigo sem ele, busca no TMDB uma vez e grava (lib/tmdb.ts).
-  //   undefined = carregando · null = erro (some) · 0 = não divulgado
-  const [budget, setBudget] = useState<number | null | undefined>(typeof movie.budget === 'number' ? movie.budget : undefined);
-  // 18/11/2026 (otimização, rede.md A3): quem abre pela Home ou pela busca
-  // monta o menu primeiro com o item da lista do TMDB (sem orçamento) e troca
-  // pelos detalhes completos logo depois — e eles já trazem o orçamento do
-  // cache. Pedir o orçamento antes disso era 1 função de borda que devolvia a
-  // linha inteira de novo. Agora: com os detalhes completos (têm `credits`),
-  // pede na hora se faltar; com o item da lista, espera um pouco pelos
-  // detalhes e só pede se eles não vierem.
-  const detailsReady = movie.credits !== undefined;
-  useEffect(() => {
-    if (movie.media_type === 'tv' || !movie.id) {
-      setBudget(null);
-      return;
-    }
-    if (typeof movie.budget === 'number') {
-      setBudget(movie.budget);
-      return;
-    }
-    setBudget(undefined);
-    let cancelled = false;
-    const load = () =>
-      fetchAndStoreBudget(movie.id).then((value) => {
-        if (!cancelled) setBudget(value);
-      });
-    const timer = detailsReady ? null : window.setTimeout(load, DETAILS_GRACE_MS);
-    if (detailsReady) load();
-    return () => {
-      cancelled = true;
-      if (timer !== null) window.clearTimeout(timer);
-    };
-  }, [movie.id, movie.media_type, movie.budget, detailsReady]);
-
-  // Balão do selo de orçamento (abre/fecha no toque, como os selos da capa).
-  const [budgetBubbleOpen, setBudgetBubbleOpen] = useState(false);
-  useEffect(() => {
-    setBudgetBubbleOpen(false);
-  }, [movie.id]);
-
-  // Saga / trilogia / continuação (coleção do TMDB ou cadastrada à mão —
-  // lib/collections.ts). Só filmes; séries não têm coleção.
-  const [collections, setCollections] = useState<MovieCollection[]>([]);
-  const [openCollectionId, setOpenCollectionId] = useState<number | null>(null);
-  useEffect(() => {
-    setCollections([]);
-    setOpenCollectionId(null);
-    if (movie.media_type === 'tv' || !movie.id) return;
-    let cancelled = false;
-    getMovieCollections(movie.id).then((found) => {
-      if (!cancelled) setCollections(found);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [movie.id, movie.media_type]);
-
-  // Fotos do elenco: vêm da tabela people do site (cada artista é
-  // cadastrado uma vez só a partir do TMDB — ver lib/castPhotos.ts).
-  // Enquanto não chegam, ou pra quem não tem foto, fica a inicial do nome.
-  const [castPhotos, setCastPhotos] = useState<Record<number, string | null>>({});
-  const [failedCastPhotos, setFailedCastPhotos] = useState<Set<number>>(new Set());
-  const castIdsKey = (movie.credits?.cast || []).slice(0, 6).map((c) => c.id).join(',');
-  useEffect(() => {
-    setCastPhotos({});
-    setFailedCastPhotos(new Set());
-    if (!castIdsKey) return;
-    let cancelled = false;
-    getCastPhotos(movie.id, movie.media_type === 'tv' ? 'tv' : 'movie', castIdsKey.split(',').map(Number)).then((photos) => {
-      if (!cancelled) setCastPhotos(photos);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [movie.id, movie.media_type, castIdsKey]);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      loadMyRelation();
-      loadFriendRatings();
-      loadPredictedRating();
-      prefetchPatronus(session.user.id);
-      loadMovieMood();
-      if (movie.media_type === 'tv') {
-        loadWatchedEpisodes();
-      }
-    }
-  }, [session?.user?.id, movie.id]);
-
-      useEffect(() => {
-    // Limpa temporizadores do filme anterior antes de trocar — evita um
-    // balão do filme antigo aparecer sozinho depois que o usuário já
-    // navegou pra outro filme.
-    Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
-    setVisibleOracleBubbles(new Set());
-
-    // Filmes e séries têm prateleiras próprias (movie_ids / tv_ids). Desde
-    // 30/10/2026 cada título tem o comentário do oráculo SELADO no banco
-    // (title_oracle_comments): escrito para aquela obra, ou sorteado do banco
-    // de frases quando o título entrou na prateleira. Abrir de novo mostra
-    // sempre o mesmo comentário, em filmes e em séries.
-    const isSeries = movie.media_type === 'tv';
-    setOracleSources([]);
-    setOracleFlavorPhrases({});
-    let cancelled = false;
-    supabase
-      .rpc('get_title_oracle_comments', { p_id: movie.id, p_media_type: isSeries ? 'tv' : 'movie' })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error('Error fetching oracle comments:', error);
-          return;
-        }
-        // data vem como [{ card_type, mood_key, pt, en }, ...]
-        const rows = (Array.isArray(data) ? data : []) as { card_type: string; mood_key: string; pt: string | null; en: string | null }[];
-        const moodsByOracle: Record<string, string[]> = {};
-        const sealed: Record<string, string> = {};
-        const isPt = i18n.language.startsWith('pt');
-        rows.forEach((row) => {
-          if (!moodsByOracle[row.card_type]) moodsByOracle[row.card_type] = [];
-          moodsByOracle[row.card_type].push(row.mood_key);
-          const text = isPt ? row.pt || row.en : row.en || row.pt;
-          if (text && !sealed[row.card_type]) sealed[row.card_type] = text;
-        });
-
-        const sources = Object.keys(moodsByOracle);
-        setOracleSources(sources);
-
-        // O comentário selado de cada selo. Sem ele (título que acabou de
-        // entrar, por exemplo), um filme cai na frase sorteada do banco do
-        // site, como antes; série fica só com o selo.
-        const phrases: Record<string, string> = {};
-        sources.forEach((source) => {
-          if (sealed[source]) {
-            phrases[source] = sealed[source];
-            return;
-          }
-          if (isSeries) return;
-          const phrase = getRandomFlavorPhrase(source, moodsByOracle[source]);
-          if (phrase) phrases[source] = isPt ? phrase.pt : phrase.en;
-        });
-        setOracleFlavorPhrases(phrases);
-
-        // Temporizador por selo: o primeiro balão aparece sozinho 2s depois
-        // de abrir o modal e fica o tempo de ler o comentário (de 6s a 11s,
-        // conforme o tamanho); os seguintes entram em fila, um de cada vez.
-        // Um toque a qualquer momento cancela esse ciclo (ver
-        // toggleOracleBubble).
-        let startAt = 2000;
-        sources.filter((source) => !!phrases[source]).forEach((source) => {
-          const duration = Math.min(11000, Math.max(6000, 2000 + phrases[source].length * 50));
-          const showTimer = setTimeout(() => {
-            setVisibleOracleBubbles(new Set([source]));
-            const hideTimer = setTimeout(() => {
-              setVisibleOracleBubbles((prev) => {
-                const next = new Set(prev);
-                next.delete(source);
-                return next;
-              });
-            }, duration);
-            bubbleTimersRef.current[source] = { ...bubbleTimersRef.current[source], hideTimer };
-          }, startAt);
-          bubbleTimersRef.current[source] = { showTimer };
-          startAt += duration + 500;
-        });
-      });
-
-    return () => {
-      cancelled = true;
-      Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
-    };
-  }, [movie.id, movie.media_type, i18n.language]);
-
-  // Classificação indicativa — busca direto do movie_cache.content_ratings,
-  // que já vem como um array com uma entrada por país (ex: um item com
-  // iso_3166_1 "BR" e outro "US", cada um com sua própria "certification").
-  // A versão antiga dessa feature às vezes mostrava algo tipo "New York" em
-  // vez da nota — sinal claro de estar lendo o campo errado desse array
-  // (provavelmente pegando o índice [0] sem checar o país, ou lendo um outro
-  // campo qualquer). Aqui filtramos explicitamente pelo país certo e lemos
-  // SÓ o campo "certification", nunca outra coisa.
-  // 18/11/2026 (otimização, rede.md A3): quando o título já veio com a linha
-  // do cache inteira (content_ratings junto), a classificação sai dela, sem
-  // outra consulta. Sem o campo, consulta como antes — e, se o menu abriu com
-  // o item da lista, espera um pouco pelos detalhes completos primeiro.
-  const rowRatings = (movie as Movie & { content_ratings?: unknown }).content_ratings;
-  const ratingsFromRow = Array.isArray(rowRatings) ? rowRatings : null;
-  useEffect(() => {
-    const isPt = i18n.language.startsWith('pt');
-    let cancelled = false;
-    const pick = (list: unknown) => {
-      if (cancelled) return;
-      if (!Array.isArray(list)) {
-        setCertification(null);
-        return;
-      }
-      const ratings: { iso_3166_1?: string; certification?: string }[] = list;
-      const preferredRegion = isPt ? 'BR' : 'US';
-
-      // Tenta o país preferido primeiro, depois US, depois qualquer um —
-      // cada candidato passa pela padronização; só aceita o primeiro que
-      // a função realmente reconhece (evita mostrar sigla de país que
-      // ainda não mapeamos).
-      const candidates = [
-        ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification),
-        ratings.find((r) => r.iso_3166_1 === 'US' && r.certification),
-        ...ratings.filter((r) => r.certification)
-      ];
-
-      let standardized: string | null = null;
-      for (const candidate of candidates) {
-        if (candidate?.certification) {
-          standardized = standardizeCertification(candidate.certification);
-          if (standardized) break;
-        }
-      }
-      setCertification(standardized);
-    };
-    if (ratingsFromRow) {
-      pick(ratingsFromRow);
-      return () => {
-        cancelled = true;
-      };
-    }
-    const query = () =>
-      supabase
-        .from('movie_cache')
-        .select('content_ratings')
-        .eq('tmdb_id', movie.id)
-        .eq('media_type', movie.media_type || 'movie')
-        .maybeSingle()
-        .then(({ data, error }) => pick(error ? null : data?.content_ratings));
-    const timer = detailsReady ? null : window.setTimeout(query, DETAILS_GRACE_MS);
-    if (detailsReady) query();
-    return () => {
-      cancelled = true;
-      if (timer !== null) window.clearTimeout(timer);
-    };
-  }, [movie.id, movie.media_type, i18n.language, ratingsFromRow, detailsReady]);
 
   useEffect(() => {
     if (isOpen) {
@@ -631,872 +215,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, showTrailerModal, showSeasonsModal, childModalOpen, onClose]);
 
-  // 18/11/2026 (otimização, rede.md A3): "está na minha biblioteca?" e "minha
-  // nota" numa consulta só (eram duas), já com o tipo do título — a nota antes
-  // vinha sem filtrar filme/série, e um filme e uma série com o mesmo número
-  // no TMDB faziam o maybeSingle falhar (a nota sumia).
-  const loadMyRelation = async () => {
-    if (!session?.user?.id) return;
-    setUserRatingLoaded(false);
-
-    try {
-      const { data, error } = await supabase
-        .from('user_movies')
-        .select(`
-          id,
-          rating,
-          movies!inner(media_type)
-        `)
-        .eq('user_id', session.user.id)
-        .eq('movie_id', movie.id)
-        .eq('movies.media_type', movie.media_type || 'movie')
-        .maybeSingle();
-
-      if (error) {
-        console.warn('Error checking library:', error);
-        return;
-      }
-
-      setIsInLibrary(data !== null);
-      setUserRating(data?.rating !== undefined ? data.rating : null);
-    } catch (error) {
-      console.error('Error checking library:', error);
-    } finally {
-      setUserRatingLoaded(true);
-    }
-  };
-
-  const loadFriendRatings = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      setLoadingFriends(true);
-      const MAX_BUBBLES = 5;
-      let combined: FriendRating[] = [];
-      // Rastreia quem já está em `combined` pra nenhum nível seguinte
-      // repetir a mesma pessoa (ex.: um amigo de amigo que também
-      // aparece nas reviews aleatórias de terceiros).
-      const usedUserIds = new Set<string>();
-
-      // Nível 1: amigos diretos (amizade é simétrica — pega o outro
-      // lado da relação, seja qual for quem enviou o pedido
-      // originalmente).
-      const { data: friendshipData, error: friendshipError } = await supabase
-        .from('friendships')
-        .select('requester_id, addressee_id')
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
-
-      if (friendshipError) throw friendshipError;
-
-      const followingIds = (friendshipData || []).map(f =>
-        f.requester_id === session.user.id ? f.addressee_id : f.requester_id
-      );
-
-      if (followingIds.length > 0) {
-        const { data: allEntriesData, error: entriesError } = await supabase
-          .from('user_movies')
-          .select(`
-            user_id,
-            rating,
-            movies!inner(media_type)
-          `)
-          .eq('movie_id', movie.id)
-          .eq('movies.media_type', movie.media_type || 'movie')
-          .in('user_id', followingIds);
-
-        if (entriesError) throw entriesError;
-
-        if (allEntriesData && allEntriesData.length > 0) {
-          const ratedEntries = allEntriesData.filter((r: any) => r.rating !== null);
-          // Watchlist-only: mesmo filme presente em user_movies, mas sem
-          // nota — é exatamente como o resto do app já identifica "está
-          // na watchlist" (rating IS NULL).
-          const watchlistOnlyEntries = allEntriesData.filter((r: any) => r.rating === null);
-
-          const allUserIds = allEntriesData.map((r: any) => r.user_id);
-
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url')
-            .in('id', allUserIds);
-
-          if (profilesError) throw profilesError;
-
-          const ratedUserIds = ratedEntries.map((r: any) => r.user_id);
-          const { data: reviewsData } = ratedUserIds.length > 0
-            ? await supabase
-                .from('reviews')
-                .select('user_id, title')
-                .eq('movie_id', movie.id)
-                .eq('media_type', movie.media_type || 'movie')
-                .in('user_id', ratedUserIds)
-            : { data: [] as any[] };
-
-          const ratedFormatted: FriendRating[] = ratedEntries.map((r: any) => {
-            const profile = profilesData?.find(p => p.id === r.user_id);
-            const review = reviewsData?.find((rv: any) => rv.user_id === r.user_id);
-            return {
-              user_id: r.user_id,
-              username: profile?.username || 'Unknown',
-              avatar_url: profile?.avatar_url || null,
-              rating: r.rating,
-              review_title: review?.title || null,
-            };
-          });
-
-          const watchlistFormatted: FriendRating[] = watchlistOnlyEntries.map((r: any) => {
-            const profile = profilesData?.find(p => p.id === r.user_id);
-            return {
-              user_id: r.user_id,
-              username: profile?.username || 'Unknown',
-              avatar_url: profile?.avatar_url || null,
-              rating: null,
-              review_title: null,
-              is_watchlist_only: true,
-            };
-          });
-
-          const shuffledRated = ratedFormatted.sort(() => Math.random() - 0.5);
-          const shuffledWatchlist = watchlistFormatted.sort(() => Math.random() - 0.5);
-          // Prioriza quem avaliou (informação mais rica) e completa com
-          // quem só tem na watchlist até o teto de 5 bolhas.
-          combined = [...shuffledRated, ...shuffledWatchlist].slice(0, MAX_BUBBLES);
-          combined.forEach((f) => usedUserIds.add(f.user_id));
-        }
-      }
-
-      // Nível 2: se ainda sobram vagas (não só quando combined está
-      // totalmente vazio) — completa com reviews ESCRITAS por qualquer
-      // outro usuário sobre essa obra (não avaliação simples, tem que
-      // ter texto de review de verdade), excluindo quem já apareceu.
-      if (combined.length < MAX_BUBBLES) {
-        const remaining = MAX_BUBBLES - combined.length;
-        const { data: randomReviewsData } = await supabase
-          .from('reviews')
-          .select('user_id, title')
-          .eq('movie_id', movie.id)
-          .eq('media_type', movie.media_type || 'movie')
-          .not('title', 'is', null)
-          .limit(20);
-
-        const freshReviews = (randomReviewsData || []).filter((r: any) => !usedUserIds.has(r.user_id));
-
-        if (freshReviews.length > 0) {
-          const shuffledReviews = [...freshReviews].sort(() => Math.random() - 0.5).slice(0, remaining);
-          const reviewUserIds = shuffledReviews.map((r: any) => r.user_id);
-          const { data: randomProfilesData } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url')
-            .in('id', reviewUserIds);
-
-          const { data: randomRatingsData } = await supabase
-            .from('user_movies')
-            .select('user_id, rating')
-            .eq('movie_id', movie.id)
-            .in('user_id', reviewUserIds);
-
-          const tier2Formatted: FriendRating[] = shuffledReviews.map((r: any) => {
-            const profile = randomProfilesData?.find((p: any) => p.id === r.user_id);
-            const ratingEntry = randomRatingsData?.find((rt: any) => rt.user_id === r.user_id);
-            return {
-              user_id: r.user_id,
-              username: profile?.username || 'Unknown',
-              avatar_url: profile?.avatar_url || null,
-              rating: ratingEntry?.rating ?? null,
-              review_title: r.title,
-            };
-          });
-
-          combined = [...combined, ...tier2Formatted];
-          tier2Formatted.forEach((f) => usedUserIds.add(f.user_id));
-        }
-      }
-
-      // Nível 3: ainda sobram vagas — completa com amigos de amigos (2º
-      // grau), excluindo quem já é amigo direto, o próprio usuário, e
-      // qualquer um já mostrado nos níveis anteriores. Mesma
-      // priorização: quem avaliou primeiro, completa com quem só tem
-      // na watchlist.
-      if (combined.length < MAX_BUBBLES) {
-        const remaining = MAX_BUBBLES - combined.length;
-        const { data: fofData, error: fofError } = await supabase
-          .rpc('get_friends_of_friends', { p_user_id: session.user.id });
-
-        if (fofError) throw fofError;
-
-        const fofIds = (fofData || [])
-          .map((r: any) => r.user_id)
-          .filter((id: string) => !usedUserIds.has(id));
-
-        if (fofIds.length > 0) {
-          const { data: fofEntriesData, error: fofEntriesError } = await supabase
-            .from('user_movies')
-            .select(`
-              user_id,
-              rating,
-              movies!inner(media_type)
-            `)
-            .eq('movie_id', movie.id)
-            .eq('movies.media_type', movie.media_type || 'movie')
-            .in('user_id', fofIds);
-
-          if (fofEntriesError) throw fofEntriesError;
-
-          if (fofEntriesData && fofEntriesData.length > 0) {
-            const fofRatedEntries = fofEntriesData.filter((r: any) => r.rating !== null);
-            const fofWatchlistOnlyEntries = fofEntriesData.filter((r: any) => r.rating === null);
-
-            const fofAllUserIds = fofEntriesData.map((r: any) => r.user_id);
-
-            const { data: fofProfilesData, error: fofProfilesError } = await supabase
-              .from('profiles')
-              .select('id, username, avatar_url')
-              .in('id', fofAllUserIds);
-
-            if (fofProfilesError) throw fofProfilesError;
-
-            const fofRatedUserIds = fofRatedEntries.map((r: any) => r.user_id);
-            const { data: fofReviewsData } = fofRatedUserIds.length > 0
-              ? await supabase
-                  .from('reviews')
-                  .select('user_id, title')
-                  .eq('movie_id', movie.id)
-                  .eq('media_type', movie.media_type || 'movie')
-                  .in('user_id', fofRatedUserIds)
-              : { data: [] as any[] };
-
-            const fofRatedFormatted: FriendRating[] = fofRatedEntries.map((r: any) => {
-              const profile = fofProfilesData?.find(p => p.id === r.user_id);
-              const review = fofReviewsData?.find((rv: any) => rv.user_id === r.user_id);
-              return {
-                user_id: r.user_id,
-                username: profile?.username || 'Unknown',
-                avatar_url: profile?.avatar_url || null,
-                rating: r.rating,
-                review_title: review?.title || null,
-              };
-            });
-
-            const fofWatchlistFormatted: FriendRating[] = fofWatchlistOnlyEntries.map((r: any) => {
-              const profile = fofProfilesData?.find(p => p.id === r.user_id);
-              return {
-                user_id: r.user_id,
-                username: profile?.username || 'Unknown',
-                avatar_url: profile?.avatar_url || null,
-                rating: null,
-                review_title: null,
-                is_watchlist_only: true,
-              };
-            });
-
-            const fofShuffledRated = fofRatedFormatted.sort(() => Math.random() - 0.5);
-            const fofShuffledWatchlist = fofWatchlistFormatted.sort(() => Math.random() - 0.5);
-            const tier3Formatted = [...fofShuffledRated, ...fofShuffledWatchlist].slice(0, remaining);
-            combined = [...combined, ...tier3Formatted];
-          }
-        }
-      }
-
-      setFriendRatings(combined);
-    } catch (error) {
-      console.error('Error loading friend ratings:', error);
-      setFriendRatings([]);
-    } finally {
-      setLoadingFriends(false);
-    }
-  };
-
-  // Nota Prevista para Você — mesmo modelo usado nas prateleiras da
-  // Biblioteca dos Oráculos e no Match Movie. Fica vazia quando o usuário
-  // ainda não completou o questionário de personalidade, quando já avaliou,
-  // em séries fora das prateleiras e em filmes ainda sem nota do público.
-  // Enquanto a previsão carrega, o medidor fica apagado com a fagulha
-  // esperando (sem empurrar nada).
-  //
-  // 15/11/2026 (pedidos do Bruno): a previsão vem direto do banco
-  // (get_title_prediction, ~0,6 s, em vez dos 4 a 5,5 s da função de borda
-  // quando ela "acordava"), fica na memória por alguns minutos, e os filmes
-  // fora das prateleiras ganharam previsão pela fórmula paralela (mais
-  // aberta, sem o selo 9/10). A predict-single-movie continua lá para os apps
-  // antigos.
-  const loadPredictedRating = async () => {
-    const userId = session?.user?.id;
-    if (!userId) return;
-    const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
-    const key = `${mediaType}:${movie.id}`;
-    predictionFor.current = key;
-    const show = (value: Awaited<ReturnType<typeof fetchTitlePrediction>>) => {
-      setPredictedRating(value ? value.predictedRating : null);
-      setTenChance(value ? value.tenChance : null);
-      setPredictionSpread({ mu: value ? value.mu : null, sigma: value ? value.sigma : null });
-      setPredictionScope(value ? value.scope : null);
-      setPredictionLoading(false);
-    };
-
-    // já guardada: o medidor nasce com ela
-    const known = peekTitlePrediction(userId, movie.id, mediaType);
-    if (known !== undefined) {
-      show(known);
-      return;
-    }
-
-    setPredictionLoading(true);
-    setPredictedRating(null);
-    setTenChance(null);
-    setPredictionSpread({ mu: null, sigma: null });
-    setPredictionScope(null);
-    try {
-      const value = await fetchTitlePrediction(userId, movie.id, mediaType);
-      if (predictionFor.current === key) show(value);
-    } catch (error) {
-      console.error('Error loading predicted rating:', error);
-      if (predictionFor.current === key) show(null);
-    }
-  };
-
-  // Mood da pool a que o título pertence — mostrado como mais um
-  // "gênero" ao lado dos reais. Independente de previsão: um título já
-  // avaliado, ou de um usuário sem questionário completo, ainda pode
-  // (e deve) mostrar essa tag, já que é informação sobre o título em
-  // si, não sobre a previsão pessoal de ninguém. Filmes e séries têm
-  // prateleiras próprias (recommendation_pools.movie_ids / tv_ids).
-  const loadMovieMood = async () => {
-    setMovieMoodKey(null);
-    setMoodLoaded(false);
-    try {
-      const { data, error } = await supabase
-        .rpc('get_pools_containing_title', { p_id: movie.id, p_media_type: movie.media_type === 'tv' ? 'tv' : 'movie' });
-
-      if (error) throw error;
-
-      const realMood = (data || []).find((p: { mood_key: string }) => p.mood_key !== 'random-surprise');
-      setMovieMoodKey(realMood?.mood_key || null);
-    } catch (error) {
-      console.error('Error loading movie mood:', error);
-      setMovieMoodKey(null);
-    } finally {
-      setMoodLoaded(true);
-    }
-  };
-
-  const loadWatchedEpisodes = async () => {
-    if (!session?.user?.id || movie.media_type !== 'tv') return;
-
-    try {
-      // Em perfil de outra pessoa, os episódios marcados como assistidos
-      // são os DELA — usa a variante que respeita visibilidade de
-      // perfil e lê da conta do dono, não de quem está olhando.
-      if (isOtherUserProfile && profileUserId) {
-        const watched = await getWatchedEpisodesForProfile(session.user.id, profileUserId, movie.id);
-        setWatchedEpisodes(watched);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('watched_episodes')
-        .select('season_number, episode_number')
-        .eq('user_id', session.user.id)
-        .eq('tmdb_id', movie.id);
-
-      if (error) throw error;
-
-      const watched = new Set<string>();
-      data?.forEach(ep => {
-        watched.add(`${ep.season_number}-${ep.episode_number}`);
-      });
-      setWatchedEpisodes(watched);
-    } catch (error) {
-      console.error('Error loading watched episodes:', error);
-    }
-  };
-
-  const fetchSeasons = async () => {
-    if (movie.media_type !== 'tv' || loadingSeasons) return;
-
-    setLoadingSeasons(true);
-    try {
-      const { data: cached } = await supabase
-        .from('movie_cache')
-        .select('seasons_data, number_of_seasons')
-        .eq('tmdb_id', movie.id)
-        .eq('media_type', 'tv')
-        .maybeSingle();
-
-      const cachedHasEpisodes =
-        cached?.seasons_data?.length > 0 &&
-        cached.seasons_data[0]?.episodes?.length > 0;
-
-      if (cachedHasEpisodes) {
-        setSeasons(cached.seasons_data);
-        movie.seasons = cached.seasons_data;
-        return;
-      }
-
-      const numberOfSeasons = cached?.number_of_seasons || movie.number_of_seasons || 0;
-      if (numberOfSeasons <= 0) return;
-
-      // Série sem os episódios no banco: a cache-title busca e grava.
-      const freshSeasons = await getTVSeasons(movie.id);
-      if (freshSeasons.length > 0) {
-        setSeasons(freshSeasons);
-        movie.seasons = freshSeasons;
-      }
-    } catch (error) {
-      console.error('Error fetching seasons:', error);
-    } finally {
-      setLoadingSeasons(false);
-    }
-  };
-
-  const handleOpenSeasons = async () => {
-    setShowSeasonsModal(true);
-
-    const hasDetailedSeasons = seasons.length > 0 && seasons[0]?.episodes?.length > 0;
-    if (!hasDetailedSeasons) {
-      await fetchSeasons();
-    }
-  };
-
-  const toggleEpisode = async (seasonNumber: number, episodeNumber: number) => {
-    // isOtherUserProfile bloqueado aqui também, não só escondendo o
-    // botão — defesa em profundidade contra marcar episódio na conta de
-    // outra pessoa por qualquer caminho de código.
-    if (!session?.user?.id || userRating === null || isOtherUserProfile) return;
-
-    const key = `${seasonNumber}-${episodeNumber}`;
-
-    // Trava contra cliques concorrentes no MESMO episódio — clicar de
-    // novo antes da chamada anterior terminar fazia duas chamadas
-    // decidirem "marcar" (ou "desmarcar") a partir do mesmo estado
-    // desatualizado, e a segunda podia falhar por violar a chave única
-    // da tabela, ou inverter o que a primeira acabara de fazer.
-    if (pendingEpisodes.has(key)) return;
-    setPendingEpisodes((prev) => new Set(prev).add(key));
-
-    // A decisão de marcar/desmarcar também precisa vir do estado mais
-    // recente no momento em que a chamada REALMENTE começa — não do
-    // valor capturado quando o componente renderizou.
-    const wasWatched = watchedEpisodes.has(key);
-
-    try {
-      if (wasWatched) {
-        // Unmark episode
-        const { error } = await supabase
-          .from('watched_episodes')
-          .delete()
-          .eq('user_id', session.user.id)
-          .eq('tmdb_id', movie.id)
-          .eq('season_number', seasonNumber)
-          .eq('episode_number', episodeNumber);
-
-        if (error) throw error;
-      } else {
-        // Mark episode
-        const { error } = await supabase
-          .from('watched_episodes')
-          .insert({
-            user_id: session.user.id,
-            tmdb_id: movie.id,
-            season_number: seasonNumber,
-            episode_number: episodeNumber
-          });
-
-        if (error) throw error;
-      }
-
-      // Forma funcional — sempre parte do estado mais recente, mesmo
-      // que outras chamadas pra episódios diferentes tenham terminado
-      // e atualizado o estado enquanto esta ainda estava em rede. Sem
-      // isso, marcar vários episódios rapidamente fazia cada resposta
-      // sobrescrever o Set inteiro a partir de uma foto antiga,
-      // perdendo as marcações que já tinham "chegado" antes dela.
-      setWatchedEpisodes((prev) => {
-        const next = new Set(prev);
-        if (wasWatched) {
-          next.delete(key);
-        } else {
-          next.add(key);
-        }
-        return next;
-      });
-
-      // Trigger parent component refresh
-      if (onEpisodeToggle) {
-        onEpisodeToggle();
-      }
-
-      // Dispatch custom event for profile stats refresh
-      window.dispatchEvent(new CustomEvent('episodeToggled'));
-    } catch (error) {
-      console.error('Error toggling episode:', error);
-      toast.error('Failed to update episode status');
-    } finally {
-      setPendingEpisodes((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  };
-
-  const toggleSeason = async (season: any) => {
-    if (!session?.user?.id || userRating === null || isOtherUserProfile) return;
-
-    const seasonKey = `season-${season.season_number}-all`;
-    if (pendingEpisodes.has(seasonKey)) return;
-    setPendingEpisodes((prev) => new Set(prev).add(seasonKey));
-
-    const allWatched = season.episodes.every((ep: any) =>
-      watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-    );
-
-    try {
-      if (allWatched) {
-        // Unmark all episodes in season
-        const { error } = await supabase
-          .from('watched_episodes')
-          .delete()
-          .eq('user_id', session.user.id)
-          .eq('tmdb_id', movie.id)
-          .eq('season_number', season.season_number);
-
-        if (error) throw error;
-
-        // Forma funcional — parte sempre do estado mais recente, não
-        // de uma foto capturada antes da chamada de rede terminar.
-        setWatchedEpisodes((prev) => {
-          const next = new Set(prev);
-          season.episodes.forEach((ep: any) => {
-            next.delete(`${season.season_number}-${ep.episode_number}`);
-          });
-          return next;
-        });
-      } else {
-        // Mark all episodes in season
-        const episodesToInsert = season.episodes.map((ep: any) => ({
-          user_id: session.user.id,
-          tmdb_id: movie.id,
-          season_number: season.season_number,
-          episode_number: ep.episode_number
-        }));
-
-        const { error } = await supabase
-          .from('watched_episodes')
-          .upsert(episodesToInsert, {
-            onConflict: 'user_id,tmdb_id,season_number,episode_number'
-          });
-
-        if (error) throw error;
-
-        setWatchedEpisodes((prev) => {
-          const next = new Set(prev);
-          season.episodes.forEach((ep: any) => {
-            next.add(`${season.season_number}-${ep.episode_number}`);
-          });
-          return next;
-        });
-      }
-
-      // Trigger parent component refresh
-      if (onEpisodeToggle) {
-        onEpisodeToggle();
-      }
-
-      // Dispatch custom event for profile stats refresh
-      window.dispatchEvent(new CustomEvent('episodeToggled'));
-    } catch (error) {
-      console.error('Error toggling season:', error);
-      toast.error('Failed to update season status');
-    } finally {
-      setPendingEpisodes((prev) => {
-        const next = new Set(prev);
-        next.delete(seasonKey);
-        return next;
-      });
-    }
-  };
-
-  const handleShareToInstagram = async () => {
-    if (!session?.user?.id || isSharing) return;
-
-    setIsSharing(true);
-
-    try {
-      // Obter a nota do usuário
-      const { data: userMovie, error: ratingError } = await supabase
-        .from('user_movies')
-        .select('rating')
-        .eq('user_id', session.user.id)
-        .eq('movie_id', movie.id)
-        .maybeSingle();
-
-      if (ratingError) throw ratingError;
-
-      const userRating = userMovie?.rating !== undefined ? userMovie.rating : null;
-
-      // Criar canvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
-
-      canvas.width = 1080;
-      canvas.height = 1920;
-
-      // Carregar fundo baseado na nota
-      let backgroundPath = '/assets/cinequero.webp';
-      if (userRating !== null) {
-        backgroundPath = `/assets/cine${Math.round(userRating)}.webp`;
-      }
-
-      const background = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = backgroundPath;
-      });
-
-      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-
-      // Carregar e desenhar poster do filme (CENTRALIZADO)
-      if (movie.poster_path) {
-        try {
-          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-          const response = await fetch(posterUrl, { cache: 'no-store' });
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-
-          const posterImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = blobUrl;
-          });
-
-          // Poster CENTRALIZADO e maior
-          const posterWidth = 450;
-          const posterHeight = 675;
-          const posterX = (canvas.width - posterWidth) / 2;
-          const posterY = 550;
-
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 20;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 10;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(posterImg, posterX, posterY, posterWidth, posterHeight);
-
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-
-          URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-          console.error('Erro ao carregar poster:', error);
-        }
-      }
-
-      // Desenhar título do filme (ABAIXO DO POSTER, centralizado)
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 52px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-
-      const titleY = 1280;
-      const maxWidth = 900;
-
-      // Quebrar título em linhas
-      const words = movie.title.split(' ');
-      let line = '';
-      let currentY = titleY;
-
-      for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-
-        if (metrics.width > maxWidth && i > 0) {
-          ctx.fillText(line.trim(), canvas.width / 2, currentY);
-          line = words[i] + ' ';
-          currentY += 65;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line.trim(), canvas.width / 2, currentY);
-
-      // Compartilhar via lib/shareImage (13/10/2026): no app Android abre a
-      // folha de compartilhar do sistema (antes o download não fazia nada
-      // lá); no navegador, Web Share com o arquivo ou download.
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) {
-        toast.error('Erro ao gerar imagem');
-        return;
-      }
-      const route = await shareImageFile(blob, 'cine-oracle-story.png', {
-        title: `${movie.title} - Cine Oracle`,
-        text: userRating !== null ? `Assisti ${movie.title} e dei nota ${userRating}/10! 🎬` : `Assisti ${movie.title}! 🎬`,
-        dialogTitle: t('movieModal.shareStory'),
-      });
-      if (route === 'download') toast.success('Imagem baixada! Compartilhe no Instagram Stories.');
-      else if (route !== 'cancelled') toast.success('Compartilhado com sucesso!');
-    } catch (error) {
-      console.error('Error sharing to Instagram:', error);
-      toast.error('Erro ao compartilhar. Tente novamente.');
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleOpenTrailer = async () => {
-    setShowTrailerModal(true);
-    setLoadingTrailer(true);
-    setTrailerKey(undefined);
-    try {
-      const trailer = await getMovieTrailer(movie.id, movie.media_type || 'movie');
-      setTrailerKey(trailer?.key || null);
-    } catch (error) {
-      console.error('Error fetching trailer:', error);
-      setTrailerKey(null);
-    } finally {
-      setLoadingTrailer(false);
-    }
-  };
-
-  const handleAddToLibrary = async (rating?: number) => {
-    if (!session?.user?.id) return;
-
-    const mediaType = movie.media_type || 'movie';
-
-    // O título entra no banco antes (cache-title, só se faltar). A linha em
-    // movies, que a biblioteca exige, o próprio banco cria ao inserir
-    // (gatilho ensure_movies_row_for_library, 12/10/2026).
-    await ensureMovieCachedIfMissing(movie.id, mediaType === 'tv' ? 'tv' : 'movie');
-
-    const insertData: Record<string, unknown> = {
-      movie_id: movie.id,
-      media_type: mediaType,
-      user_id: session.user.id,
-    };
-    if (rating !== undefined) insertData.rating = rating;
-
-    const { error: libraryError } = await supabase
-      .from('user_movies')
-      .insert(insertData);
-
-    if (libraryError) throw libraryError;
-
-    setIsInLibrary(true);
-    setUserRating(rating !== undefined ? rating : null);
-    cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
-    cache.invalidatePattern('stats:');
-    // pode ter avançado o evento sazonal: confere na próxima troca de página
-    markSeasonalStale();
-    toast.success(t('library.inLibrary'));
-    if (onAddToLibrary) {
-      onAddToLibrary();
-    }
-  };
-
-  const handleRemoveFromLibrary = async () => {
-    if (!session?.user?.id) return;
-
-    const mediaType = movie.media_type || 'movie';
-
-    const { error } = await supabase
-      .from('user_movies')
-      .delete()
-      .eq('movie_id', movie.id)
-      .eq('media_type', mediaType)
-      .eq('user_id', session.user.id);
-
-    if (error) {
-      console.error('Error removing from library:', error);
-      toast.error(t('common.error'));
-      return;
-    }
-
-    setIsInLibrary(false);
-    setUserRating(null);
-    cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
-    cache.invalidatePattern('stats:');
-    markSeasonalStale();
-    toast.success(t('library.movieRemovedSuccess'));
-    if (onAddToLibrary) {
-      onAddToLibrary();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  const isTvShow = movie.media_type === 'tv';
-  // Nota 0 ("Crime Cinematográfico") também é nota — por isso a checagem
-  // é por null, não por "falsy" como antes.
-  const hasRated = userRating !== null && userRating !== undefined;
-  const providers = movie.watchProviders?.flatrate || [];
-  const hasStreamingProviders = providers.length > 0;
-
-  // Séries: Creator ou Director; filmes: Director (Executive Producer como
-  // último recurso, como sempre foi).
-  let director = t('movies.unknown');
-  if (movie.credits?.crew) {
-    const directorPerson = movie.credits.crew.find(person =>
-      person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
-    );
-    if (directorPerson) {
-      director = directorPerson.name;
-    }
-  }
-
-  const cast = movie.credits?.cast?.slice(0, 6) || [];
-
-  // "US$ 165 milhões" / "$165 million" (1 casa decimal quando precisa).
-  const formatBudget = (value: number) => {
-    const fmt = (n: number) => n.toLocaleString(i18n.language, { maximumFractionDigits: 1 });
-    if (value >= 1e9) return t('movies.budgetBillion', { value: fmt(value / 1e9), count: value < 2e9 ? 1 : 2 });
-    if (value >= 1e6) return t('movies.budgetMillion', { value: fmt(value / 1e6), count: value < 2e6 ? 1 : 2 });
-    return t('movies.budgetThousand', { value: fmt(Math.max(1, Math.round(value / 1e3))) });
-  };
-  const releaseSource = movie.release_date || movie.first_air_date || '';
-  // Ano lido direto do texto "AAAA-MM-DD": new Date() interpretaria como
-  // meia-noite UTC e, no Brasil, um filme de 1º de janeiro viraria do ano
-  // anterior.
-  const releaseYearNumber = parseInt(releaseSource.slice(0, 4), 10);
-  const year = Number.isNaN(releaseYearNumber) ? null : releaseYearNumber;
-
-  // Obra ainda não lançada, com data de estreia conhecida — usada pra
-  // preencher "Assistir em" com a data em vez da mensagem genérica de "não
-  // disponível", já que nesse caso a ausência de streaming não é falta de
-  // informação, é só que ainda não chegou lá.
-  const releaseDateObj = movie.release_date
-    ? new Date(movie.release_date.length === 10 ? `${movie.release_date}T12:00:00` : movie.release_date)
-    : null;
-  const isUpcomingRelease = !!releaseDateObj && !isNaN(releaseDateObj.getTime()) && releaseDateObj.getTime() > Date.now();
-  const formattedReleaseDate = releaseDateObj?.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Abre a página do diretor (aba Direção). O id vem do título quando ele
-  // já foi atualizado pelo servidor (director_id); senão é procurado pelo
-  // nome — preferindo quem é conhecido por dirigir (getPeoplePhotos guarda
-  // a resposta na sessão e o proxy por 30 dias).
-  const openDirectorPage = async () => {
-    if (!directorCrew || resolvingDirector) return;
-    if (directorCrewId) {
-      setPersonSheet({ id: directorCrewId, name: directorCrew.name, profilePath: directorPhoto, role: 'director' });
-      return;
-    }
-    setResolvingDirector(true);
-    try {
-      const key = `director:${directorCrew.name.toLowerCase()}`;
-      const found = (await getPeoplePhotos([{ key, id: null, name: directorCrew.name, role: 'director' }])).get(key);
-      if (found?.id) setPersonSheet({ id: found.id, name: directorCrew.name, profilePath: found.photo, role: 'director' });
-      else toast.error(t('movies.noDirectorMoviesFound'));
-    } catch {
-      toast.error(t('common.error'));
-    } finally {
-      setResolvingDirector(false);
-    }
-  };
-
   // Abre outro filme por cima deste (saga, página da pessoa, Oracle DNA). Da
   // saga e da pessoa são sempre filmes (as listas vêm dos créditos de filme do
   // TMDB); o DNA também traz séries. O tipo vai sempre explícito — sem a
@@ -1507,7 +225,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // estiver lá (getMovieDetailsFromDB → cache-title). Só o que a pessoa
   // abre — não os 10 da lista — e quem atualiza o que já existe é o
   // servidor.
-  const openNestedMovie = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie') => {
+  const openNestedMovie = useEvent(async (movieId: number, mediaType: 'movie' | 'tv' = 'movie') => {
     setLoadingNestedMovieId(movieId);
     try {
       const details = { ...(await getMovieDetailsFromDB(movieId, mediaType)), media_type: mediaType };
@@ -1525,254 +243,51 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     } finally {
       setLoadingNestedMovieId(null);
     }
-  };
-
-  const runtime = movie.runtime
-    ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
-    : null;
-  const seasonCount = movie.number_of_seasons || 0;
-  const backdropPath = (movie as Movie & { backdrop_path?: string | null }).backdrop_path || null;
-  const posterSrc = movie.poster_path && !posterFailed ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
-  const longSynopsis = (movie.overview?.length || 0) > 320;
-  const today = new Date().toISOString().slice(0, 10);
-  const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
-
-  // País de origem — aceita o formato do cache (origin_country: ["US"]) e o
-  // da API (production_countries: [{ iso_3166_1, name }]).
-  const originCountry = (() => {
-    if (movie.origin_country && movie.origin_country.length > 0) {
-      return { iso_3166_1: movie.origin_country[0], name: '' };
-    }
-    if (movie.production_countries && movie.production_countries.length > 0) {
-      return movie.production_countries[0];
-    }
-    return null;
-  })();
-  const originName = (() => {
-    if (!originCountry) return '';
-    try {
-      return new Intl.DisplayNames([i18n.language], { type: 'region' }).of(originCountry.iso_3166_1) || originCountry.name || originCountry.iso_3166_1;
-    } catch {
-      return originCountry.name || originCountry.iso_3166_1;
-    }
-  })();
-
-  const formatScore = (value: number) =>
-    value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
-  // Ficha rápida embaixo do título: ano · duração (ou temporadas) · selo
-  // de classificação · bandeira. Cada item só entra se existir.
-  const metaItems: React.ReactNode[] = [];
-  if (year) {
-    metaItems.push(
-      <span key="year"><span className="sr-only">{t('movies.year')}: </span>{year}</span>
-    );
-  }
-  if (isTvShow ? seasonCount > 0 : !!runtime) {
-    metaItems.push(
-      <span key="length">
-        <span className="sr-only">{isTvShow ? t('movies.seasons') : t('movies.runtime')}: </span>
-        {isTvShow ? t('movieModal.seasonCount', { count: seasonCount }) : runtime}
-      </span>
-    );
-  }
-  if (certification) {
-    metaItems.push(
-      <span
-        key="cert"
-        title={t('movies.ageLabel')}
-        className={`inline-flex items-center h-5 px-1.5 rounded text-[11px] font-bold leading-none ${certificationClasses(certification)}`}
-      >
-        <span className="sr-only">{t('movies.ageLabel')}: </span>
-        {certification}
-      </span>
-    );
-  }
-  if (originCountry) {
-    metaItems.push(
-      <span key="origin" title={originName} className="text-base leading-none">
-        <span className="sr-only">{t('movies.origin')}: {originName} </span>
-        <span aria-hidden>{countryFlag(originCountry.iso_3166_1)}</span>
-      </span>
-    );
-  }
-
-  const sectionClass = 'pt-6 mt-6 border-t border-white/[0.07]';
-  const sectionTitle = (text: string) => (
-    <h3 style={{ ...PIXEL, color: PAPER }} className="text-xl leading-none">{text}</h3>
-  );
-
-  // Onde assistir — aparece embaixo do pôster no desktop e depois da
-  // sinopse no celular. Sempre presente (com a data de estreia ou "não
-  // disponível"), pra estrutura da ficha ser a mesma em qualquer filme.
-  const whereToWatch = (
-    <>
-      {sectionTitle(t('movies.watchOn'))}
-      <div className="mt-3">
-        {hasStreamingProviders ? (
-          <ul className="flex flex-wrap gap-2.5">
-            {providers.map((provider) => (
-              <li key={provider.provider_id}>
-                <img
-                  src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
-                  alt={provider.provider_name}
-                  title={provider.provider_name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-11 h-11 rounded-xl object-cover ring-1 ring-white/10"
-                />
-              </li>
-            ))}
-          </ul>
-        ) : isUpcomingRelease ? (
-          <p className="text-sm" style={{ color: PAPER }}>
-            {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
-          </p>
-        ) : (
-          <p className="text-sm" style={{ color: MIST }}>{t('movies.noStreamingAvailable')}</p>
-        )}
-      </div>
-    </>
-  );
-
-  // Placar logo abaixo do título: números grandes com o nome embaixo, sem
-  // cápsulas, separados por fios finos. A sua nota (ou a previsão do
-  // oráculo) vem primeiro e é o destaque; depois a nota do público.
-  //
-  // 14/11/2026 (pedido do Bruno): a nota prevista e a chance de virar 10
-  // deixaram de ser dois números e viraram um aparelho, no lugar das duas
-  // colunas: o Espectrômetro (PredictionGauge) — onze lâmpadas, uma por nota,
-  // nas cores de nota do site, e o Patrono da pessoa (a mariposa dela, feita
-  // de luz) pousando onde a nota deve cair. A sua nota e a do público
-  // continuam em número.
-  //
-  // Lugares fixos: assim que se sabe se você já avaliou (consulta rápida),
-  // o placar entra com as colunas definidas — 3 (o aparelho ocupa duas, e o
-  // público) ou 2 (sua nota, público). A previsão demora mais: enquanto ela
-  // não chega, o aparelho fica apagado com uma fagulha em cima do cursor;
-  // quando chega, a fagulha vira a mariposa e ela voa até a nota. Sem
-  // previsão (quem ainda não avaliou o suficiente), a 1ª coluna ocupa o
-  // lugar das duas — o público nunca sai do lugar. Com o aparelho o placar
-  // fica mais alto (80 px de desenho), e os nomes de baixo se alinham pelo pé
-  // das colunas.
-  //
-  // 15/11/2026: filmes fora das prateleiras também reservam o aparelho (a
-  // fórmula paralela), desde que tenham nota do público. A dica do aparelho
-  // diz que a previsão é de fora (e o espectro sai mais aberto). Até a noite
-  // do mesmo dia era preciso ter 20+ votos no TMDB, e os lançamentos de
-  // Popular Agora ficavam sem (pedido do Bruno: "The Beast" e "Sem
-  // Desistir"); agora a nota de poucos votos é puxada para a média do
-  // catálogo no banco (20261115234500_prediction_outside_few_votes.sql).
-  type ScoreCell = {
-    key: string;
-    value?: React.ReactNode;
-    label: string;
-    color: string;
-    icon?: React.ReactNode;
-    glow?: string;
-    span?: 2;
-    pending?: boolean;
-    // no lugar do número (o medidor da nota prevista)
-    node?: React.ReactNode;
-    labelIcon?: React.ReactNode;
-    // depois do nome da coluna (o número da nota prevista)
-    labelExtra?: React.ReactNode;
-  };
-  const loggedIn = !!session?.user;
-  // Série fora das prateleiras dos oráculos (ou filme ainda sem nota do
-  // público): não existe previsão para ela, então o placar
-  // já abre só com a nota do público (ou sua nota + público), sem reservar o
-  // lugar da previsão. Por isso o placar espera também a consulta da
-  // prateleira (rápida) antes de entrar.
-  const inOraclePools = moodLoaded && movieMoodKey !== null;
-  const outsidePredictable =
-    moodLoaded &&
-    movieMoodKey === null &&
-    movie.media_type !== 'tv' &&
-    movie.vote_average > 0;
-  const predictable = inOraclePools || outsidePredictable;
-  const scoreReady = !loggedIn || (userRatingLoaded && moodLoaded);
-  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : predictable ? 3 : 1;
-  const scoreCells: ScoreCell[] = [];
-  if (loggedIn && scoreReady && (hasRated || predictable)) {
-    // O aparelho fica sempre no mesmo lugar da árvore (mesma chave, mesmo
-    // componente) enquanto carrega e depois: a fagulha que estava esperando
-    // é a mesma que vira mariposa quando a previsão chega.
-    const gaugeCell = (pending: boolean): ScoreCell => ({
-      key: 'slot1',
-      label: t('movieModal.score.predicted'),
-      labelIcon: <Wand2 className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 text-violet-300" aria-hidden />,
-      color: '#C4B5FD',
-      span: 2,
-      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} userId={session?.user?.id} scope={predictionScope} />,
-      // 18/11/2026 (pedido do Bruno, a partir de um retorno de usuário: "eu
-      // achava melhor quando já mostrava direto o número, agora tem um outro
-      // esquema que achei meio confuso"): o aparelho continua, e o número da
-      // nota prevista volta a aparecer escrito, ao lado do nome da coluna, na
-      // cor da nota. Ele entra depois do voo do Patrono (para não entregar o
-      // pouso antes); com "reduzir movimento" aparece direto.
-      labelExtra:
-        !pending && predictedRating !== null ? (
-          <span key={predictedRating} className="co-pred-num font-bold tabular-nums" style={{ color: ratingTone(predictedRating).color }}>
-            {predictedRating}
-          </span>
-        ) : null,
-    });
-    if (hasRated) {
-      scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
-    } else if (predictionLoading) {
-      scoreCells.push(gaugeCell(true));
-    } else if (predictedRating !== null) {
-      scoreCells.push(gaugeCell(false));
-    } else if (isInLibrary) {
-      scoreCells.push({ key: 'slot1', value: <Eye className="w-7 h-7" aria-hidden />, label: t('home.desk.inWatchlist'), color: '#BAE6FD', span: 2 });
-    } else {
-      scoreCells.push({ key: 'slot1', value: '—', label: t('movieModal.score.noPrediction'), color: MIST, span: 2 });
-    }
-  }
-  scoreCells.push({
-    key: 'public',
-    value: movie.vote_average > 0 ? formatScore(movie.vote_average) : '—',
-    label: t('movieModal.score.public'),
-    color: movie.vote_average > 0 ? PAPER : MIST,
-    icon: movie.vote_average > 0 ? <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden /> : undefined,
   });
-  // flex-col-reverse + justify-end: o número fica sempre no alto da coluna,
-  // na mesma altura nas três, mesmo com nome de uma ou duas linhas. Com o
-  // aparelho (mais alto que um número) é o contrário: justify-start, tudo
-  // assentado no pé, para o nome do público ficar na linha do nome dele.
-  const hasGauge = scoreCells.some((cell) => cell.node);
-  const scoreCellClass = `flex flex-col-reverse ${hasGauge ? 'justify-start' : 'justify-end'} items-center md:items-start px-3 sm:px-5 md:first:pl-0 border-l border-white/10 first:border-l-0`;
 
-  // Prateleira e gêneros: a linha espera a prateleira (consulta rápida)
-  // pra entrar inteira, com fade, em vez de os gêneros serem empurrados.
-  const shownGenres = displayGenres(movie.genres, i18n.language.startsWith('pt'));
-  const mood = movieMoodKey ? MOOD_TAG_CONFIG[movieMoodKey] : undefined;
-  const genresReady = !loggedIn || moodLoaded;
+  // Ações passadas às seções: nunca mudam de identidade, para o React.memo
+  // das seções valer (um `onClick` novo a cada render anularia o memo).
+  const openTrailer = useCallback(() => setShowTrailerModal(true), []);
+  const closeTrailer = useCallback(() => setShowTrailerModal(false), []);
+  const openRecommend = useCallback(() => setShowRecommendModal(true), []);
+  const openReviews = useCallback(() => setShowReviewsModal(true), []);
+  const openQuickAdd = useCallback(() => setShowQuickAdd(true), []);
+  const openDeleteConfirmation = useCallback(() => setShowDeleteConfirmation(true), []);
+  const openPerson = useCallback((person: PersonSeed) => setPersonSheet(person), []);
+  const closeSeasons = useCallback(() => setShowSeasonsModal(false), []);
+  const { ensureSeasons } = episodes;
+  const openSeasons = useCallback(() => {
+    setShowSeasonsModal(true);
+    // busca os episódios se o título ainda não os trouxe
+    ensureSeasons();
+  }, [ensureSeasons]);
+  const toggleExpandedSeason = useCallback((seasonNumber: number) => {
+    setExpandedSeasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(seasonNumber)) next.delete(seasonNumber);
+      else next.add(seasonNumber);
+      return next;
+    });
+  }, []);
 
-  // Ações rápidas: ícone em cima, nome embaixo, sem contorno.
-  const quickAction = `flex-col gap-1.5 w-[5.5rem] py-2 rounded-xl text-xs font-medium hover:bg-white/[0.06] active:bg-white/[0.09] transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
+  if (!isOpen) return null;
 
-  const friendAriaLabel = (friend: FriendRating) => {
-    if (friend.is_watchlist_only) return `${friend.username}: ${t('movies.wantingToWatch')}`;
-    if (friend.rating !== null) return t('movieModal.friendRated', { name: friend.username, rating: friend.rating });
-    return friend.username;
-  };
+  // Nota 0 ("Crime Cinematográfico") também é nota — por isso a checagem
+  // é por null, não por "falsy" como antes.
+  const hasRated = userRating !== null && userRating !== undefined;
 
-  const handleFriendClick = (friend: FriendRating) => {
-    // Com resenha: abre as resenhas do filme (a dele já aparece lá).
-    // Só watchlist: vai direto pro perfil. Só nota: o primeiro toque mostra
-    // o balão com nome e nota; o segundo, na mesma bolha, abre o perfil.
-    if (friend.review_title) {
-      setShowReviewsModal(true);
-    } else if (friend.is_watchlist_only) {
-      navigate(`/profile/${friend.username}`);
-    } else if (activeFriendBubble === friend.user_id) {
-      navigate(`/profile/${friend.username}`);
-    } else {
-      setActiveFriendBubble(friend.user_id);
-    }
-  };
+  const releaseSource = movie.release_date || movie.first_air_date || '';
+  // Ano lido direto do texto "AAAA-MM-DD": new Date() interpretaria como
+  // meia-noite UTC e, no Brasil, um filme de 1º de janeiro viraria do ano
+  // anterior.
+  const releaseYearNumber = parseInt(releaseSource.slice(0, 4), 10);
+  const year = Number.isNaN(releaseYearNumber) ? null : releaseYearNumber;
+  const seasonCount = movie.number_of_seasons || 0;
+  const backdropPath = (movie as TitleMovie).backdrop_path || null;
+  const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
+  // De quem são os pôsteres equipados (Poster Jackpot): o dono da biblioteca
+  // visitada ou quem está olhando.
+  const posterOwnerId = isOtherUserProfile && profileUserId ? profileUserId : session?.user?.id;
 
   // Renderizado via Portal, direto no <body> — não como filho de onde o
   // componente foi chamado. Sem isso, quando o modal é aberto de dentro de
@@ -1807,379 +322,55 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {/* ---------- Topo: fundo do filme + pôster + título ---------- */}
             <div className="relative">
-              <div className="absolute inset-x-0 top-0 h-64 sm:h-80 overflow-hidden pointer-events-none" aria-hidden>
-                {backdropPath ? (
-                  <img
-                    src={`https://image.tmdb.org/t/p/w1280${backdropPath}`}
-                    alt=""
-                    decoding="async"
-                    className="w-full h-full object-cover opacity-45"
-                  />
-                ) : (
-                  <div className="w-full h-full" style={{ background: 'radial-gradient(ellipse 80% 70% at 70% 0%, rgba(139,92,246,0.28), transparent 70%)' }} />
-                )}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: `linear-gradient(to bottom, rgba(18,13,34,0.25) 0%, rgba(18,13,34,0.7) 55%, ${NIGHT} 100%)` }}
-                />
-              </div>
+              <TitleBackdrop backdropPath={backdropPath} />
 
               <div className="relative px-5 sm:px-8 pt-14 sm:pt-12 pb-8 md:grid md:grid-cols-[240px_minmax(0,1fr)] lg:grid-cols-[264px_minmax(0,1fr)] md:gap-8">
                 {/* Coluna do pôster */}
                 <div>
-                  <div className="relative mx-auto md:mx-0 w-[min(66vw,260px)] md:w-full">
-                    <button
-                      type="button"
-                      onClick={handleOpenTrailer}
-                      aria-label={t('movieModal.playTrailer')}
-                      className={`group/poster relative block w-full aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.9)] ${FOCUS_RING}`}
-                      style={{ background: VELVET }}
-                    >
-                      {equippedPoster ? (
-                        <PosterArt
-                          filePath={equippedPoster.file_path}
-                          effect={equippedPoster.effect}
-                          size="w500"
-                          loading="eager"
-                          className="absolute inset-0 w-full h-full"
-                          mark={{ rarity: equippedPoster.rarity, serial: equippedPoster.serial, size: 'md' }}
-                        />
-                      ) : posterSrc ? (
-                        <img
-                          src={posterSrc}
-                          alt=""
-                          decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover"
-                          onError={() => setPosterFailed(true)}
-                        />
-                      ) : (
-                        <span className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center" style={{ color: MIST }}>
-                          <Film className="w-10 h-10" aria-hidden />
-                          <span style={{ ...PIXEL, color: PAPER }} className="text-lg leading-tight">{movie.title}</span>
-                        </span>
-                      )}
-                      {/* Convite discreto pro trailer — frase só no hover (desktop) */}
-                      <span className="absolute top-2.5 right-2.5 flex items-center gap-2 pointer-events-none">
-                        <span className="hidden sm:inline text-[11px] font-medium text-white bg-black/70 px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity whitespace-nowrap">
-                          {t('movies.clickForTrailer')}
-                        </span>
-                        <span className="grid place-items-center w-10 h-10 rounded-full bg-black/45 ring-1 ring-white/20 opacity-80 group-hover/poster:opacity-100 group-hover/poster:scale-105 transition">
-                          <Play className="w-4 h-4 fill-white text-white ml-0.5" aria-hidden />
-                        </span>
-                      </span>
-                    </button>
+                  <TitlePoster
+                    movie={movie}
+                    posterOwnerId={posterOwnerId}
+                    userId={userId}
+                    oracle={oracle}
+                    onOpenTrailer={openTrailer}
+                    onOpenReviews={openReviews}
+                  />
 
-                    {/* Selos dos oráculos cuja pool tem esse filme — cada um com
-                        a sua frase, num balão que aparece sozinho 2s depois de
-                        abrir, fica o tempo de ler (6s a 11s) e alterna a qualquer toque. */}
-                    {oracleSources.length > 0 && (
-                      <div className="absolute bottom-0.5 left-0.5 z-20 flex items-end">
-                        {oracleSources.map((source) => {
-                          const oracle = ORACLE_BY_ID[source as OracleId];
-                          const phrase = oracleFlavorPhrases[source];
-                          const showBubble = !!phrase && visibleOracleBubbles.has(source);
-                          return (
-                            <div key={source} className="relative">
-                              <button
-                                type="button"
-                                onClick={(e) => toggleOracleBubble(source, e)}
-                                aria-label={t('movieModal.oracleSays', { name: oracle?.name || source })}
-                                aria-expanded={showBubble}
-                                className={`grid place-items-center w-11 h-11 rounded-full ${FOCUS_RING}`}
-                              >
-                                {oracle ? (
-                                  <img
-                                    src={oracle.avatar}
-                                    alt=""
-                                    width={28}
-                                    height={28}
-                                    className="w-7 h-7 rounded-full object-cover"
-                                    style={{ boxShadow: `0 0 0 2px ${oracle.color}, 0 6px 14px -4px rgba(0,0,0,0.85)` }}
-                                  />
-                                ) : (
-                                  <span className="grid place-items-center w-7 h-7 rounded-full" style={{ background: BUBBLE_BG, color: MIST }}>
-                                    <Film className="w-3.5 h-3.5" aria-hidden />
-                                  </span>
-                                )}
-                              </button>
-                              <AnimatePresence>
-                                {showBubble && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 6 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="absolute bottom-full left-1 mb-1 w-52 z-30 cursor-pointer"
-                                    onClick={(e) => toggleOracleBubble(source, e)}
-                                  >
-                                    <div
-                                      className="relative rounded-xl px-3 py-2 shadow-2xl"
-                                      style={{ background: PAPER, color: INK, borderLeft: `4px solid ${oracle?.color || MIST}` }}
-                                    >
-                                      {oracle && <p style={PIXEL} className="text-[13px] leading-none mb-1">{oracle.name}</p>}
-                                      <p className="text-[11px] italic leading-snug">“{phrase}”</p>
-                                      <span
-                                        aria-hidden
-                                        className="absolute top-full left-4 w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px]"
-                                        style={{ borderTopColor: PAPER }}
-                                      />
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Bolhas de quem viu: amigos primeiro, depois resenhas de
-                        outras pessoas, depois amigos de amigos (até 5). */}
-                    {!loadingFriends && friendRatings.length > 0 && (
-                      <div className="absolute inset-0 pointer-events-none" role="group" aria-label={t('movieModal.friendsHere')}>
-                        {friendRatings.map((friend, index) => {
-                          const tone = friend.is_watchlist_only
-                            ? ratingTone(null)
-                            : friend.rating === null
-                              ? { color: MIST, ring: 'rgba(189,180,214,0.35)' }
-                              : ratingTone(friend.rating);
-                          const position = FRIEND_POSITIONS[index] || FRIEND_POSITIONS[0];
-                          const isActive = activeFriendBubble === friend.user_id;
-                          return (
-                            <div
-                              key={friend.user_id}
-                              className="absolute animate-float-slow pointer-events-auto"
-                              style={{ ...position, animationDelay: `${index * 0.3}s`, zIndex: isActive ? 25 : 10 }}
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleFriendClick(friend); }}
-                                aria-label={friendAriaLabel(friend)}
-                                className={`group relative block w-12 h-12 sm:w-14 sm:h-14 rounded-full ${FOCUS_RING}`}
-                                style={{ minWidth: 0, minHeight: 0, padding: 0 }}
-                              >
-                                <span
-                                  className="absolute inset-0 rounded-full overflow-hidden"
-                                  style={{ background: VELVET, boxShadow: `0 0 0 2.5px ${tone.color}, 0 12px 24px -8px rgba(0,0,0,0.85)` }}
-                                >
-                                  {friend.avatar_url ? (
-                                    <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                                  ) : (
-                                    <span className="w-full h-full grid place-items-center text-lg font-semibold" style={{ color: PAPER }}>
-                                      {friend.username.charAt(0).toUpperCase()}
-                                    </span>
-                                  )}
-                                </span>
-
-                                {/* Selo: a nota, ou um olho quando é só watchlist */}
-                                <span
-                                  className="absolute -bottom-1.5 -right-1.5 grid place-items-center w-7 h-7 rounded-full text-[13px] leading-none"
-                                  style={{
-                                    ...PIXEL,
-                                    background: NIGHT,
-                                    color: tone.color,
-                                    boxShadow: `0 0 0 2px ${tone.color}${friend.rating === 10 ? ', 0 0 16px rgba(249,168,212,0.85)' : ''}`,
-                                  }}
-                                >
-                                  {friend.is_watchlist_only ? <Eye className="w-3.5 h-3.5" aria-hidden /> : (friend.rating ?? '–')}
-                                </span>
-
-                                {friend.review_title ? (
-                                  // Com resenha: balão sempre visível com o título dela.
-                                  <span
-                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block w-[118px] px-2.5 py-1.5 rounded-xl text-center shadow-2xl ring-1 ring-white/15"
-                                    style={{ background: BUBBLE_BG }}
-                                  >
-                                    <span className="block text-[10px] font-semibold truncate" style={{ color: PAPER }}>{friend.username}</span>
-                                    <span className="text-[10px] italic leading-tight line-clamp-2 mt-0.5" style={{ color: MIST }}>“{friend.review_title}”</span>
-                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
-                                  </span>
-                                ) : friend.is_watchlist_only ? (
-                                  // Só watchlist: balão sempre visível, "querendo assistir".
-                                  <span
-                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block px-2.5 py-1.5 rounded-xl text-center whitespace-nowrap shadow-2xl ring-1 ring-white/15"
-                                    style={{ background: BUBBLE_BG }}
-                                  >
-                                    <span className="block text-[10px] font-semibold" style={{ color: PAPER }}>{friend.username}</span>
-                                    <span className="block text-[10px] italic leading-tight mt-0.5 text-sky-300">
-                                      {t('movies.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
-                                    </span>
-                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
-                                  </span>
-                                ) : (
-                                  // Só nota: balão aparece no primeiro toque (ou no hover).
-                                  <span
-                                    className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block px-3 py-1.5 rounded-xl text-left whitespace-nowrap shadow-2xl ring-1 ring-white/15 transition-opacity duration-200 ${
-                                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                    }`}
-                                    style={{ background: BUBBLE_BG }}
-                                  >
-                                    <span className="block text-xs font-semibold" style={{ color: PAPER }}>{friend.username}</span>
-                                    <span className="flex items-center gap-1 text-xs" style={{ color: tone.color }}>
-                                      <Star className="w-3 h-3 fill-current" aria-hidden />
-                                      {friend.rating}/10
-                                    </span>
-                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
-                                  </span>
-                                )}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                  <div className="hidden md:block mt-8">
+                    <TitleWhereToWatch watchProviders={movie.watchProviders} releaseDate={movie.release_date} />
                   </div>
-
-                  <div className="hidden md:block mt-8">{whereToWatch}</div>
                 </div>
 
                 {/* Coluna das informações */}
                 <div className="mt-6 md:mt-0 min-w-0">
-                  <div className="text-center md:text-left md:pr-12">
-                    <h2 id={titleId} style={{ ...PIXEL, color: PAPER }} className="text-[1.9rem] sm:text-4xl leading-[1.05] [text-wrap:balance]">
-                      {movie.title}
-                    </h2>
-                    {metaItems.length > 0 && (
-                      <p className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 gap-y-1.5 text-sm" style={{ color: MIST }}>
-                        {metaItems.map((item, i) => (
-                          <React.Fragment key={i}>
-                            {i > 0 && <span aria-hidden className="w-1 h-1 rounded-full bg-white/25" />}
-                            {item}
-                          </React.Fragment>
-                        ))}
-                      </p>
-                    )}
-                  </div>
+                  <TitleHeading movie={movie} titleId={titleId} />
 
-                  {/* A prateleira dos oráculos é a "mãe" dos gêneros: vem
-                      primeiro, na cor dela, com a bolinha que brilha, e os
-                      gêneros (no máximo 3) saem de dentro dela, no mesmo tom
-                      mais claro e um pouco menores. Lugar reservado desde a
-                      abertura; a linha entra com um fade. */}
-                  {(shownGenres.length > 0 || mood || (loggedIn && !moodLoaded)) && (
-                    <div className="mt-2.5 h-7 flex items-center justify-center md:justify-start">
-                      {genresReady && (
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.3, ease: 'easeOut' }}
-                          className="min-w-0 max-w-full flex items-center text-sm"
-                        >
-                          {mood && (
-                            <span
-                              className="relative z-10 shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold"
-                              style={{ color: mood.color }}
-                              title={t('movieModal.oracleShelf')}
-                            >
-                              <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: mood.color, boxShadow: `0 0 8px ${mood.color}` }} />
-                              <span className="sr-only">{t('movieModal.oracleShelf')}: </span>
-                              {t(mood.labelKey)}
-                            </span>
-                          )}
-                          {mood && shownGenres.length > 0 && (
-                            // A faixa dos gêneros desliza para fora de trás da
-                            // prateleira (o recorte começa logo depois dela).
-                            <span className="min-w-0 flex overflow-hidden">
-                              <span className="sr-only">{t('movieModal.genres')}: </span>
-                              <motion.span
-                                initial={{ x: '-100%', opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                                className="min-w-0 block truncate text-xs font-medium"
-                                style={{ color: lighten(mood.color, 0.45) }}
-                              >
-                                {shownGenres.map((genre) => (
-                                  <React.Fragment key={genre}>
-                                    <span aria-hidden className="mx-1.5 opacity-60">·</span>
-                                    {genre}
-                                  </React.Fragment>
-                                ))}
-                              </motion.span>
-                            </span>
-                          )}
-                          {!mood && shownGenres.length > 0 && (
-                            <span className="min-w-0 truncate" style={{ color: MIST }}>
-                              <span className="sr-only">{t('movieModal.genres')}: </span>
-                              {shownGenres.join(' · ')}
-                            </span>
-                          )}
-                        </motion.p>
-                      )}
-                    </div>
-                  )}
+                  <TitleGenres genres={movie.genres} moodKey={moodKey} moodLoaded={moodLoaded} loggedIn={loggedIn} />
 
                   {/* Placar (lugar reservado desde a abertura) */}
-                  <div className={`mt-5 transition-[min-height] duration-300 ${hasGauge || (loggedIn && !scoreReady) ? 'min-h-[6.5rem]' : 'min-h-[4.6rem]'}`}>
-                    {scoreReady && (
-                      <motion.dl
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="grid w-full mx-auto md:mx-0"
-                        style={{ gridTemplateColumns: `repeat(${scoreCols}, minmax(0, 1fr))`, maxWidth: `${scoreCols * 9.75}rem` }}
-                      >
-                        {scoreCells.map((cell) => (
-                          <div key={cell.key} className={`${scoreCellClass} ${cell.span === 2 ? 'col-span-2' : ''}`}>
-                            <dt className="mt-1.5 text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
-                              {cell.labelIcon}
-                              {cell.label}
-                              {cell.labelExtra}
-                            </dt>
-                            <dd className={cell.node ? 'w-full flex justify-center md:justify-start' : 'h-[1.9rem] flex items-center'} style={{ color: cell.color }}>
-                              {cell.node ? (
-                                cell.node
-                              ) : cell.pending ? (
-                                <span className="block h-7 w-12 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
-                              ) : (
-                                <motion.span
-                                  initial={{ opacity: 0, y: 6, filter: 'blur(4px)' }}
-                                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                                  className="flex items-center gap-1.5"
-                                >
-                                  {cell.icon}
-                                  <span style={{ ...PIXEL, textShadow: cell.glow ? `0 0 18px ${cell.glow}` : undefined }} className="text-[1.9rem] leading-none">
-                                    {cell.value}
-                                  </span>
-                                </motion.span>
-                              )}
-                            </dd>
-                          </div>
-                        ))}
-                      </motion.dl>
-                    )}
-                  </div>
+                  <TitleScoreboard
+                    movieId={movie.id}
+                    mediaType={mediaType}
+                    voteAverage={movie.vote_average}
+                    userId={userId}
+                    loggedIn={loggedIn}
+                    userRating={userRating}
+                    userRatingLoaded={userRatingLoaded}
+                    isInLibrary={isInLibrary}
+                    moodKey={moodKey}
+                    moodLoaded={moodLoaded}
+                  />
 
                   {/* Ações rápidas */}
-                  <div className="mt-5 flex justify-center md:justify-start gap-1 md:-ml-4">
-                    <button onClick={handleOpenTrailer} className={quickAction} style={{ color: PAPER }}>
-                      <Play className="w-[22px] h-[22px] fill-fuchsia-300 text-fuchsia-300" aria-hidden />
-                      {t('movieModal.trailer')}
-                    </button>
-                    {session?.user && (
-                      <>
-                        <button onClick={() => setShowRecommendModal(true)} className={quickAction} style={{ color: PAPER }}>
-                          <Send className="w-[22px] h-[22px] text-orange-300" aria-hidden />
-                          {t('indications.indicate')}
-                        </button>
-                        <button
-                          onClick={handleShareToInstagram}
-                          disabled={isSharing}
-                          aria-label={t('movieModal.shareStoryHint')}
-                          title={t('movieModal.shareStoryHint')}
-                          className={quickAction}
-                          style={{ color: PAPER }}
-                        >
-                          {isSharing ? (
-                            <Loader2 className="w-[22px] h-[22px] animate-spin text-pink-300" aria-hidden />
-                          ) : (
-                            <Instagram className="w-[22px] h-[22px] text-pink-300" aria-hidden />
-                          )}
-                          {t('movieModal.shareStory')}
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  <TitleQuickActions
+                    movieId={movie.id}
+                    title={movie.title}
+                    posterPath={movie.poster_path}
+                    userId={userId}
+                    loggedIn={loggedIn}
+                    onOpenTrailer={openTrailer}
+                    onRecommend={openRecommend}
+                  />
 
                   {/* Oracle DNA: os parentes do título em todas as prateleiras. */}
                   {session?.user && (
@@ -2204,340 +395,32 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
 
                   {isTvShow && (
-                    <button
-                      onClick={handleOpenSeasons}
-                      className={`${session?.user ? 'mt-3' : 'mt-5'} w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
-                      style={{ background: VELVET }}
-                    >
-                      <span className="flex items-center gap-3 min-w-0">
-                        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-violet-500/15 text-violet-300">
-                          <Tv className="w-5 h-5" aria-hidden />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block font-semibold" style={{ color: PAPER }}>{t('movies.seasonsAndEpisodes')}</span>
-                          <span className="block text-sm truncate" style={{ color: MIST }}>
-                            {[
-                              seasonCount > 0 ? t('movieModal.seasonCount', { count: seasonCount }) : null,
-                              hasRated && watchedEpisodes.size > 0 ? t('movieModal.episodesWatched', { count: watchedEpisodes.size }) : null,
-                            ].filter(Boolean).join(' · ') || t('movieModal.seeSeasons')}
-                          </span>
-                        </span>
-                      </span>
-                      <ChevronRight className="w-5 h-5 shrink-0" style={{ color: MIST }} aria-hidden />
-                    </button>
+                    <TitleSeasonsButton
+                      loggedIn={loggedIn}
+                      seasonCount={seasonCount}
+                      hasRated={hasRated}
+                      watchedCount={episodes.watchedEpisodes.size}
+                      onOpen={openSeasons}
+                    />
                   )}
 
                   {/* ---------- Corpo ---------- */}
                   <div className="text-left">
-                    <section className={sectionClass}>
-                      {sectionTitle(t('movies.synopsis'))}
-                      <p
-                        className={`mt-3 text-[15px] leading-relaxed ${longSynopsis && !synopsisExpanded ? 'line-clamp-5' : ''}`}
-                        style={{ color: 'rgba(243,234,211,0.86)' }}
-                      >
-                        {movie.overview || t('movies.noSynopsis')}
-                      </p>
-                      {longSynopsis && (
-                        <button
-                          onClick={() => setSynopsisExpanded((v) => !v)}
-                          aria-expanded={synopsisExpanded}
-                          className={`mt-1 -ml-2 px-2 rounded-lg text-sm font-medium text-violet-300 hover:text-violet-200 justify-start ${FOCUS_RING}`}
-                        >
-                          {synopsisExpanded ? t('movieModal.readLess') : t('movieModal.readMore')}
-                        </button>
-                      )}
+                    <TitleSynopsis
+                      movieId={movie.id}
+                      rawMediaType={movie.media_type}
+                      overview={movie.overview}
+                      onOpenMovie={openNestedMovie}
+                      loadingMovieId={loadingNestedMovieId}
+                    />
 
-                      {/* Saga / trilogia / continuação: abre os pôsteres em
-                          ordem; tocar num deles abre aquele filme. */}
-                      {collections.map((collection) => {
-                        const isPtLang = i18n.language.startsWith('pt');
-                        const parts = sortedParts(collection);
-                        const position = parts.findIndex((p) => p.movie_id === movie.id);
-                        const kind = parts.length === 2 ? 'duology' : parts.length === 3 ? 'trilogy' : 'saga';
-                        const open = openCollectionId === collection.id;
-                        const today = new Date().toISOString().slice(0, 10);
-                        return (
-                          <div key={collection.id} className="mt-4">
-                            <button
-                              onClick={() => setOpenCollectionId(open ? null : collection.id)}
-                              aria-expanded={open}
-                              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
-                              style={{ background: VELVET }}
-                            >
-                              <span className="flex items-center gap-3 min-w-0">
-                                <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-amber-500/15 text-amber-300">
-                                  <Layers className="w-5 h-5" aria-hidden />
-                                </span>
-                                <span className="min-w-0">
-                                  <span className="block font-semibold truncate" style={{ color: PAPER }}>
-                                    {t(`movieModal.collection.${kind}`)} · {collectionDisplayName(collection, isPtLang)}
-                                  </span>
-                                  <span className="block text-sm truncate" style={{ color: MIST }}>
-                                    {t('movieModal.collection.count', { count: parts.length })}
-                                    {position >= 0 ? ` · ${t('movieModal.collection.thisIs', { n: position + 1 })}` : ''}
-                                  </span>
-                                </span>
-                              </span>
-                              <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: MIST }} aria-hidden />
-                            </button>
-
-                            {open && (
-                              <ol className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-2.5">
-                                {parts.map((part, i) => {
-                                  const title = (isPtLang ? part.title_pt || part.title_en : part.title_en || part.title_pt) || '';
-                                  const poster = (isPtLang ? part.poster_path_pt || part.poster_path : part.poster_path || part.poster_path_pt) || null;
-                                  const isCurrent = part.movie_id === movie.id;
-                                  const upcoming = !!part.release_date && part.release_date > today;
-                                  const year = part.release_date ? part.release_date.slice(0, 4) : null;
-                                  return (
-                                    <li key={part.movie_id} className="min-w-0">
-                                      <button
-                                        onClick={() => !isCurrent && openNestedMovie(part.movie_id)}
-                                        disabled={isCurrent}
-                                        aria-current={isCurrent ? 'true' : undefined}
-                                        aria-label={`${i + 1}. ${title}${year ? ` (${year})` : ''}${isCurrent ? ` — ${t('movieModal.collection.thisMovie')}` : ''}`}
-                                        title={title}
-                                        className={`group relative block w-full aspect-[2/3] rounded-lg overflow-hidden transition disabled:cursor-default ${
-                                          isCurrent ? 'ring-2 ring-amber-300' : 'ring-1 ring-white/10 hover:ring-white/35'
-                                        } ${FOCUS_RING}`}
-                                        style={{ background: VELVET, minWidth: 0 }}
-                                      >
-                                        {poster ? (
-                                          <img
-                                            src={`https://image.tmdb.org/t/p/w185${poster}`}
-                                            alt=""
-                                            loading="lazy"
-                                            decoding="async"
-                                            className={`absolute inset-0 w-full h-full object-cover transition-transform ${isCurrent ? '' : 'group-hover:scale-105'}`}
-                                          />
-                                        ) : (
-                                          <span className="absolute inset-0 grid place-items-center p-1.5 text-center text-[11px] leading-tight" style={{ color: MIST }}>
-                                            {title || <Film className="w-5 h-5" aria-hidden />}
-                                          </span>
-                                        )}
-                                        {loadingNestedMovieId === part.movie_id && (
-                                          <span className="absolute inset-0 bg-black/55 grid place-items-center">
-                                            <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
-                                          </span>
-                                        )}
-                                        <span
-                                          className="absolute top-1 left-1 grid place-items-center min-w-[1.25rem] h-5 px-1 rounded text-[11px] leading-none"
-                                          style={{ ...PIXEL, background: 'rgba(18,13,34,0.86)', color: isCurrent ? '#FCD34D' : PAPER }}
-                                          aria-hidden
-                                        >
-                                          {i + 1}
-                                        </span>
-                                      </button>
-                                      <p className="mt-1 text-[11px] leading-tight text-center truncate" style={{ color: isCurrent ? '#FCD34D' : MIST }}>
-                                        {isCurrent ? t('movieModal.collection.thisMovie') : upcoming ? t('movieModal.collection.soon') : year}
-                                      </p>
-                                    </li>
-                                  );
-                                })}
-                              </ol>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <section className={`md:hidden ${SECTION_CLASS}`}>
+                      <TitleWhereToWatch watchProviders={movie.watchProviders} releaseDate={movie.release_date} />
                     </section>
 
-                    <section className={`md:hidden ${sectionClass}`}>{whereToWatch}</section>
+                    <TitleCredits movie={movie} oracleSources={oracle.sources} onOpenPerson={openPerson} />
 
-                    <section className={sectionClass}>
-                      {/* Linha 1: diretor (abre a página dele, aba Direção). Linha 2:
-                          orçamento | selo do oráculo (só filmes com orçamento
-                          conhecido). */}
-                      {director !== t('movies.unknown') && directorCrew ? (
-                        <button
-                          type="button"
-                          onClick={openDirectorPage}
-                          aria-label={t('person.openDirector', { name: director })}
-                          className={`group flex w-[calc(100%+1rem)] -mx-2 items-center justify-start gap-3 min-w-0 px-2 py-1.5 rounded-xl text-left transition hover:bg-white/[0.06] ${FOCUS_RING}`}
-                        >
-                          <span
-                            aria-hidden
-                            className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 group-hover:ring-white/30 transition text-sm font-semibold"
-                            style={{ background: VELVET, color: MIST }}
-                          >
-                            {director.charAt(0)}
-                            {directorPhoto && (
-                              <img
-                                src={`${PROFILE_IMAGE_BASE}${directorPhoto}`}
-                                alt=""
-                                loading="lazy"
-                                decoding="async"
-                                className="absolute inset-0 w-full h-full object-cover"
-                                onError={() => setDirectorPhoto(null)}
-                              />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm" style={{ color: MIST }}>{isTvShow ? t('movies.creator') : t('movies.director')}</span>
-                            <span className="block mt-0.5 text-lg font-semibold truncate group-hover:underline underline-offset-4" style={{ color: PAPER }}>{director}</span>
-                          </span>
-                          {resolvingDirector ? (
-                            <Loader2 className="w-4 h-4 shrink-0 animate-spin" style={{ color: MIST }} aria-hidden />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="min-w-0">
-                          <p className="text-sm" style={{ color: MIST }}>{t('movies.director')}</p>
-                          <p className="mt-0.5 text-lg font-semibold truncate" style={{ color: PAPER }}>{director}</p>
-                        </div>
-                      )}
-
-                      {!isTvShow && budget !== null && (() => {
-                        const isPtLang = i18n.language.startsWith('pt');
-                        const level = typeof budget === 'number' ? budgetLevel(budget, movie.release_date) : null;
-                        const oracleId = budgetOracle(movie.release_date, movie.vote_count, oracleSources);
-                        const oracle = ORACLE_BY_ID[oracleId];
-                        const saying = level ? BUDGET_SAYINGS[oracleId][level] : null;
-                        const levelLabel = level ? (isPtLang ? BUDGET_LEVEL_LABEL[level].pt : BUDGET_LEVEL_LABEL[level].en) : '';
-                        // Pra filmes antigos, o balão mostra o valor corrigido
-                        // pela inflação (é ele que decide o nível).
-                        const adjusted = typeof budget === 'number' && budget > 0 ? adjustedBudget(budget, movie.release_date) : 0;
-                        const showAdjusted = adjusted > 0 && adjusted / (budget as number) >= 1.15;
-                        return (
-                          // Sem quebra de linha: o selo fica sempre à direita (o
-                          // título dele quebra em duas linhas se precisar).
-                          <div className="mt-3 flex items-center justify-between gap-3">
-                            <div className="shrink-0">
-                              <p className="text-sm" style={{ color: MIST }}>{t('movies.budget')}</p>
-                              {budget === undefined ? (
-                                <span className="mt-1 block h-6 w-32 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
-                              ) : (
-                                <p className="mt-0.5 text-base sm:text-lg font-semibold whitespace-nowrap" style={{ color: budget > 0 ? PAPER : MIST }}>
-                                  {budget > 0 ? formatBudget(budget) : t('movies.budgetUnknown')}
-                                </p>
-                              )}
-                            </div>
-
-                            {level && saying && oracle && (
-                              <div className="relative min-w-0">
-                                <button
-                                  type="button"
-                                  onClick={() => setBudgetBubbleOpen((v) => !v)}
-                                  aria-expanded={budgetBubbleOpen}
-                                  aria-label={t('movies.budgetSealAria', { name: oracle.name, level: levelLabel, title: isPtLang ? saying.title.pt : saying.title.en })}
-                                  className={`flex items-center justify-start gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full text-left transition hover:brightness-110 ${FOCUS_RING}`}
-                                  style={{
-                                    background: withAlpha(oracle.color, 0.12),
-                                    boxShadow: `inset 0 0 0 1px ${withAlpha(oracle.color, 0.45)}`,
-                                  }}
-                                >
-                                  <img
-                                    src={oracle.avatar}
-                                    alt=""
-                                    width={32}
-                                    height={32}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full object-cover"
-                                    style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
-                                  />
-                                  <span className="min-w-0">
-                                    <span className="block text-xs leading-tight" style={{ color: MIST }}>
-                                      <span aria-hidden>{BUDGET_LEVEL_EMOJI[level]}</span> {levelLabel}
-                                    </span>
-                                    <span className="block text-[13px] sm:text-sm font-semibold leading-tight break-words" style={{ color: PAPER }}>
-                                      {isPtLang ? saying.title.pt : saying.title.en}
-                                    </span>
-                                  </span>
-                                </button>
-                                <AnimatePresence>
-                                  {budgetBubbleOpen && (
-                                    <motion.div
-                                      initial={{ opacity: 0, y: 6 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: 6 }}
-                                      transition={{ duration: 0.2 }}
-                                      className="absolute bottom-full right-0 mb-2 w-64 max-w-[calc(100vw-3rem)] z-30 cursor-pointer"
-                                      onClick={() => setBudgetBubbleOpen(false)}
-                                    >
-                                      <div
-                                        className="relative rounded-xl px-3 py-2.5 shadow-2xl"
-                                        style={{ background: PAPER, color: INK, borderLeft: `4px solid ${oracle.color}` }}
-                                      >
-                                        <p style={PIXEL} className="text-[13px] leading-none mb-1.5">{oracle.name}</p>
-                                        <p className="text-sm font-semibold leading-snug">
-                                          <span aria-hidden>{BUDGET_LEVEL_EMOJI[level]}</span> {isPtLang ? saying.title.pt : saying.title.en}
-                                        </p>
-                                        <p className="mt-1 text-xs italic leading-snug">“{isPtLang ? saying.text.pt : saying.text.en}”</p>
-                                        {showAdjusted && (
-                                          <p className="mt-1.5 text-[11px] leading-snug opacity-75">
-                                            {t('movies.budgetAdjusted', { value: formatBudget(adjusted) })}
-                                          </p>
-                                        )}
-                                        <span
-                                          aria-hidden
-                                          className="absolute top-full right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px]"
-                                          style={{ borderTopColor: PAPER }}
-                                        />
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                    </section>
-
-                    <section className={sectionClass}>
-                      {sectionTitle(t('movies.cast'))}
-                      {cast.length > 0 ? (
-                        <ul className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1">
-                          {cast.map((actor) => {
-                            const photo = failedCastPhotos.has(actor.id) ? null : castPhotos[actor.id] ?? actor.profile_path ?? null;
-                            // Tocar no nome abre a página da pessoa (por cima
-                            // deste menu), com o Top 10 de filmes dela.
-                            const canOpen = Number.isInteger(actor.id) && actor.id > 0;
-                            return (
-                            <li key={actor.id} className="min-w-0">
-                              <button
-                                type="button"
-                                disabled={!canOpen}
-                                onClick={() => canOpen && setPersonSheet({ id: actor.id, name: actor.name, profilePath: photo })}
-                                aria-label={t('person.open', { name: actor.name })}
-                                className={`group flex w-[calc(100%+1rem)] -mx-2 items-center gap-3 min-w-0 px-2 py-1.5 rounded-xl text-left transition enabled:hover:bg-white/[0.06] ${FOCUS_RING}`}
-                              >
-                                <span
-                                  aria-hidden
-                                  className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 group-hover:ring-white/30 transition text-sm font-semibold"
-                                  style={{ background: VELVET, color: MIST }}
-                                >
-                                  {actor.name.charAt(0)}
-                                  {photo && (
-                                    <img
-                                      src={`${PROFILE_IMAGE_BASE}${photo}`}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                      className="absolute inset-0 w-full h-full object-cover"
-                                      onError={() => setFailedCastPhotos((prev) => new Set(prev).add(actor.id))}
-                                    />
-                                  )}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block font-medium truncate" style={{ color: PAPER }}>{actor.name}</span>
-                                  {actor.character && (
-                                    <span className="block text-sm truncate" style={{ color: MIST }}>{actor.character}</span>
-                                  )}
-                                </span>
-                                {canOpen && (
-                                  <ChevronRight className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-80 transition" style={{ color: MIST }} aria-hidden />
-                                )}
-                              </button>
-                            </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <p className="mt-3 text-sm" style={{ color: MIST }}>{t('movies.noCastAvailable')}</p>
-                      )}
-                    </section>
+                    <TitleCast movie={movie} onOpenPerson={openPerson} />
                   </div>
                 </div>
               </div>
@@ -2546,39 +429,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           {/* ---------- Rodapé fixo ---------- */}
           {session?.user && (
-            <div
-              className="shrink-0 flex gap-2.5 px-5 sm:px-8 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/[0.07]"
-              style={{ background: 'rgba(18,13,34,0.97)' }}
-            >
-              {!isInLibrary ? (
-                <button
-                  onClick={() => setShowQuickAdd(true)}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
-                >
-                  <Plus className="w-5 h-5" aria-hidden />
-                  {t('library.addToLibrary')}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowDeleteConfirmation(true)}
-                  aria-label={`${t('movies.inLibrary')} — ${t('movieModal.tapToRemove')}`}
-                  title={t('movieModal.tapToRemove')}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl border border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/15 text-emerald-200 font-semibold transition ${FOCUS_RING}`}
-                >
-                  <Check className="w-5 h-5" aria-hidden />
-                  {t('movies.inLibrary')}
-                </button>
-              )}
-              <button
-                onClick={() => setShowReviewsModal(true)}
-                title={t('reviews.title')}
-                className={`inline-flex items-center justify-center gap-2 h-12 w-12 sm:w-auto sm:px-5 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 font-medium transition ${FOCUS_RING}`}
-                style={{ color: PAPER }}
-              >
-                <MessageSquare className="w-5 h-5 text-violet-300" aria-hidden />
-                <span className="sr-only sm:not-sr-only">{t('reviews.title')}</span>
-              </button>
-            </div>
+            <TitleFooter isInLibrary={isInLibrary} onAdd={openQuickAdd} onRemove={openDeleteConfirmation} onReviews={openReviews} />
           )}
         </motion.div>
       </div>
@@ -2599,7 +450,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         movieTitle={movie.title}
         isOpen={showQuickAdd}
         onClose={() => setShowQuickAdd(false)}
-        onAdd={handleAddToLibrary}
+        onAdd={relation.add}
       />
       )}
 
@@ -2607,7 +458,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         onClose={() => setShowDeleteConfirmation(false)}
-        onConfirm={handleRemoveFromLibrary}
+        onConfirm={relation.remove}
         title={t('common.delete')}
         message={t('library.movieRemoved')}
       />
@@ -2616,335 +467,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       {/* ---------- Trailer ---------- */}
       <AnimatePresence>
         {showTrailerModal && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('movieModal.trailer')} — ${movie.title}`}>
-            <motion.div
-              className="absolute inset-0 bg-black/85"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowTrailerModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.18 }}
-              className="relative w-full max-w-3xl rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
-              style={{ background: NIGHT }}
-            >
-              <div className="flex items-center justify-between gap-4 pl-5 pr-2 py-2 border-b border-white/[0.07]">
-                <div className="min-w-0">
-                  <p style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">{t('movieModal.trailer')}</p>
-                  <p className="mt-1 text-sm truncate" style={{ color: MIST }}>{movie.title}</p>
-                </div>
-                <button
-                  onClick={() => setShowTrailerModal(false)}
-                  aria-label={t('common.close')}
-                  className={`shrink-0 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
-                  style={{ color: MIST }}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="aspect-video bg-black grid place-items-center">
-                {loadingTrailer ? (
-                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: MIST }} aria-hidden />
-                ) : trailerKey ? (
-                  <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${trailerKey}`}
-                    title={`${t('movieModal.trailer')} — ${movie.title}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-3 px-6 text-center">
-                    <Film className="w-8 h-8" style={{ color: MIST }} aria-hidden />
-                    <p style={{ color: MIST }}>{t('duel.noTrailer')}</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+          <TrailerLayer movieId={movie.id} rawMediaType={movie.media_type} title={movie.title} onClose={closeTrailer} />
         )}
       </AnimatePresence>
 
       {/* ---------- Temporadas e episódios ---------- */}
       <AnimatePresence>
         {showSeasonsModal && (
-          <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby={seasonsTitleId}>
-            <motion.div
-              className="absolute inset-0 bg-black/75"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSeasonsModal(false)}
-            />
-            <div className="absolute inset-0 flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
-              <motion.div
-                initial={{ opacity: 0, y: 32 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 32 }}
-                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                className="pointer-events-auto relative w-full sm:max-w-3xl max-h-[92dvh] sm:max-h-[calc(100dvh-6rem)] flex flex-col rounded-t-2xl sm:rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden"
-                style={{ background: `radial-gradient(ellipse 70% 40% at 85% 0%, rgba(139,92,246,0.14), transparent 70%), ${NIGHT}` }}
-              >
-                <div className="shrink-0 flex items-start justify-between gap-4 px-5 sm:px-7 pt-5 pb-4 border-b border-white/[0.07]">
-                  <div className="min-w-0">
-                    <h2 id={seasonsTitleId} style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-[1.7rem] leading-tight">
-                      {t('movies.seasonsAndEpisodes')}
-                    </h2>
-                    <p className="mt-1 text-sm truncate" style={{ color: MIST }}>{movie.title}</p>
-                  </div>
-                  <button
-                    onClick={() => setShowSeasonsModal(false)}
-                    aria-label={t('common.close')}
-                    className={`shrink-0 -mr-2 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
-                    style={{ color: MIST }}
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 space-y-4">
-                  {loadingSeasons ? (
-                    <div className="py-12 flex flex-col items-center gap-3" style={{ color: MIST }}>
-                      <Loader2 className="w-7 h-7 animate-spin" aria-hidden />
-                      <p className="text-sm">{t('movies.loadingSeasons')}</p>
-                    </div>
-                  ) : !seasons || seasons.length === 0 ? (
-                    <p className="py-12 text-center text-sm" style={{ color: MIST }}>{t('movies.noSeasonsAvailable')}</p>
-                  ) : (
-                    <>
-                      {!hasRated && !isOtherUserProfile && session?.user && (
-                        <p className="flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
-                          <Star className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" aria-hidden />
-                          {t('movieModal.rateToTrack')}
-                        </p>
-                      )}
-
-                      {/* Progresso da série — só conta episódios que já foram
-                          ao ar. Cores da Biblioteca: azul em andamento, roxo
-                          quando em dia com uma série ainda no ar, rosa quando
-                          completa e encerrada. */}
-                      {hasRated && (() => {
-                        const totalEpisodes = seasons.reduce(
-                          (sum, s) => sum + (s.episodes?.filter((ep: any) => ep.air_date && ep.air_date <= today).length || 0),
-                          0
-                        );
-                        const watchedCount = Array.from(watchedEpisodes).length;
-                        const progress = totalEpisodes > 0 ? Math.min(100, (watchedCount / totalEpisodes) * 100) : 0;
-                        const isComplete = progress >= 100;
-                        const barGradient = isComplete
-                          ? (stillAiring ? 'from-violet-500 to-violet-400' : 'from-pink-500 to-pink-400')
-                          : 'from-sky-400 to-cyan-300';
-                        const labelColor = isComplete ? (stillAiring ? 'text-violet-300' : 'text-pink-300') : '';
-
-                        return (
-                          <div className="rounded-xl px-4 py-3.5 ring-1 ring-white/10" style={{ background: VELVET }}>
-                            <div className="flex items-baseline justify-between gap-3">
-                              <span className="text-sm font-medium" style={{ color: PAPER }}>{t('movies.progress')}</span>
-                              <span className="text-sm" style={{ color: MIST }}>
-                                <span style={{ ...PIXEL, color: PAPER }} className="text-base">{watchedCount}</span>
-                                {' / '}{totalEpisodes} {t('movies.episodes').toLowerCase()}
-                              </span>
-                            </div>
-                            <div className="mt-2.5 w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
-                              <motion.div
-                                className={`h-full rounded-full bg-gradient-to-r ${barGradient}`}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                transition={{ duration: 0.6, ease: 'easeOut' }}
-                              />
-                            </div>
-                            <p className={`mt-2 text-xs ${labelColor}`} style={labelColor ? undefined : { color: MIST }}>
-                              {progress.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%{' '}
-                              {isComplete && stillAiring
-                                ? t('movies.upToDate', { defaultValue: 'em dia — aguardando novos episódios' })
-                                : t('movies.complete')}
-                            </p>
-                          </div>
-                        );
-                      })()}
-
-                      {seasons.map((season: any) => {
-                        if (!season.episodes || season.episodes.length === 0) return null;
-
-                        const allWatched = season.episodes.every((ep: any) =>
-                          watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-                        );
-                        const isSeasonPending = pendingEpisodes.has(`season-${season.season_number}-all`);
-                        const isExpanded = expandedSeasons.has(season.season_number);
-                        const toggleExpanded = () => {
-                          setExpandedSeasons((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(season.season_number)) next.delete(season.season_number);
-                            else next.add(season.season_number);
-                            return next;
-                          });
-                        };
-
-                        // Progresso só dessa temporada, contando episódios já lançados.
-                        const airedInSeason = season.episodes.filter((ep: any) => ep.air_date && ep.air_date <= today).length;
-                        const watchedInSeason = season.episodes.filter((ep: any) =>
-                          watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-                        ).length;
-                        const seasonComplete = airedInSeason > 0 && watchedInSeason >= airedInSeason;
-                        const sealClasses = seasonComplete
-                          ? (stillAiring ? 'bg-violet-500/20 text-violet-200' : 'bg-pink-500/20 text-pink-200')
-                          : 'bg-sky-500/15 text-sky-200';
-                        const seasonYear = season.air_date ? season.air_date.slice(0, 4) : null;
-
-                        return (
-                          <div
-                            key={season.season_number}
-                            className={`rounded-xl overflow-hidden ring-1 ${allWatched && hasRated ? 'ring-emerald-400/30' : 'ring-white/10'}`}
-                            style={{ background: VELVET }}
-                          >
-                            <div className="flex items-start gap-3.5 p-3.5">
-                              {season.poster_path ? (
-                                <img
-                                  src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
-                                  alt=""
-                                  loading="lazy"
-                                  decoding="async"
-                                  className="w-14 h-[84px] shrink-0 object-cover rounded-md ring-1 ring-white/10"
-                                />
-                              ) : (
-                                <span className="grid place-items-center w-14 h-[84px] shrink-0 rounded-md" style={{ background: NIGHT, color: MIST }}>
-                                  <Tv className="w-5 h-5" aria-hidden />
-                                </span>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold leading-snug" style={{ color: PAPER }}>{season.name}</h3>
-                                <p className="mt-0.5 text-sm" style={{ color: MIST }}>
-                                  {season.episode_count} {t('movies.episodes').toLowerCase()}
-                                  {seasonYear && ` · ${seasonYear}`}
-                                </p>
-                                {hasRated && airedInSeason > 0 && (
-                                  <span className={`inline-flex items-center gap-1 mt-2 h-6 px-2 rounded-full text-xs font-semibold ${sealClasses}`}>
-                                    {seasonComplete ? <Check className="w-3 h-3" aria-hidden /> : <Tv className="w-3 h-3" aria-hidden />}
-                                    {watchedInSeason}/{airedInSeason}
-                                  </span>
-                                )}
-                                {season.overview && (
-                                  <p className="mt-2 text-sm line-clamp-2" style={{ color: 'rgba(243,234,211,0.72)' }}>{season.overview}</p>
-                                )}
-                              </div>
-                              {hasRated && !isOtherUserProfile && (
-                                <button
-                                  onClick={() => toggleSeason(season)}
-                                  disabled={isSeasonPending}
-                                  aria-pressed={allWatched}
-                                  aria-label={allWatched ? t('movieModal.unmarkSeason') : t('movieModal.markSeason')}
-                                  title={allWatched ? t('movieModal.unmarkSeason') : t('movieModal.markSeason')}
-                                  className={`shrink-0 grid place-items-center w-11 h-11 rounded-full transition disabled:cursor-wait ${
-                                    allWatched ? 'bg-emerald-500 hover:bg-emerald-400' : 'ring-2 ring-inset ring-white/20 hover:ring-white/40 hover:bg-white/5'
-                                  } ${FOCUS_RING}`}
-                                >
-                                  {isSeasonPending ? (
-                                    <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
-                                  ) : (
-                                    <Check className={`w-5 h-5 ${allWatched ? 'text-white' : 'text-white/30'}`} aria-hidden />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-
-                            <button
-                              onClick={toggleExpanded}
-                              aria-expanded={isExpanded}
-                              className={`w-full gap-1.5 border-t border-white/[0.07] text-sm font-medium hover:bg-white/[0.03] transition ${FOCUS_RING}`}
-                              style={{ color: MIST }}
-                            >
-                              {isExpanded ? t('movieModal.hideEpisodes') : t('movieModal.showEpisodes')}
-                              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} aria-hidden />
-                            </button>
-
-                            <AnimatePresence initial={false}>
-                              {isExpanded && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                  className="overflow-hidden"
-                                >
-                                  <ul className="divide-y divide-white/[0.06] border-t border-white/[0.07]">
-                                    {season.episodes.map((episode: any) => {
-                                      const episodeKey = `${season.season_number}-${episode.episode_number}`;
-                                      const isWatched = watchedEpisodes.has(episodeKey);
-                                      const isPending = pendingEpisodes.has(episodeKey);
-                                      const airDate = episode.air_date
-                                        ? new Date(`${episode.air_date}T12:00:00`).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
-                                        : null;
-
-                                      return (
-                                        <li
-                                          key={episode.episode_number}
-                                          className={`flex items-start gap-3 px-3.5 py-3 ${isWatched && hasRated ? 'bg-emerald-400/[0.06]' : ''}`}
-                                        >
-                                          <span
-                                            style={{ ...PIXEL, color: isWatched && hasRated ? '#6EE7B7' : MIST }}
-                                            className="w-7 shrink-0 text-lg leading-6 text-right"
-                                          >
-                                            {episode.episode_number}
-                                          </span>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="font-medium leading-6" style={{ color: PAPER }}>{episode.name}</p>
-                                            {(airDate || episode.runtime || episode.vote_average > 0) && (
-                                              <p className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-xs" style={{ color: MIST }}>
-                                                {airDate && <span>{airDate}</span>}
-                                                {episode.runtime && <span>{t('movieModal.minutes', { count: episode.runtime })}</span>}
-                                                {episode.vote_average > 0 && (
-                                                  <span className="inline-flex items-center gap-1">
-                                                    <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
-                                                    {formatScore(episode.vote_average)}
-                                                  </span>
-                                                )}
-                                              </p>
-                                            )}
-                                            {episode.overview && (
-                                              <p className="mt-1.5 text-sm line-clamp-2" style={{ color: 'rgba(243,234,211,0.7)' }}>{episode.overview}</p>
-                                            )}
-                                          </div>
-                                          {hasRated && !isOtherUserProfile && (
-                                            <button
-                                              onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
-                                              disabled={isPending}
-                                              aria-pressed={isWatched}
-                                              aria-label={`${episode.episode_number}. ${episode.name} — ${isWatched ? t('movieModal.unmarkEpisode') : t('movieModal.markEpisode')}`}
-                                              className={`shrink-0 -my-1 grid place-items-center w-11 h-11 rounded-full transition disabled:cursor-wait ${FOCUS_RING}`}
-                                            >
-                                              <span
-                                                className={`grid place-items-center w-7 h-7 rounded-full transition ${
-                                                  isWatched ? 'bg-emerald-500' : 'ring-2 ring-inset ring-white/20 hover:ring-white/40'
-                                                }`}
-                                              >
-                                                {isPending ? (
-                                                  <Loader2 className="w-3.5 h-3.5 text-white animate-spin" aria-hidden />
-                                                ) : (
-                                                  <Check className={`w-4 h-4 ${isWatched ? 'text-white' : 'text-white/25'}`} aria-hidden />
-                                                )}
-                                              </span>
-                                            </button>
-                                          )}
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-          </div>
+          <SeasonsLayer
+            titleId={seasonsTitleId}
+            title={movie.title}
+            stillAiring={stillAiring}
+            seasons={episodes.seasons}
+            loadingSeasons={episodes.loadingSeasons}
+            hasRated={hasRated}
+            isOtherUserProfile={isOtherUserProfile}
+            loggedIn={loggedIn}
+            watchedEpisodes={episodes.watchedEpisodes}
+            pendingEpisodes={episodes.pendingEpisodes}
+            expandedSeasons={expandedSeasons}
+            onToggleExpanded={toggleExpandedSeason}
+            onToggleSeason={episodes.toggleSeason}
+            onToggleEpisode={episodes.toggleEpisode}
+            onClose={closeSeasons}
+          />
         )}
       </AnimatePresence>
 
