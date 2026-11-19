@@ -208,15 +208,15 @@ export const specialFields = (weekly: boolean, bonus: number) => ({
 });
 
 // A fonte dos letreiros (Cinzel Decorative), carregada só quando a roleta
-// aparece.
+// aparece. 18/11/2026 (Reborn, pacote): ela mora em /fonts (regras em
+// src/styles/fonts.css), não mais no Google Fonts; aqui só se adianta o
+// download do peso dos letreiros, para o título não aparecer primeiro na letra
+// reserva quando a gaveta abre. Funciona sem internet no app.
 let fontRequested = false;
 export function loadJackpotFont() {
   if (fontRequested || typeof document === 'undefined') return;
   fontRequested = true;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&display=swap';
-  document.head.appendChild(link);
+  document.fonts?.load("700 1em 'Cinzel Decorative'").catch(() => undefined);
 }
 
 export const titleOf = (item: Pick<PosterItem, 'title_pt' | 'title_en'>, isPt: boolean) =>

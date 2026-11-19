@@ -64,14 +64,13 @@ const writeSize = (value: CurationSize) => {
 
 // A Cinzel sem enfeite (rótulos, título do pôster no detalhe). A Cinzel
 // Decorative vem do loadJackpotFont; esta só é pedida nesta página.
+// 18/11/2026 (Reborn, pacote): mora em /fonts (regras em src/styles/fonts.css),
+// não mais no Google Fonts; aqui só se adianta o download.
 let cinzelRequested = false;
 function loadCinzelFont() {
   if (cinzelRequested || typeof document === 'undefined') return;
   cinzelRequested = true;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&display=swap';
-  document.head.appendChild(link);
+  document.fonts?.load("600 1em 'Cinzel'").catch(() => undefined);
 }
 
 type LoadState = { status: 'loading' } | { status: 'ready'; catalog: CurationCatalog } | { status: 'forbidden' } | { status: 'error' };

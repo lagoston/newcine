@@ -4,6 +4,8 @@ import './index.css';
 import { initI18n } from './i18n';
 import { IS_NATIVE_APP } from './lib/platform';
 import { captureInviteFromUrl } from './lib/invite';
+import { reloadFresh } from './lib/appUpdate';
+import { whenFirstScreen } from './lib/firstScreen';
 
 // Link de convite (?convite=código): guarda o código antes de qualquer tela.
 captureInviteFromUrl();
@@ -23,7 +25,9 @@ window.addEventListener('vite:preloadError', (event) => {
     return;
   }
   event.preventDefault();
-  window.location.reload();
+  // 18/11/2026 (Reborn, pacote): antes de recarregar, deixa o service worker
+  // novo (se houver) assumir, senão a casca antiga voltaria (lib/appUpdate.ts).
+  void reloadFresh();
 });
 
 // 18/11/2026 (otimização): idiomas sob demanda — só o da pessoa é baixado
@@ -47,5 +51,17 @@ i18nReady.finally(() => {
   // esse pedaço.
   if (IS_NATIVE_APP) {
     import('./lib/nativeShell').then(({ setupNativeShell }) => setupNativeShell());
+  } else if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    // 18/11/2026 (Reborn, pacote): o service worker só é registrado depois da
+    // primeira tela útil (ou 8 s, o que vier antes) e com o processador livre,
+    // e o código dele é baixado nessa hora (não vai mais no pacote da abertura).
+    // Antes era registrado no App.tsx logo depois do primeiro desenho e
+    // disputava a rede com a Home. No app nativo não há service worker: o site
+    // já vem dentro do pacote (ele guardaria uma cópia velha por cima).
+    whenFirstScreen(() => {
+      const start = () => import('./lib/serviceWorker').then(({ registerServiceWorker }) => registerServiceWorker()).catch(() => undefined);
+      if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 5000 });
+      else setTimeout(start, 2000);
+    }, 8000);
   }
 });

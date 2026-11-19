@@ -1,3 +1,4 @@
+import { whenFirstScreen } from './firstScreen';
 import { App } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { SystemBars, SystemBarsStyle } from '@capacitor/core';
@@ -61,10 +62,17 @@ export async function setupNativeShell() {
     App.minimizeApp().catch(() => {});
   });
 
-  // Dois quadros depois do primeiro desenho: a página já está na tela.
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
-      SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
-    })
-  );
+  // 18/11/2026 (Reborn, pacote): a tela de abertura fica até a PRIMEIRA TELA
+  // ÚTIL (a Home avisa: lib/firstScreen.ts), com teto de 2,5 s. Antes saía dois
+  // quadros depois do primeiro desenho, quando a tela ainda era o carregador de
+  // vidro, e a pessoa via três telas: Olho Lunar → carregador → Home. Aberto
+  // direto em outra página (link), vale a regra antiga.
+  const hideSplash = () =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+      })
+    );
+  if (window.location.pathname === '/') whenFirstScreen(hideSplash, 2500);
+  else hideSplash();
 }

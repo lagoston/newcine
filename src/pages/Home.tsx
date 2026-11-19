@@ -21,6 +21,7 @@ import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
 import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/oracleTheme';
 import { MOOD_BY_KEY } from '../lib/moods';
 import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
+import { markFirstScreen } from '../lib/firstScreen';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (mouse em cima ou dedo encostando no pôster
@@ -319,6 +320,16 @@ const Home = () => {
     const id = setTimeout(() => setReadyTimeout(true), 6000);
     return () => clearTimeout(id);
   }, [userId]);
+
+  // 18/11/2026 (Reborn, pacote): avisa que a primeira tela útil está pronta (a
+  // saudação, para quem tem conta; a vitrine, para o visitante). No app é este
+  // aviso que tira a tela de abertura; no site, é depois dele que o service
+  // worker é registrado (lib/firstScreen.ts).
+  const { loading: authLoading } = useAuth();
+  const firstScreenReady = !authLoading && (session ? panelsReady || readyTimeout : true);
+  useEffect(() => {
+    if (firstScreenReady) markFirstScreen();
+  }, [firstScreenReady]);
 
   const fetchGuestTrending = async () => {
     try {

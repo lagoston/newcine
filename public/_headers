@@ -9,6 +9,21 @@
 /static/*
   Cache-Control: public, max-age=31536000, immutable
 
+# /fonts/* = as fontes do site (18/11/2026: saíram do Google Fonts). Também
+# guardadas por 1 ano. Os nomes não têm hash, então vale a regra: um arquivo de
+# fonte NUNCA muda de conteúdo com o mesmo nome (scripts/fonts/sync-fonts.mjs
+# cuida disso: versão nova de uma fonte ganha -v2 no nome).
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# /core/* = os pedaços-eixo com nome FIXO (app-core.js, icons.js…; ver stableHubs
+# no vite.config.ts). Só navegadores antigos, sem "import map", baixam daqui
+# (os atuais usam a cópia com hash em /static). Como o nome não muda quando o
+# conteúdo muda, estes PRECISAM ser conferidos a cada visita: nunca pôr cache
+# longo aqui.
+/core/*
+  Cache-Control: public, max-age=0, must-revalidate
+
 # O HTML, o service worker e o manifesto precisam ser conferidos a cada
 # visita (é por eles que o site descobre os arquivos novos).
 /index.html

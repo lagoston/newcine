@@ -17,7 +17,6 @@ import PageBackground from './components/PageBackground';
 import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
 import { DirectorProvider } from './contexts/DirectorContext';
 import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
-import { registerSW } from 'virtual:pwa-register';
 import { IS_NATIVE_APP } from './lib/platform';
 import './i18n';
 // 18/11/2026 (Reborn, bateria): liga o orçamento de movimento e o modo economia
@@ -93,20 +92,8 @@ function ScrollLockJanitor() {
 function App() {
   const { t } = useTranslation();
 
-  useEffect(() => {
-    // No app nativo o site já vem dentro do pacote: sem service worker
-    // (ele guardaria uma cópia velha por cima da que veio com o app).
-    if (import.meta.env.PROD && !IS_NATIVE_APP && 'serviceWorker' in navigator) {
-      const updateSW = registerSW({
-        onNeedRefresh() {
-          if (confirm('New version available. Reload to update?')) {
-            updateSW(true);
-          }
-        },
-        immediate: true
-      });
-    }
-  }, []);
+  // 18/11/2026 (Reborn, pacote): o registro do service worker saiu daqui para o
+  // main.tsx (depois da primeira tela útil, no ocioso; ver lib/serviceWorker.tsx).
 
   return (
     <AuthProvider>

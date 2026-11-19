@@ -1,6 +1,7 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createHash } from 'node:crypto';
 
 // 18/11/2026 (otimização): o idioma da pessoa começa a baixar junto com o resto
 // da abertura, sem esperar o JavaScript principal rodar. Um <link
@@ -45,10 +46,138 @@ function inEntryGraph(id: string, getModuleInfo: (id: string) => ModuleInfoLike,
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// 18/11/2026 (Reborn, pacote): PEDAÇOS-EIXO COM NOME ESTÁVEL.
+//
+// O problema (medido na main, commit 41d9fca): mudar UM arquivo do código comum
+// da abertura (ex.: src/lib/invite.ts) trocava o nome de 81 dos 120 arquivos do
+// site (611 KB comprimidos baixados de novo por quem volta). Motivo: quase todo
+// pedaço importa o app-core (e as bibliotecas, e os ícones) pelo nome COM hash;
+// quando o conteúdo de um deles muda, o nome muda, e com ele o conteúdo (e o
+// nome) de todos os que o importam. Nos últimos 63 commits com mudança em src/,
+// metade disparava essa cascata (simulação: mediana de 81 arquivos por deploy).
+//
+// A correção: os pedaços-eixo (HUBS, abaixo) saem com nome FIXO em /core
+// (core/app-core.js…). Quem importa escreve "../core/app-core.js", que não muda
+// quando o conteúdo do eixo muda: a cascata para ali. E, para o navegador poder
+// guardar esses arquivos para sempre (e nunca misturar versões), cada eixo
+// ganha também uma cópia com hash em /static (static/app-core-AbC123xy.js) e o
+// index.html leva um "import map" (padrão da web para exatamente isto) que diz:
+// "quando alguém pedir /core/app-core.js, entregue /static/app-core-AbC123xy.js".
+//   • Navegador atual (Chrome/WebView 89+, Safari 16.4+, Firefox 108+): usa o
+//     mapa; tudo vem de /static, imutável, e é o index.html de cada visita quem
+//     escolhe a versão (nada de versões misturadas).
+//   • Navegador antigo: ignora o mapa e baixa /core/app-core.js direto. Esse
+//     arquivo é conferido com o servidor a cada visita (public/_headers).
+// O script logo depois do mapa adianta o download dos eixos (modulepreload)
+// com o endereço certo para cada caso.
+//
+// ATENÇÃO, para quem mexer aqui:
+//   • o <script type="importmap"> precisa ser o PRIMEIRO script do <head>
+//     (antes de qualquer módulo ou modulepreload), senão o navegador o ignora;
+//   • um pedaço só pode entrar em HUBS se for carregado na abertura (import
+//     estático a partir do main.tsx): os eixos ficam fora da lista de
+//     pré-carga dos import() (modulePreload.resolveDependencies, abaixo);
+//   • depois de mexer, rode `npm run smoke` (tela branca = eixo errado) e
+//     `npm run check:size` (confere o mapa, a casca do service worker e os tamanhos).
+//
+// PLANO B (interruptor, sem mexer no código): se algum navegador ou WebView
+// mostrar tela branca por causa disto, publique com a variável de ambiente
+// STABLE_HUBS=0 (no Netlify: Site configuration → Environment variables; no
+// terminal: `STABLE_HUBS=0 npx vite build`). Os eixos voltam a sair com hash
+// em /static, sem import map e sem /core — exatamente como na onda 1. A
+// cascata de nomes volta, mas o site fica como estava. O resto (fontes, CSS
+// global na entrada, pré-cache enxuto) não depende do interruptor.
+const STABLE_HUBS = process.env.STABLE_HUBS !== '0';
+const HUB_DIR = 'core';
+const HUBS = ['react-vendor', 'router', 'supabase', 'motion', 'i18n', 'toast', 'icons', 'vendor', 'app-core'];
+// '/core/app-core.js' → '/static/app-core-<hash>.js' (preenchido a cada build)
+const hubMap = new Map<string, string>();
+// A casca: tudo o que o index.html precisa para abrir e desenhar a moldura (a
+// entrada, os eixos, o CSS global, os dois idiomas). É o que o service worker
+// guarda de antemão; o resto ele guarda quando a pessoa abre.
+const shellFiles = new Set<string>();
+
+type BundleChunk = { type: 'chunk'; fileName: string; code: string; isEntry: boolean; imports: string[]; facadeModuleId?: string | null; viteMetadata?: { importedCss: Set<string> } };
+type BundleAsset = { type: 'asset'; fileName: string; source: string | Uint8Array };
+
+function stableHubs(): Plugin {
+  return {
+    name: 'stable-hubs',
+    apply: 'build',
+    generateBundle: {
+      // Por último: o Vite ainda reescreve os import() dos pedaços nesta fase,
+      // e a cópia com hash precisa do código final.
+      order: 'post',
+      handler(_options, rawBundle) {
+        const bundle = rawBundle as unknown as Record<string, BundleChunk | BundleAsset>;
+        hubMap.clear();
+        shellFiles.clear();
+        const hubFile = (name: string) => `${HUB_DIR}/${name}.js`;
+        // Dentro de um eixo, o import de OUTRO eixo sai como "./x.js" (mesma
+        // pasta). Na cópia que vai para /static isso vira "../core/x.js": o
+        // mesmo endereço estável, que o mapa resolve.
+        const sibling = /((?:\bfrom|\bimport)\s*|\bimport\s*\(\s*)(["'])\.\/([\w.-]+)\.js\2/g;
+        for (const name of STABLE_HUBS ? HUBS : []) {
+          const chunk = bundle[hubFile(name)];
+          if (!chunk || chunk.type !== 'chunk') continue;
+          const code = chunk.code.replace(sibling, (all: string, pre: string, quote: string, target: string) =>
+            HUBS.includes(target) ? `${pre}${quote}../${HUB_DIR}/${target}.js${quote}` : all,
+          );
+          const hash = createHash('sha256').update(code).digest('base64url').slice(0, 8);
+          const fileName = `static/${name}-${hash}.js`;
+          this.emitFile({ type: 'asset', fileName, source: code });
+          hubMap.set(`/${hubFile(name)}`, `/${fileName}`);
+        }
+
+        // A casca (para o pré-cache do service worker).
+        const chunks = Object.values(bundle).filter((item): item is BundleChunk => item.type === 'chunk');
+        const entry = chunks.find((chunk) => chunk.isEntry);
+        const seen = new Set<string>();
+        const visit = (fileName: string) => {
+          if (seen.has(fileName)) return;
+          seen.add(fileName);
+          const chunk = bundle[fileName];
+          if (!chunk || chunk.type !== 'chunk') return;
+          // dos eixos, guarda-se a cópia com hash (é a que os navegadores atuais pedem)
+          shellFiles.add((hubMap.get(`/${fileName}`) ?? `/${fileName}`).slice(1));
+          chunk.viteMetadata?.importedCss.forEach((css) => shellFiles.add(css));
+          chunk.imports.forEach(visit);
+        };
+        if (entry) visit(entry.fileName);
+        for (const chunk of chunks) if (/locales\/(pt|en)\.json$/.test(chunk.facadeModuleId ?? '')) shellFiles.add(chunk.fileName);
+
+        // O mapa e a pré-carga dos eixos, no começo do <head>.
+        const html = bundle['index.html'];
+        if (html && html.type === 'asset' && hubMap.size) {
+          const importMap = JSON.stringify({ imports: Object.fromEntries(hubMap) });
+          // Lê o próprio mapa (navegador antigo não o aplica, mas o texto está lá)
+          // e pede cada eixo pelo endereço que este navegador vai usar.
+          const preload = `(function(){var m=JSON.parse(document.getElementById('co-hubs').textContent).imports,s=!!(window.HTMLScriptElement&&HTMLScriptElement.supports&&HTMLScriptElement.supports('importmap'));for(var p in m){var k=document.createElement('link');k.rel='modulepreload';k.crossOrigin='';k.href=s?m[p]:p;document.head.appendChild(k)}})()`;
+          const tags = `<script type="importmap" id="co-hubs">${importMap}</script>\n    <script>${preload}</script>`;
+          const source = String(html.source);
+          if (!/<meta charset[^>]*>/i.test(source)) this.error('stable-hubs: o index.html precisa de <meta charset> (é depois dele que o import map entra)');
+          html.source = source.replace(/<meta charset[^>]*>/i, (meta) => `${meta}\n    ${tags}`);
+        }
+      },
+    },
+  };
+}
+
+// O que o service worker guarda de antemão além da casca (ver "workbox" abaixo).
+// Os ícones, o manifesto e os includeAssets o próprio plugin acrescenta.
+const PRECACHE_EXTRAS = new Set([
+  'index.html',
+  'offline.html',
+  // a única fonte da primeira tela (as outras entram no cache quando aparecem)
+  'fonts/pixelify-sans-latin-wght-normal.woff2',
+]);
+
 export default defineConfig({
   plugins: [
     react(),
     preloadLocale(),
+    stableHubs(),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'brand/*.svg'],
@@ -80,18 +209,55 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Imagens .webp (cartas dos oráculos, molduras, banners — 148 arquivos,
-        // ~4 MB) saíram do pré-cache: antes eram TODAS baixadas no primeiro
-        // acesso, mesmo as que o usuário nunca veria. Agora entram no cache
-        // só quando aparecem na tela (regra "app-images" abaixo). O chunk
-        // do xlsx (~320 KB, usado só na importação do IMDb) também fica de
-        // fora e é baixado apenas se a importação for aberta.
-        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
-        // 18/11/2026 (otimização): a Courier Prime (/fonts, só do efeito
-        // Typewriter) também fica fora do pré-cache: entra no cache quando é
-        // usada (regra "app-fonts" abaixo).
-        globIgnores: ['**/xlsx-*.js', '**/fonts/courier-prime-*.woff2'],
+        // 18/11/2026 (Reborn, pacote): PRÉ-CACHE ENXUTO. Antes o service worker
+        // baixava de antemão TODOS os JS e CSS do site (136 arquivos, ≈1,15 MB
+        // comprimidos), inclusive pôquer, Sala do Diretor e curadoria, que a
+        // maioria nunca abre — e começava no meio da primeira abertura. Agora
+        // ele guarda de antemão só a CASCA (o index.html e o que ele precisa
+        // para abrir: entrada, eixos, CSS global, os dois idiomas, a Pixelify)
+        // e cada tela entra no cache quando a pessoa a abre (regra "app-static"
+        // abaixo; os nomes em /static mudam com o conteúdo, então "guardou,
+        // vale para sempre"). A lista da casca é calculada no build
+        // (stableHubs → shellFiles), não escrita à mão.
+        // Imagens .webp (cartas dos oráculos, molduras, banners) e as outras
+        // fontes também entram só quando aparecem ("app-images", "app-fonts").
+        globPatterns: ['**/*.{js,css,html,woff2}'],
+        manifestTransforms: [
+          async (entries) => ({
+            warnings: shellFiles.size ? [] : ['stable-hubs: a casca do service worker veio vazia'],
+            manifest: entries.filter((entry) => shellFiles.has(entry.url) || PRECACHE_EXTRAS.has(entry.url)),
+          }),
+        ],
         runtimeCaching: [
+          {
+            // As telas (JS e CSS com hash no nome): a primeira vez vem da rede e
+            // fica guardada; depois, do aparelho. Um nome que não existe mais
+            // (deploy novo) responde 404, que não é guardado: o site se
+            // recupera sozinho (src/lib/appUpdate.ts).
+            urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/static/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'app-static',
+              cacheableResponse: { statuses: [200] },
+              expiration: {
+                maxEntries: 240,
+                maxAgeSeconds: 60 * 60 * 24 * 45, // 45 dias sem uso
+                purgeOnQuotaError: true
+              }
+            }
+          },
+          {
+            // Os eixos com nome fixo (/core): só os navegadores antigos, sem
+            // import map, pedem estes. Sempre a versão do servidor; a guardada
+            // serve apenas sem rede.
+            urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/core/'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-core-fallback',
+              networkTimeoutSeconds: 6,
+              expiration: { maxEntries: 20 }
+            }
+          },
           {
             urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/fonts/'),
             handler: 'CacheFirst',
@@ -178,6 +344,11 @@ export default defineConfig({
           }
           if (id.includes('vite/preload-helper') || id.includes('vite/modulepreload-polyfill')) return 'app-core';
           if (!id.includes('/src/') || id.includes('/src/locales/')) return undefined;
+          // 18/11/2026 (Reborn, pacote): o CSS global (src/index.css e o que ele
+          // importa) fica com a entrada, não com o app-core. O Vite põe o nome do
+          // arquivo .css no cálculo do hash do pedaço dono: com o CSS no app-core,
+          // mexer em qualquer estilo global trocava o conteúdo do app-core.
+          if (/\.css(\?|$)/.test(id)) return undefined;
           const info = getModuleInfo(id);
           // Quem abre telas sob demanda (import() de arquivos do app) guarda o
           // nome com hash dessas telas: fica na entrada, senão o app-core mudaria
@@ -185,7 +356,22 @@ export default defineConfig({
           if (!info || info.isEntry || info.dynamicallyImportedIds.some((d) => d.includes('/src/'))) return undefined;
           return inEntryGraph(id, getModuleInfo) ? 'app-core' : undefined;
         },
+        // 18/11/2026 (Reborn, pacote): os eixos saem com nome fixo em /core (ver
+        // stableHubs, no alto); o resto continua com hash em /static.
+        chunkFileNames: (chunk) => (STABLE_HUBS && HUBS.includes(chunk.name) ? `${HUB_DIR}/[name].js` : 'static/[name]-[hash].js'),
+        // Os nomes pelos quais um pedaço exporta para os outros ficam os do
+        // código (useAuth, getTrending…), não letras sorteadas (a, b, c…). Com
+        // letras, acrescentar UMA função ao app-core remanejava as letras e
+        // mudava o texto de todos os que importam dele: a cascata voltava.
+        minifyInternalExports: false,
       },
+    },
+    modulePreload: {
+      // Os eixos já são pedidos pelo script do index.html, com o endereço certo
+      // para cada navegador; aqui saem da lista de pré-carga dos import() (um
+      // <link rel="modulepreload"> não passa pelo import map e baixaria a
+      // cópia de /core à toa).
+      resolveDependencies: (_file, deps) => deps.filter((dep) => !dep.startsWith(`${HUB_DIR}/`)),
     },
     target: 'esnext',
     minify: 'terser',
