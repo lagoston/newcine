@@ -22,6 +22,9 @@
   animation-play-state: paused !important;
 }
 
+/* (TELA COBERTA por uma camada: a regra mora ao lado de quem liga a marca,
+   em src/overlays/covered.css — `#root[data-covered] main …`.) */
+
 /* 3. O QUE AINDA NÃO PARAVA com "reduzir movimento" (achado do check:motion,
       18/11/2026): as bolhas flutuantes dos amigos, o giro do Motoqueiro
       Fantasma e os três efeitos de nome (cursor da máquina de escrever,

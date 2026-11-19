@@ -16,6 +16,7 @@ import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PageBackground from './components/PageBackground';
 import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
 import { OverlayProvider } from './overlays';
+import { OVERLAYS } from './overlays/registry';
 import { DirectorProvider } from './contexts/DirectorContext';
 import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
 import { IS_NATIVE_APP } from './lib/platform';
@@ -120,7 +121,7 @@ function App() {
               (src/overlays). Uma pilha só para o z-index, o Esc, a trava de
               rolagem e o voltar das gavetas. Fica dentro do roteador e dos
               provedores acima porque as camadas que ele desenha os usam. */}
-          <OverlayProvider>
+          <OverlayProvider registry={OVERLAYS}>
           <div className="min-h-screen pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
             <SeasonalBackdrop />

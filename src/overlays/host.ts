@@ -6,7 +6,7 @@
 // carrega. Quem desenha é o <LayerOutlet /> do OverlayProvider.
 import type { ComponentType } from 'react';
 import * as stack from './stack';
-import { OVERLAYS, type OverlayDef, type OverlayKind, type OverlaySpec } from './registry';
+import type { OverlayDef, OverlayKind, OverlaySpec } from './registry';
 
 // Quanto tempo a camada continua montada depois de fechar (a animação de
 // saída das gavetas leva ~0,3 s).
@@ -30,7 +30,9 @@ interface Claim {
 }
 
 type AnyDef = OverlayDef<unknown>;
-const defs = new Map<string, AnyDef>(Object.entries(OVERLAYS as Record<string, AnyDef>));
+// Preenchido pelo <OverlayProvider registry> (a lista mora em registry.ts, na
+// entrada do build; este arquivo, no app-core, não pode importá-la).
+const defs = new Map<string, AnyDef>();
 const claims = new Map<string, Claim>();
 let mounts: Mount[] = [];
 const listeners = new Set<() => void>();
@@ -50,6 +52,12 @@ export const getDef = (kind: string): AnyDef | undefined => defs.get(kind);
 export const outletMounted = (on: boolean): void => {
   outlets += on ? 1 : -1;
 };
+
+// A lista de camadas do app (registry.ts), entregue pelo OverlayProvider.
+export function registerOverlays(registry: object): void {
+  Object.entries(registry as Record<string, AnyDef>).forEach(([kind, def]) => defs.set(kind, def));
+}
+export const getDefs = (): [string, AnyDef][] => Array.from(defs.entries());
 
 // Tipos de camada para prévias e testes, sem entrar na lista de verdade.
 export function registerOverlay(kind: string, def: { load: () => Promise<{ default: ComponentType<{ params: never }> }>; z?: number }): void {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useId, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight } from 'lucide-react';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useOpenedOnce } from '../hooks/useOpenedOnce';
 import { useEvent } from '../hooks/useEvent';
+import { LayerScope, useLayerEntry, zFromClass } from '../overlays';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -60,10 +61,17 @@ import SeasonsLayer from './movieDetails/SeasonsLayer';
 // amigos nas bolhas, classificação no cabeçalho, orçamento na direção, fotos
 // no elenco, saga na sinopse...), e só ela re-renderiza quando ele chega.
 // Aqui ficam: as camadas (trailer, temporadas, resenhas, pessoa, DNA, outro
-// filme por cima), o Esc, a trava de rolagem e o que mais de uma seção usa
-// (a biblioteca e a nota de quem olha, a prateleira do título, os selos dos
-// oráculos, os episódios vistos). Mesma aparência, mesmo comportamento, mesmas
-// props e o mesmo `export default`.
+// filme por cima) e o que mais de uma seção usa (a biblioteca e a nota de quem
+// olha, a prateleira do título, os selos dos oráculos, os episódios vistos).
+// Mesma aparência, mesmo comportamento, mesmas props e o mesmo `export default`.
+//
+// 19/11/2026 (Protocolo Reborn, onda 2b): o menu entra na pilha de camadas do
+// app (src/overlays), como as gavetas já tinham entrado na 2a. Saíram daqui a
+// trava de rolagem e o ouvinte de Esc próprios; o z-index vem da pilha (a prop
+// zIndexClass virou o piso) e o voltar do navegador fecha o menu também quando
+// ele está direto na página (antes trocava de página com o menu aberto). O
+// jeito novo de abrir é `overlays.open('title', …)` (src/overlays/title.ts);
+// montar o componente no lugar continua funcionando.
 
 interface MovieDetailsModalProps {
   movie: Movie;
@@ -144,8 +152,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // cima da gaveta) fecha: o DNA é lido de novo, sem apagar a tela.
   const [showDna, setShowDna] = useState(false);
   const [dnaRefresh, setDnaRefresh] = useState(0);
-  // A raiz do modal (para saber se ele é a camada de cima no Esc).
-  const rootRef = useRef<HTMLDivElement>(null);
 
   // 18/11/2026 (otimização): os modais filhos (indicar, adicionar, confirmar,
   // DNA, página da pessoa) só montam depois da primeira vez que abrem. Antes
@@ -174,46 +180,34 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Simples overflow hidden - sem position fixed que causa bugs visuais
-      const originalOverflow = document.body.style.overflow;
-      const originalTouchAction = document.body.style.touchAction;
-
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.touchAction = originalTouchAction;
-      };
-    }
-  }, [isOpen]);
-
-  // Esc fecha a camada de cima: trailer → temporadas → o próprio modal.
-  // Com um modal filho aberto (resenhas, nota, indicar, confirmação, página
-  // da pessoa ou outro filme aninhado), quem responde ao Esc é ele, não este.
-  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!nestedMovie || !!personSheet || showDna;
+  // 19/11/2026 (onda 2b): a rolagem da página é travada pela pilha de camadas
+  // (uma dona só). Daqui continua só o touch-action do <body>, que este menu
+  // sempre ligou (sem ele o iPhone ainda arrasta a página por trás do fundo
+  // escuro); a pilha limpa o que sobrar quando a última camada fecha.
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // 18/11/2026 (modais.md F3): só responde se este menu for a camada de
-      // cima — a última [aria-modal="true"] do documento é ele ou está dentro
-      // dele (trailer, temporadas). Uma gaveta aberta por cima (pessoa, DNA,
-      // listas…) recebe o Esc/voltar sozinha, sem fechar este junto.
-      const layers = document.querySelectorAll('[aria-modal="true"]');
-      const top = layers[layers.length - 1];
-      const root = rootRef.current;
-      if (root && top && top !== root && !root.contains(top)) return;
-      if (showTrailerModal) { setShowTrailerModal(false); return; }
-      if (showSeasonsModal) { setShowSeasonsModal(false); return; }
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = 'none';
+    return () => {
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isOpen]);
+
+  // Esc e voltar: a pilha chama isto quando este menu é a camada de cima. O
+  // trailer e as temporadas são camadas próprias (fecham antes); a ordem fica
+  // aqui também, por garantia. Com um modal filho aberto (resenhas, nota,
+  // indicar, confirmação, pessoa, DNA, outro filme), a camada de cima é ele.
+  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!nestedMovie || !!personSheet || showDna;
+  const layer = useLayerEntry(
+    isOpen,
+    () => {
+      if (showTrailerModal) return setShowTrailerModal(false);
+      if (showSeasonsModal) return setShowSeasonsModal(false);
       if (childModalOpen) return;
       onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, showTrailerModal, showSeasonsModal, childModalOpen, onClose]);
+    },
+    { z: zFromClass(zIndexClass) },
+  );
 
   // Abre outro filme por cima deste (saga, página da pessoa, Oracle DNA). Da
   // saga e da pessoa são sempre filmes (as listas vêm dos créditos de filme do
@@ -295,7 +289,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // transform via style inline), o modal ficava preso no contexto de
   // empilhamento desse container e a navbar passava por cima dele.
   return createPortal(
-    <div ref={rootRef} className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <LayerScope layer={layer}>
+    <div {...layer.rootProps} className={`fixed inset-0 ${zIndexClass}`} style={layer.style} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -546,7 +541,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           onReplaceMovie={setNestedMovie}
         />
       )}
-    </div>,
+    </div>
+    </LayerScope>,
     document.body
   );
 };

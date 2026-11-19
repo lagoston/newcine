@@ -57,13 +57,24 @@ export const marks = (): string[] => entries.map((e) => e.mark);
 
 // O sinal de "tela coberta" (auditoria F5: com uma gaveta por cima, 49
 // animações continuavam rodando embaixo). O #root ganha data-covered com o
-// número de camadas; quem anima por CSS pode pausar com
-// `#root[data-covered] …` e quem anima por JavaScript lê useCovered().
+// número de camadas: o covered.css pausa as animações CSS da página de baixo,
+// e quem anima por JavaScript lê useCovered() ou isCovered(elemento).
 function markCovered(): void {
   const root = document.getElementById('root');
   if (!root) return;
   if (entries.length > 0) root.setAttribute('data-covered', String(entries.length));
   else root.removeAttribute('data-covered');
+}
+
+// Este elemento está coberto por uma camada? Na página: qualquer camada
+// aberta. Dentro de uma camada: outra por cima dela. É o que o orçamento de
+// movimento (lib/motion.ts) pergunta antes de desenhar o estúdio — o estúdio
+// da Home para com uma gaveta por cima, e o de dentro da gaveta da Persona só
+// para quando o guia abre por cima dele.
+export function isCovered(element: Element | null): boolean {
+  if (entries.length === 0) return false;
+  const mark = element?.closest('[data-layer]')?.getAttribute('data-layer');
+  return !(mark && isTop(mark));
 }
 
 // ------------------------------------------------------------------ trava de rolagem

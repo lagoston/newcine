@@ -30,6 +30,7 @@
 // A classe .co-still também serve num elemento só: é o que deixa parada a
 // moldura do avatar nas listas (UserAvatar, prop `still`).
 import { useEffect, useState, useSyncExternalStore, type RefObject } from 'react';
+import { depth as layerDepth, isCovered, subscribe as subscribeLayers } from '../overlays/stack';
 import '../styles/motion.css';
 
 export type EcoSetting = 'auto' | 'on' | 'off';
@@ -46,8 +47,10 @@ export interface MotionState {
   foreground: boolean;
   /** "reduzir movimento" do sistema */
   reduced: boolean;
-  /** uma camada (gaveta, busca, story) cobre a página. Quem liga é o host de
-      camadas, na onda 2b (setCovered); até lá é sempre false. */
+  /** uma camada (gaveta, menu do título, story) cobre a PÁGINA. Vem da pilha
+      de camadas (src/overlays/stack.ts) desde a onda 2b. Quem anima dentro de
+      uma camada não deve olhar isto, e sim se há outra por cima DELE:
+      useAmbient(ref) e ambientInterval(el) já perguntam isso à pilha. */
   covered: boolean;
 }
 
@@ -149,11 +152,14 @@ export function setAppActive(active: boolean) {
   refresh();
 }
 
-/** Uma camada cobre a página (onda 2b: o host de camadas chama isto). */
+/** Uma camada cobre a página. 19/11/2026 (onda 2b): quem chama é a pilha de
+    camadas, pela inscrição logo abaixo (este arquivo escuta a pilha, e não o
+    contrário, para o orçamento de movimento não entrar na abertura do app). */
 export function setCovered(value: boolean) {
   covered = value;
   refresh();
 }
+if (hasWindow) subscribeLayers(() => setCovered(layerDepth() > 0));
 
 // ----- os sinais do navegador -----
 interface BatteryLike {
@@ -250,14 +256,23 @@ export function useCalm(): boolean {
 export function useAmbient(ref?: RefObject<Element | null>): boolean {
   const motion = useMotion();
   const [inView, setInView] = useState(true);
+  // 19/11/2026 (onda 2b): "coberto" é do elemento, não do app — o enfeite de
+  // dentro de uma gaveta só para quando outra camada abre por cima dela.
+  const [element, setElement] = useState<Element | null>(null);
+  const covered = useSyncExternalStore(
+    subscribeLayers,
+    () => isCovered(element),
+    () => false
+  );
   useEffect(() => {
-    const el = ref?.current;
+    const el = ref?.current ?? null;
+    setElement(el);
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver((entries) => setInView(entries.some((entry) => entry.isIntersecting)));
     observer.observe(el);
     return () => observer.disconnect();
   }, [ref]);
-  return motion.foreground && !motion.covered && !motion.reduced && !motion.eco && inView;
+  return motion.foreground && !covered && !motion.reduced && !motion.eco && inView;
 }
 
 // ----- laços fora do React -----
@@ -277,7 +292,10 @@ export function ambientInterval(el: Element | null, frame: (steps: number) => vo
   };
   const sync = () => {
     const motion = getMotion();
-    if (!inView || !motion.foreground || motion.covered) {
+    // 19/11/2026 (onda 2b): coberto é do elemento (ver isCovered na pilha de
+    // camadas): a cena da Home para com uma gaveta por cima; a de dentro da
+    // gaveta da Persona continua, e só para se o guia abrir por cima dela.
+    if (!inView || !motion.foreground || isCovered(el)) {
       stop();
       return;
     }
@@ -296,9 +314,11 @@ export function ambientInterval(el: Element | null, frame: (steps: number) => vo
       : null;
   if (el) observer?.observe(el);
   const unsubscribe = subscribeMotion(sync);
+  const unsubscribeLayers = subscribeLayers(sync);
   sync();
   return () => {
     unsubscribe();
+    unsubscribeLayers();
     observer?.disconnect();
     stop();
   };

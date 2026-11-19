@@ -1,0 +1,19 @@
+/* TELA COBERTA (19/11/2026, Protocolo Reborn, onda 2b).
+   Com uma camada aberta (gaveta, menu do título, story), a pilha de camadas
+   (stack.ts) marca o #root com data-covered e a página de baixo para de
+   animar: pausa onde está e continua do mesmo ponto quando a camada fecha.
+   Medido na Home com os Sussurros por cima (27 animações CSS rodando embaixo,
+   todas dentro do <main>): de 1,0–1,7 s de trabalho a cada 5 s para ~0,2 s.
+
+   Só o <main> (a página). Ficam de fora, de propósito:
+     • as camadas que não vão em portal e moram dentro da página (a gaveta da
+       nota): tudo o que tem data-layer, e o que está dentro;
+     • o que fica POR CIMA das camadas e está fora do <main>: os avisos
+       (toasts), o aviso de sussurro novo, a ficha voadora, as barras.
+   O estúdio em pixel art (canvas) e os trailers param por JavaScript, pelo
+   orçamento de movimento (lib/motion.ts lê a mesma pilha). */
+#root[data-covered] main :not([data-layer], [data-layer] *),
+#root[data-covered] main :not([data-layer], [data-layer] *)::before,
+#root[data-covered] main :not([data-layer], [data-layer] *)::after {
+  animation-play-state: paused !important;
+}

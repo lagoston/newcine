@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useIsPresent } from 'framer-motion';
 import { X, Loader2, Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getMovieTrailer } from '../../lib/tmdb';
 import { NIGHT, PAPER, MIST, PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
+import { useLayerEntry } from '../../overlays';
 
 // A camada do trailer (por cima do menu do título). Monta quando abre e busca
 // o trailer nessa hora, como antes; dentro do <AnimatePresence> da casca, para
@@ -40,8 +41,15 @@ const TrailerLayer: React.FC<TrailerLayerProps> = ({ movieId, rawMediaType, titl
     };
   }, [movieId, rawMediaType]);
 
+  // 19/11/2026 (onda 2b): o trailer é uma camada da pilha do app (src/overlays):
+  // o Esc e o voltar fecham só ele. `z: null`: fica dentro do menu do título
+  // (não vai em portal), então o z-[10000] continua valendo ali dentro.
+  // (sai da pilha assim que começa a animação de saída)
+  const present = useIsPresent();
+  const layer = useLayerEntry(present, onClose, { z: null });
+
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('movieModal.trailer')} — ${title}`}>
+    <div {...layer.rootProps} className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('movieModal.trailer')} — ${title}`}>
       <motion.div
         className="absolute inset-0 bg-black/85"
         initial={{ opacity: 0 }}
