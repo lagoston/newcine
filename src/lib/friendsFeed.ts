@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { ownerNow, takeBootPart } from './data';
+import { isMissingFunction, ownerNow, takeBootPart } from './data';
 import { EXTRA_STORY_KINDS, FEED_LIMIT } from './friendsFeedArgs';
 import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJackpot';
 
@@ -217,9 +217,8 @@ const storyArgs = (story: Pick<FeedStory, 'owner' | 'movie_id' | 'media_type'>) 
 });
 
 // Banco ainda sem a versão com p_kinds (o site novo pode subir antes da
-// migração): o PostgREST responde PGRST202 e o feed cai na chamada antiga.
-const isMissingFunction = (error: { code?: string; message?: string } | null) =>
-  !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message ?? ''));
+// migração): o PostgREST responde PGRST202 e o feed cai na chamada antiga
+// (isMissingFunction, que desde 19/11/2026 mora em lib/data/missing.ts).
 
 export async function fetchFriendsFeed(): Promise<FriendsFeedData> {
   // 19/11/2026 (Reborn, onda 2b): na abertura da Home os stories vêm no pedido

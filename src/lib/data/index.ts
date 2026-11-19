@@ -28,6 +28,7 @@ export { Q, type Owner, type QuerySpec } from './keys';
 export { invalidate, refetchIfStale, peekCached, patchCached, seedCached, isFreshCached } from './client';
 export { ownerNow } from './scope';
 export { fetchCached } from './fetch';
+export { isMissingFunction } from './missing';
 export { takeBootPart, onBootPart, type BootPart, type BootValue } from './boot';
 export { useCached, useOwner, type Cached, type UseCachedOptions } from './use';
 export { useMyProfile, fetchMyProfile, patchMyProfile, refreshMyProfile, fetchMyFriendIds, type MyProfile } from './me';
