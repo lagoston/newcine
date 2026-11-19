@@ -16,6 +16,7 @@ import GlassLoader from '../components/GlassLoader';
 import { getDef, getDefs, getMounts, outletMounted, overlays, registerOverlays, subscribeMounts, type Mount } from './host';
 import { ScopeContext, SlotContext } from './hooks';
 import type { OverlayRegistry } from './registry';
+import './covered.css';
 
 // Separado do provedor para que só ele seja desenhado de novo a cada troca de página.
 const HistoryBridge: React.FC = () => {
