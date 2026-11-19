@@ -16,8 +16,10 @@
 //     não é desenhada de novo);
 //   • FECHAR pela tela (X, Esc, toque fora) deixa a entrada sobrando por um
 //     instante e uma faxina tira (history.back()), um passo por vez e
-//     conferindo onde caiu. Se nesse meio-tempo o app trocou de página, a
-//     faxina desfaz o próprio passo em vez de derrubar a navegação.
+//     conferindo onde caiu. Se nesse meio-tempo o app trocou de página
+//     (fechar a gaveta e navegar em seguida), o passo cairia na página antiga:
+//     o host percebe e leva o navegador de volta à entrada do roteador, em vez
+//     de derrubar a navegação (medido: 16 rodadas de 0 a 50 ms, todas certas).
 //
 // O que NÃO é daqui: o Acervo tem a pilha dele (oracleAcervo/layerStack.ts),
 // com o próprio pushState/popstate. As duas convivem: uma entrada do Acervo
@@ -30,8 +32,17 @@
 import { IS_NATIVE_APP } from '../lib/platform';
 import * as stack from './stack';
 
-// Uma linha para desligar (as camadas continuam com z, Esc, trava e tela coberta).
-export const HISTORY_ENABLED = !IS_NATIVE_APP;
+// Para desligar sem publicar de novo (as camadas continuam com z, Esc, trava e
+// tela coberta; o voltar do navegador volta a trocar de página): no console,
+// localStorage.setItem('cineoracle:overlay-history', 'off') e recarregar.
+const switchedOff = (): boolean => {
+  try {
+    return window.localStorage.getItem('cineoracle:overlay-history') === 'off';
+  } catch {
+    return false;
+  }
+};
+export const HISTORY_ENABLED = !IS_NATIVE_APP && typeof window !== 'undefined' && !switchedOff();
 
 const KEY = 'ovl';
 type Ovl = { g: string; o: number };
@@ -59,8 +70,9 @@ let settleTimer = 0;
 let router: RouterLocation | null = null;
 let routerMove: RouterMove = 'INIT';
 let routerMoves = 0;
-// quando a faxina deu o último passo
+// quando a faxina deu o último passo, e quantos seguidos não chegaram
 let cleanedAt = 0;
+let failures = 0;
 
 const read = (): State => {
   try {
@@ -152,11 +164,14 @@ function settleSoon(): void {
   }, 80);
 }
 
-// O passo pedido não chegou (não havia para onde ir): desiste e confere o que há.
+// O passo pedido não chegou (não havia para onde ir): desiste e confere o que
+// há. Tenta mais uma vez só; depois espera a próxima camada ou troca de página
+// (uma entrada sobrando custa um toque a mais no voltar, nada além disso).
 function giveUp(): void {
   pending = null;
   adopt(ovlOf(read()));
-  settleSoon();
+  failures += 1;
+  if (failures < 2) settleSoon();
 }
 
 // Tira UMA entrada que sobrou (camada fechada pela tela) e confere onde caiu
@@ -227,6 +242,7 @@ function onPop(event: PopStateEvent): void {
       // caiu onde devia: uma entrada a menos
       event.stopImmediatePropagation();
       settle(null);
+      failures = 0;
       adopt(ovl);
       if (router && routerMoves !== step.moves && routerMove === 'PUSH' && keyOf(state) !== router.key) {
         // …mas o app trocou de página com o passo a caminho (o Chrome resolve
@@ -292,6 +308,7 @@ export function routerMoved(location: RouterLocation, move: RouterMove): void {
   router = location;
   routerMove = move;
   routerMoves += 1;
+  failures = 0;
   if (!attached) return;
   const state = read();
   const ovl = ovlOf(state);
@@ -334,7 +351,10 @@ export function attach(): void {
   if (!HISTORY_ENABLED || attached || typeof window === 'undefined') return;
   attached = true;
   window.addEventListener('popstate', onPop, true);
-  stack.hooks.entered = grow;
+  stack.hooks.entered = () => {
+    failures = 0;
+    grow();
+  };
   stack.hooks.left = scheduleClean;
   adopt(ovlOf(read()));
 }
