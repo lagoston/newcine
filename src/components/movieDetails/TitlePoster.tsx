@@ -3,6 +3,7 @@ import { Film, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PosterArt from '../posterJackpot/PosterArt';
 import { posterKey, useEquippedPosters } from '../../lib/posterJackpot';
+import { posterSources } from '../../lib/tmdbImage';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
 import OracleSeals from './OracleSeals';
 import FriendBubbles from './FriendBubbles';
@@ -34,7 +35,11 @@ const TitlePoster: React.FC<TitlePosterProps> = ({ movie, posterOwnerId, userId,
   useEffect(() => {
     setPosterFailed(false);
   }, [movie.id]);
-  const posterSrc = movie.poster_path && !posterFailed ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
+  // 19/11/2026 (Reborn, onda 2b): o pôster do menu tem até 264 px de largura.
+  // Tela de densidade 1 (computador) baixa w342 (≈28 kB em vez de ≈58 kB); as
+  // de densidade 2 e 3 continuam em w500, como era.
+  const poster = movie.poster_path && !posterFailed ? posterSources(movie.poster_path, 264, 'w500') : null;
+  const posterSrc = poster ? poster.src : null;
 
   return (
     <div className="relative mx-auto md:mx-0 w-[min(66vw,260px)] md:w-full">
@@ -57,6 +62,7 @@ const TitlePoster: React.FC<TitlePosterProps> = ({ movie, posterOwnerId, userId,
         ) : posterSrc ? (
           <img
             src={posterSrc}
+            srcSet={poster?.srcSet}
             alt=""
             decoding="async"
             className="absolute inset-0 w-full h-full object-cover"

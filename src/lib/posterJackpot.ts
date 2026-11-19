@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
+import { tmdbImage } from './tmdbImage';
 import { Q, fetchCached, invalidate, ownerNow, patchCached, peekCached, takeBootPart, useCached, useOwner, type Cached } from './data';
 
 // Poster Jackpot (30/10/2026): a roleta do Oracle Hub que sorteia pôsteres
@@ -35,8 +36,9 @@ export const EFFECT_META: Record<Exclude<PosterEffect, 'none'>, { color: string;
   gold: { color: '#F4C454', odds: 0 },
 };
 
+// 19/11/2026 (Reborn, onda 2b): o endereço das imagens do TMDB mora em lib/tmdbImage.ts
 export const posterUrl = (filePath: string, size: 'w185' | 'w342' | 'w500' | 'w780' = 'w342') =>
-  `https://image.tmdb.org/t/p/${size}${filePath}`;
+  tmdbImage(filePath, size);
 
 export interface PosterItem {
   id: number;

@@ -8,6 +8,7 @@ import DirectorMfaCard from '../components/director/DirectorMfaCard';
 import { useDirector } from '../contexts/DirectorContext';
 import { NIGHT, PAPER, MIST, VELVET, FOCUS_RING } from '../lib/oracleTheme';
 import { RARITY_META, RARITIES } from '../lib/posterJackpot';
+import { tmdbImage } from '../lib/tmdbImage';
 import { fetchPosterCatalogReview, type CurationPoster } from '../lib/posterCuration';
 import {
   directorErrorText,
@@ -34,7 +35,7 @@ import {
 // (/curadoria/posteres) mostra os rascunhos ao lado dos outros para ver o
 // conjunto antes de ligar.
 
-const IMG = (path: string | null, size = 'w185') => (path ? `https://image.tmdb.org/t/p/${size}${path}` : '');
+const IMG = (path: string | null, size = 'w185') => (path ? tmdbImage(path, size) : '');
 
 const RARITY_NAME: Record<'pt' | 'en', Record<PosterRarity, string>> = {
   pt: { common: 'Comum', rare: 'Raro', epic: 'Épico', legendary: 'Lendário' },

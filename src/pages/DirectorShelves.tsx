@@ -8,6 +8,7 @@ import DirectorMfaCard from '../components/director/DirectorMfaCard';
 import { useDirector } from '../contexts/DirectorContext';
 import { MOODS, MOOD_BY_KEY, type MoodKey } from '../lib/moods';
 import { ORACLES, ORACLE_BY_ID, NIGHT, PAPER, MIST, VELVET, FOCUS_RING, type OracleId } from '../lib/oracleTheme';
+import { tmdbImage } from '../lib/tmdbImage';
 import type { TitleType } from '../lib/tmdb';
 import {
   directorErrorText,
@@ -35,7 +36,7 @@ import {
 // Persona delas é recalculada). Tudo vai pelo banco (director_pool_*), que
 // confere o código do app autenticador e grava no diário, com desfazer.
 
-const IMG = (path: string | null, size = 'w92') => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
+const IMG = (path: string | null, size = 'w92') => (path ? tmdbImage(path, size) : null);
 
 const COPY = {
   pt: {
