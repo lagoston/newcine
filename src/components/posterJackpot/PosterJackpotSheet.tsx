@@ -662,8 +662,11 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
         </div>
       ) : (
         <ul className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {/* 19/11/2026 (Reborn, onda 2b, render.md A5): poster-cv deixa o
+              navegador pular os pôsteres fora da tela (estilo, layout, pintura
+              e as três camadas animadas dos holográficos); ver index.css. */}
           {list.map((poster) => (
-            <li key={`${poster.id}:${poster.effect}`}>
+            <li key={`${poster.id}:${poster.effect}`} className="poster-cv poster-cv-art">
               <button
                 type="button"
                 onClick={() => setOpen(poster)}

@@ -809,6 +809,32 @@ img[loading="lazy"] {
     filter 0.75s ease-out;
 }
 
+/* 19/11/2026 (Reborn, onda 2b, render.md A5): grades longas de pôsteres
+   ("Ver todos", coleção do Jackpot). O ladrilho fora da tela continua no DOM
+   (o foco e a busca na página acham), mas o navegador pula o estilo, o layout
+   e a pintura dele, e não cria uma camada por imagem. Medido no "Ver todos"
+   com 1.000 títulos (CPU 4×): ver o comentário do GridTile em
+   AllMoviesModal.tsx. O tamanho reservado é só o palpite da primeira vez;
+   `auto` guarda a altura real depois de desenhado.
+   overflow-clip-margin: o conteúdo de quem tem content-visibility é cortado na
+   borda do ladrilho; a margem deixa passar o salto do hover, o contorno do
+   foco e a sombra. Navegador sem essa margem (Safari) fica como era, sem
+   content-visibility. */
+@supports (overflow-clip-margin: 1px) {
+  .poster-cv {
+    content-visibility: auto;
+    contain-intrinsic-height: auto 15rem;
+    overflow-clip-margin: 32px;
+  }
+  /* Ladrilho que é só o pôster (coleção do Jackpot): a altura sai da largura
+     (2:3), a mesma com o conteúdo desenhado ou pulado; não precisa de palpite. */
+  .poster-cv-art {
+    aspect-ratio: 2 / 3;
+    min-height: 0;
+    contain-intrinsic-height: auto 0px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal-tile > *,
   .reveal-tile[data-revealed] > * {
