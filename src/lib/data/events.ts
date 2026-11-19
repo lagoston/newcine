@@ -49,6 +49,8 @@ const RULES: { [E in BusEvent]: (payload: BusEvents[E]) => Rule[] } = {
   'profile:updated': () => [[['me', 'profile'], 'now']],
   'friendship:changed': () => [
     [['me', 'friendIds'], 'now'],
+    // o número de amigos do Perfil (get_profile_stats_v2)
+    [['profile', 'stats'], 'later'],
     [['feed'], 'later'],
     [['title', 'social'], 'later'],
   ],

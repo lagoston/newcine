@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { getMovieDetailsFromDB, Movie } from '../lib/tmdb';
-import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
+import { Q, invalidate, isMissingFunction, useCached, useOwner } from '../lib/data';
 import { fetchUserPersona, type UserPersona } from '../lib/persona';
 import { fetchAllPages } from '../lib/fetchAllPages';
 
@@ -103,9 +103,49 @@ function decadeLabel(decadeNum: number): string {
  * Retorna um Map chaveado por `${tmdb_id}_${media_type}`.
  * Filmes ausentes do cache precisam ser buscados individualmente por quem chama.
  */
+const CACHE_COLUMNS =
+  'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, origin_country, watch_providers, keywords';
+
+// Uma linha do movie_cache com as colunas acima (e, quando pedida, seasons_data).
+interface CacheRow {
+  tmdb_id: number;
+  media_type: string;
+  title_en: string;
+  title_pt: string | null;
+  overview_en: string | null;
+  overview_pt: string | null;
+  poster_path: string | null;
+  poster_path_pt: string | null;
+  release_date: string;
+  vote_average: number;
+  vote_count: number;
+  runtime: number | null;
+  episode_run_time: unknown;
+  number_of_seasons: number | null;
+  number_of_episodes: number | null;
+  status: string | null;
+  in_production: boolean | null;
+  genres_en: unknown;
+  genres_pt: unknown;
+  director: string | null;
+  director_id: number | null;
+  cast_members: unknown;
+  seasons_data?: unknown;
+  origin_country: string[] | null;
+  watch_providers: unknown;
+  keywords: unknown;
+}
+
 async function batchFetchFromCache(
   entries: { movie_id: number; media_type: string }[],
-  isPortuguese: boolean
+  isPortuguese: boolean,
+  // 19/11/2026 (Reborn, onda 3): as temporadas com todos os episódios de toda
+  // a biblioteca só serviam para somar o tempo assistido das séries. Quando o
+  // tempo vem pronto do banco (get_profile_stats_v2), a coluna não é pedida —
+  // era a maior parte do peso desta leitura (rede.md A4). O menu de uma série
+  // aberta daqui busca as temporadas dela ao abrir a gaveta, como em qualquer
+  // outra tela.
+  withSeasons: boolean
 ): Promise<Map<string, Movie>> {
   const map = new Map<string, Movie>();
   if (entries.length === 0) return map;
@@ -124,13 +164,15 @@ async function batchFetchFromCache(
       supabase
         .from('movie_cache')
         .select(
-          'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, seasons_data, origin_country, watch_providers, keywords'
+          // (a lista de colunas como texto comum: com o pedaço opcional, o
+          // verificador de tipos do supabase-js não consegue ler um texto montado)
+          (withSeasons ? `${CACHE_COLUMNS}, seasons_data` : CACHE_COLUMNS) as string
         )
         .in('tmdb_id', chunk)
     )
   );
   const failed = results.find((result) => result.error);
-  const data = results.flatMap((result) => result.data ?? []);
+  const data = results.flatMap((result) => result.data ?? []) as unknown as CacheRow[];
 
   if (failed || data.length === 0) {
     if (failed) console.error('Error batch-fetching movie_cache:', failed.error);
@@ -139,7 +181,7 @@ async function batchFetchFromCache(
 
   for (const row of data) {
     const genres = isPortuguese && row.genres_pt ? row.genres_pt : row.genres_en;
-    const movie: Movie = {
+    const movie = {
       id: row.tmdb_id,
       title: isPortuguese && row.title_pt ? row.title_pt : row.title_en,
       poster_path: isPortuguese && row.poster_path_pt ? row.poster_path_pt : row.poster_path,
@@ -163,20 +205,78 @@ async function batchFetchFromCache(
       origin_country: row.origin_country || [],
       watchProviders: row.watch_providers,
       keywords: row.keywords || []
-    } as Movie;
+    } as unknown as Movie;
     map.set(`${row.tmdb_id}_${row.media_type}`, movie);
   }
 
   return map;
 }
 
+// --- Os números do topo, prontos do banco (onda 3) ---
+
+// O que get_profile_stats_v2 devolve (contrato: banco_sql/CONTRATO_RPCS.md).
+interface ProfileStats {
+  ratedMoviesCount: number;
+  ratingDistribution: Record<string, number>;
+  // minutos
+  totalWatchTime: number;
+  friendsCount: number;
+  countries: Record<string, { count: number; avg: number }>;
+}
+
+// A função não existe neste banco: não se pergunta de novo nesta visita.
+let statsMissing = false;
+
+// null = plano B (a função não existe ou falhou): o hook calcula tudo como antes.
+async function loadProfileStats(userId: string): Promise<ProfileStats | null> {
+  if (statsMissing) return null;
+  const { data, error } = await supabase.rpc('get_profile_stats_v2', { p_user_id: userId });
+  if (isMissingFunction(error)) {
+    statsMissing = true;
+    return null;
+  }
+  if (error) {
+    console.error('get_profile_stats_v2:', error);
+    return null;
+  }
+  const stats = data as Partial<ProfileStats> | null;
+  if (!stats || typeof stats !== 'object' || typeof stats.ratedMoviesCount !== 'number' || !stats.ratingDistribution || !stats.countries) return null;
+  return stats as ProfileStats;
+}
+
+export interface ProfileDataOptions {
+  // A lista pesada (`movies`: a biblioteca inteira com elenco, palavras-chave,
+  // onde assistir…) é pedida:
+  //   true (padrão) → sempre (a grade do perfil de outra pessoa);
+  //   'rated'       → só se a pessoa tem algum título avaliado (o próprio
+  //                   Perfil: o retrato de gosto e o mapa só existem com notas).
+  list?: boolean | 'rated';
+}
+
 // --- Hook principal ---
 
-export function useProfileData(userId: string | undefined, language: string): ProfileData {
+// 19/11/2026 (Reborn, onda 3; rede.md A4): os números do topo (títulos
+// avaliados, distribuição das notas, tempo assistido, amigos, países) vêm de
+// get_profile_stats_v2 numa ida de ~KB, guardada 5 min (e no aparelho, para o
+// próprio perfil): aparecem na hora, sem esperar a biblioteca inteira. A lista
+// pesada continua sendo buscada para quem precisa dela (a grade, o retrato de
+// gosto, os filmes de um país), mas sem as temporadas de todas as séries, sem
+// reler os episódios vistos e sem contar os amigos de novo. PLANO B: sem a
+// função no banco, o hook roda inteiro como antes.
+export function useProfileData(userId: string | undefined, language: string, options: ProfileDataOptions = {}): ProfileData {
+  const listMode = options.list ?? true;
   const [loading, setLoading] = useState(true);
   const [personaLoading, setPersonaLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadFlag, setReloadFlag] = useState(0);
+
+  const owner = useOwner();
+  const statsQuery = useCached<ProfileStats | null>(Q.profileStats(owner, userId ?? ''), () => loadProfileStats(userId as string), { enabled: !!userId });
+  // undefined = ainda não chegou; null = plano B; objeto = os números do banco
+  const stats = statsQuery.error ? null : statsQuery.data;
+  const statsMode = stats === undefined ? 'wait' : stats === null ? 'old' : 'rpc';
+  // a lista pesada é necessária? (no plano B sempre: os números saem dela)
+  const wantList = statsMode === 'old' || listMode === true || (listMode === 'rated' && statsMode === 'rpc' && (stats?.ratedMoviesCount ?? 0) > 0);
 
   const [movies, setMovies] = useState<MovieWithRating[]>([]);
   const [ratedMoviesCount, setRatedMoviesCount] = useState(0);
@@ -194,34 +294,63 @@ export function useProfileData(userId: string | undefined, language: string): Pr
 
   const [persona, setPersona] = useState<UserPersona | null>(null);
 
-  const refetch = useCallback(() => setReloadFlag((f) => f + 1), []);
+  const refetch = useCallback(() => {
+    // os números do banco também são lidos de novo (amizade aceita, episódio marcado)
+    if (userId) void invalidate(['profile', 'stats', userId]);
+    setReloadFlag((f) => f + 1);
+  }, [userId]);
 
+  // A personalidade tem a sua própria leitura (não espera os números nem a lista).
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
+    const runPersona = async () => {
+      try {
+        setPersonaLoading(true);
+        const data = await fetchUserPersona(userId);
+        if (!cancelled) setPersona(data);
+      } catch (err) {
+        console.error('useProfileData persona error:', err);
+        if (!cancelled) setPersona(null);
+      } finally {
+        if (!cancelled) setPersonaLoading(false);
+      }
+    };
+    runPersona();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, reloadFlag]);
+
+  useEffect(() => {
+    if (!userId) return;
+    // a lista pesada espera saber se é necessária (os números chegam antes)
+    if (statsMode === 'wait') return;
+    if (!wantList) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    // os números vêm do banco? então a lista não precisa das temporadas, dos
+    // episódios vistos nem da contagem de amigos
+    const fromRpc = statsMode === 'rpc';
 
     const run = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const cacheKey = CACHE_KEYS.USER_STATS(userId);
-        // NOTA: removido o atalho de "retorna do cache local se existir". Antes disso,
-        // estatísticas (incluindo o mapa de países) podiam ficar desatualizadas se o
-        // usuário avaliasse um filme novo sem esperar o cache expirar. Como a busca em
-        // lote já é rápida, o ganho de performance do cache não compensava mais o risco
-        // de mostrar dado errado. O `cache.set` mais abaixo continua gravando (outros
-        // pontos do app podem ler esse valor), só não é mais lido como atalho aqui.
-
         // --- Contador social (1 query, já que amizade é simétrica —
         // antes eram 2 queries separadas em follows, uma pra seguidores
-        // e outra pra seguindo) ---
+        // e outra pra seguindo). Com os números do banco, não é pedido. ---
         const [friendshipsRes, userMoviesRes] = await Promise.all([
-          supabase
-            .from('friendships')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'accepted')
-            .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+          fromRpc
+            ? Promise.resolve({ count: 0 })
+            : supabase
+                .from('friendships')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'accepted')
+                .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
           // 18/11/2026 (correção): paginado — sem isso o PostgREST cortava em 1.000
           // títulos, sem erro. 'id' desempata quem entrou no mesmo instante.
           fetchAllPages((from, to) =>
@@ -257,7 +386,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
 
         // --- Busca em lote no movie_cache (1 query pra todos) ---
         const isPortuguese = language.startsWith('pt');
-        const cacheMap = await batchFetchFromCache(rawUserMovies, isPortuguese);
+        const cacheMap = await batchFetchFromCache(rawUserMovies, isPortuguese, !fromRpc);
 
         const missing = rawUserMovies.filter((m) => !cacheMap.has(`${m.movie_id}_${m.media_type}`));
 
@@ -294,7 +423,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         const tvIds = ratedMovies.filter((m) => m.media_type === 'tv').map((m) => m.id);
         let watchedEpisodesByShow = new Map<number, { season_number: number; episode_number: number }[]>();
 
-        if (tvIds.length > 0) {
+        if (tvIds.length > 0 && !fromRpc) {
           // 18/11/2026 (correção): paginado (cada episódio é uma linha; quem viu
           // muitas séries passava de 1.000 e o tempo assistido saía menor).
           const { data: watchedData } = await fetchAllPages((from, to) =>
@@ -475,35 +604,10 @@ export function useProfileData(userId: string | undefined, language: string): Pr
 
         setFriendsCount(friends);
 
-        // --- Salva no cache local ---
-        cache.set(
-          cacheKey,
-          {
-            movies: fullMovies,
-            ratedMoviesCount: ratedEntries.length,
-            ratingDistribution: distribution,
-            totalWatchTime: totalMinutes,
-            favoriteGenres: topGenres,
-            favoriteKeywords: topKeywords,
-            favoriteDecade:
-              totalWithDate > 0
-                ? {
-                    decade: Object.entries(decadeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '',
-                    count: Math.max(...Object.values(decadeCounts), 0),
-                    label: decadeLabel(parseInt(Object.entries(decadeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '0')),
-                    percentage: 0,
-                    allDecades: decadeCounts
-                  }
-                : null,
-            topActors: Object.values(actorCounts).sort((a, b) => b.count - a.count).slice(0, 3),
-            topDirectors: Object.values(directorCounts).sort((a, b) => b.count - a.count).slice(0, 3),
-            leastKnownGem: gem,
-            friendsCount: friends,
-            countryCounts: countryTally,
-            countryAvgRatings: countryAvg
-          },
-          CACHE_TTL.USER_STATS
-        );
+        // (19/11/2026) Saiu o `cache.set` que guardava tudo isto, com a lista
+        // inteira, no cache antigo (lib/cache.ts): ninguém lia essa entrada
+        // desde que o atalho foi tirado, e ela segurava a biblioteca toda na
+        // memória. Os números agora ficam na camada de dados (Q.profileStats).
       } catch (err: any) {
         console.error('useProfileData error:', err);
         if (!cancelled) setError(err?.message || 'Failed to load profile data');
@@ -512,26 +616,45 @@ export function useProfileData(userId: string | undefined, language: string): Pr
       }
     };
 
-    const runPersona = async () => {
-      try {
-        setPersonaLoading(true);
-        const data = await fetchUserPersona(userId);
-        if (!cancelled) setPersona(data);
-      } catch (err) {
-        console.error('useProfileData persona error:', err);
-        if (!cancelled) setPersona(null);
-      } finally {
-        if (!cancelled) setPersonaLoading(false);
-      }
-    };
-
     run();
-    runPersona();
 
     return () => {
       cancelled = true;
     };
-  }, [userId, language, reloadFlag]);
+  }, [userId, language, reloadFlag, statsMode, wantList]);
+
+  // Os números do banco, no formato que as telas já usam.
+  const fromBank = useMemo(() => {
+    if (!stats) return null;
+    return {
+      ratingDistribution: Object.fromEntries(Object.entries(stats.ratingDistribution).map(([rating, count]) => [Number(rating), count])) as Record<number, number>,
+      countryCounts: Object.fromEntries(Object.entries(stats.countries).map(([code, value]) => [code, value.count])) as Record<string, number>,
+      countryAvgRatings: Object.fromEntries(Object.entries(stats.countries).map(([code, value]) => [code, value.avg])) as Record<string, number>,
+    };
+  }, [stats]);
+
+  if (stats && fromBank) {
+    return {
+      loading: loading && wantList,
+      error,
+      movies,
+      ratedMoviesCount: stats.ratedMoviesCount,
+      ratingDistribution: fromBank.ratingDistribution,
+      totalWatchTime: stats.totalWatchTime,
+      favoriteGenres,
+      favoriteKeywords,
+      favoriteDecade,
+      topActors,
+      topDirectors,
+      leastKnownGem,
+      friendsCount: stats.friendsCount,
+      countryCounts: fromBank.countryCounts,
+      countryAvgRatings: fromBank.countryAvgRatings,
+      persona,
+      personaLoading,
+      refetch,
+    };
+  }
 
   return {
     loading,

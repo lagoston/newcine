@@ -105,7 +105,12 @@ export const Q = {
   titleSocial: (uid: Owner, type: 'movie' | 'tv', id: number) => spec(uid, ['title', 'social', type, id, uid], 2 * MIN),
   libraryRows: (uid: Owner) => spec(uid, ['library', 'rows', uid], 2 * MIN, true),
   // números e estúdio de um perfil: só os da própria pessoa vão para o aparelho
-  profileStats: (uid: Owner, of: string) => spec(uid, ['profile', 'stats', of, uid], 5 * MIN, of === uid),
+  // (get_profile_stats_v2, onda 3. Uma resposta "plano B" — null — não fica
+  // valendo. Visitante vê o perfil público: guardado como dado público, só na memória.)
+  profileStats: (uid: Owner, of: string) =>
+    typeof uid === 'string'
+      ? spec(uid, ['profile', 'stats', of, uid], (data) => (data ? 5 * MIN : 0), of === uid)
+      : spec(uid === null ? 'pub' : undefined, ['profile', 'stats', of, 'visitante'], (data) => (data ? 5 * MIN : 0)),
   personaWorld: (uid: Owner, of: string) => spec(uid, ['persona', 'world', of, uid], 10 * MIN, of === uid),
   feed: (uid: Owner) => spec(uid, ['feed', uid], 1 * MIN),
 };
