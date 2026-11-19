@@ -458,6 +458,7 @@
     "filterTags": "Achievements",
     "sectionNew": "New",
     "sectionEarlier": "Earlier",
+    "loadMore": "Show older",
     "deleteAsk": "Delete this whisper?",
     "subtitleNew_one": "{{count}} new",
     "subtitleNew_other": "{{count}} new",

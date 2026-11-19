@@ -460,6 +460,7 @@
     "filterTags": "Conquistas",
     "sectionNew": "Novos",
     "sectionEarlier": "Anteriores",
+    "loadMore": "Ver mais antigos",
     "deleteAsk": "Apagar este sussurro?",
     "subtitleNew_one": "{{count}} novo",
     "subtitleNew_other": "{{count}} novos",

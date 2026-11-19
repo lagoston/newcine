@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useWhispers } from '../contexts/WhispersContext';
+import { useBus } from '../lib/bus';
 import { Movie, getMovieDetails, getMovieDetailsFromDB } from '../lib/tmdb';
 // 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
@@ -109,6 +110,23 @@ const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:o
 const ghostButton = `inline-flex items-center gap-1.5 px-3.5 rounded-lg text-sm font-medium border border-white/15 hover:border-white/35 hover:bg-white/5 transition disabled:opacity-50 ${focusRing}`;
 const primaryButton = `inline-flex items-center gap-1.5 px-4 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition disabled:opacity-50 ${focusRing}`;
 
+// 19/11/2026 (Reborn, render A10): os sussurros vêm em páginas. Antes a gaveta
+// buscava e desenhava TODOS de uma vez, sem limite: a conta que mais usa o app
+// só acumula. Agora são os 50 mais novos e "Ver mais antigos" busca os próximos.
+const PAGE_SIZE = 50;
+// quantas páginas seguidas "Ver mais" busca sozinho quando há um filtro ligado
+// e a página nova não trouxe nenhum sussurro daquele filtro
+const MAX_PAGES_PER_TAP = 5;
+const WHISPER_SELECT = `
+  *,
+  from_user:profiles!from_user_id (
+    username,
+    avatar_url
+  )
+`;
+const toWhispers = (rows: unknown): Whisper[] =>
+  ((rows as Whisper[] | null) || []).map((row) => ({ ...row, from_user: row.from_user || null }));
+
 export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: WhispersModalProps) {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -127,6 +145,19 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const [tradeLayer, setTradeLayer] = useState(false);
   // As trocas de pôsteres citadas nos sussurros (por id).
   const [trades, setTrades] = useState<Map<number, PosterTrade>>(new Map());
+  // há sussurros mais antigos do que os já buscados
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // O que as buscas fora do render (ver mais, aviso ao vivo) precisam ler na hora.
+  const whispersRef = useRef<Whisper[]>([]);
+  whispersRef.current = whispers;
+  const tradesRef = useRef(trades);
+  tradesRef.current = trades;
+  const filterRef = useRef<Filter>('all');
+  filterRef.current = filter;
+  const busyLoad = useRef(false);
+  const newerQueued = useRef(false);
+  const loadNewerRef = useRef<() => Promise<void>>(async () => undefined);
 
   // Guardados em ref: as funções do contexto/i18n podem mudar de identidade
   // a cada render e não devem disparar uma nova busca.
@@ -134,6 +165,31 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   refetchRef.current = refetchUnreadCount;
   const tRef = useRef(t);
   tRef.current = t;
+
+  // As trocas de pôsteres citadas num lote (só as que ainda não vieram).
+  const loadTradesOf = async (rows: Whisper[]) => {
+    const ids = Array.from(new Set(rows.map((w) => w.trade_id).filter((id): id is number => typeof id === 'number')))
+      .filter((id) => !tradesRef.current.has(id));
+    if (ids.length === 0) return;
+    try {
+      const found = await getMyTrades(ids);
+      setTrades((prev) => {
+        const next = new Map(prev);
+        found.forEach((trade) => next.set(trade.id, trade));
+        return next;
+      });
+    } catch (tradeError) {
+      console.error('Error fetching poster trades:', tradeError);
+    }
+  };
+
+  // Marca como lidos os que acabaram de aparecer e atualiza o sino.
+  const markRead = async (rows: Whisper[]) => {
+    const unread = rows.filter((w) => !w.read).map((w) => w.id);
+    if (unread.length === 0) return;
+    await supabase.from('friend_indications').update({ read: true }).in('id', unread);
+    refetchRef.current();
+  };
 
   useEffect(() => {
     if (!isOpen || !session?.user?.id) return;
@@ -146,39 +202,26 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         setConfirmDeleteId(null);
         const { data, error } = await supabase
           .from('friend_indications')
-          .select(`
-            *,
-            from_user:profiles!from_user_id (
-              username,
-              avatar_url
-            )
-          `)
+          .select(WHISPER_SELECT)
           .eq('to_user_id', session.user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(PAGE_SIZE);
 
         if (error) throw error;
         if (cancelled) return;
 
-        const list: Whisper[] = (data || []).map((row: Whisper) => ({ ...row, from_user: row.from_user || null }));
-        const unread = list.filter((w) => !w.read).map((w) => w.id);
-        const tradeIds = Array.from(new Set(list.map((w) => w.trade_id).filter((id): id is number => typeof id === 'number')));
-        if (tradeIds.length > 0) {
-          try {
-            const found = await getMyTrades(tradeIds);
-            if (!cancelled) setTrades(new Map(found.map((trade) => [trade.id, trade])));
-          } catch (tradeError) {
-            console.error('Error fetching poster trades:', tradeError);
-          }
-        }
+        const list = toWhispers(data);
+        tradesRef.current = new Map();
+        setTrades(new Map());
+        await loadTradesOf(list);
+        if (cancelled) return;
         setWhispers(list);
+        setHasMore(list.length === PAGE_SIZE);
         // "Novos" = o que estava sem ler quando o modal abriu; continua
         // destacado durante esta visita mesmo depois de marcado como lido.
-        setFreshIds(new Set(unread));
-
-        if (unread.length > 0) {
-          await supabase.from('friend_indications').update({ read: true }).in('id', unread);
-          refetchRef.current();
-        }
+        setFreshIds(new Set(list.filter((w) => !w.read).map((w) => w.id)));
+        await markRead(list);
       } catch (error) {
         console.error('Error fetching whispers:', error);
         toast.error(tRef.current('indications.loadError'));
@@ -189,6 +232,106 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
 
     return () => { cancelled = true; };
   }, [isOpen, session?.user?.id]);
+
+  // "Ver mais antigos": a próxima página, a partir do mais antigo já buscado.
+  // O corte é por data ("até esta data, inclusive") e os repetidos saem pelo
+  // id: assim um lote criado no mesmo instante (vários episódios novos de uma
+  // vez) não se perde na virada da página, e apagar um sussurro no meio não
+  // desloca nada (como aconteceria contando posições).
+  const loadMore = async () => {
+    const uid = session?.user?.id;
+    if (!uid || busyLoad.current || !hasMore) return;
+    busyLoad.current = true;
+    setLoadingMore(true);
+    try {
+      for (let page = 0; page < MAX_PAGES_PER_TAP; page += 1) {
+        const current = whispersRef.current;
+        const last = current[current.length - 1];
+        if (!last) break;
+        const sameInstant = current.filter((w) => w.created_at === last.created_at).length;
+        const { data, error } = await supabase
+          .from('friend_indications')
+          .select(WHISPER_SELECT)
+          .eq('to_user_id', uid)
+          .lte('created_at', last.created_at)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(PAGE_SIZE + sameInstant);
+        if (error) throw error;
+        const known = new Set(current.map((w) => w.id));
+        const rows = toWhispers(data);
+        const older = rows.filter((w) => !known.has(w.id));
+        const more = rows.length === PAGE_SIZE + sameInstant && older.length > 0;
+        await loadTradesOf(older);
+        const next = [...current, ...older];
+        whispersRef.current = next;
+        setWhispers(next);
+        setHasMore(more);
+        // os não lidos mais antigos também entram em "Novos" nesta visita
+        const unread = older.filter((w) => !w.read).map((w) => w.id);
+        if (unread.length > 0) setFreshIds((prev) => new Set([...prev, ...unread]));
+        await markRead(older);
+        // com um filtro ligado, continua até aparecer algo daquele filtro
+        const wanted = filterRef.current;
+        if (!more || wanted === 'all' || older.some((w) => filterOf(w.type) === wanted)) break;
+      }
+    } catch (error) {
+      console.error('Error fetching older whispers:', error);
+      toast.error(tRef.current('indications.loadError'));
+    } finally {
+      busyLoad.current = false;
+      setLoadingMore(false);
+      // um aviso ao vivo que chegou no meio desta busca
+      if (newerQueued.current) {
+        newerQueued.current = false;
+        void loadNewerRef.current();
+      }
+    }
+  };
+
+  // 19/11/2026 (onda 3): chegou um sussurro com a gaveta aberta (o banco avisa
+  // pelo canal ao vivo; src/lib/userChannel.ts). Busca só os mais novos do que
+  // o primeiro da lista e os põe no topo, em "Novos".
+  const loadNewer = async () => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    // outra busca em andamento: este aviso fica na fila e roda quando ela acabar
+    if (busyLoad.current) {
+      newerQueued.current = true;
+      return;
+    }
+    busyLoad.current = true;
+    try {
+      const current = whispersRef.current;
+      let query = supabase.from('friend_indications').select(WHISPER_SELECT).eq('to_user_id', uid);
+      if (current[0]) query = query.gte('created_at', current[0].created_at);
+      const { data, error } = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(PAGE_SIZE);
+      if (error) throw error;
+      const known = new Set(current.map((w) => w.id));
+      const newer = toWhispers(data).filter((w) => !known.has(w.id));
+      if (newer.length === 0) return;
+      await loadTradesOf(newer);
+      const next = [...newer, ...whispersRef.current];
+      whispersRef.current = next;
+      setWhispers(next);
+      setFreshIds((prev) => new Set([...prev, ...newer.map((w) => w.id)]));
+      await markRead(newer);
+    } catch (error) {
+      console.error('Error fetching new whispers:', error);
+    } finally {
+      busyLoad.current = false;
+      if (newerQueued.current) {
+        newerQueued.current = false;
+        void loadNewer();
+      }
+    }
+  };
+  loadNewerRef.current = loadNewer;
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+  useBus('whispers:new', () => {
+    if (isOpenRef.current) void loadNewer();
+  });
 
   const presentTypes = useMemo(() => Array.from(new Set(whispers.map((w) => filterOf(w.type)))), [whispers]);
   const filters: Filter[] = presentTypes.length > 1 ? ['all', ...presentTypes] : [];
@@ -339,7 +482,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const renderAvatar = (whisper: Whisper) => {
     if (whisper.from_user) {
       return whisper.from_user.avatar_url ? (
-        <img src={whisper.from_user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-white/15" />
+        <img src={whisper.from_user.avatar_url} alt="" loading="lazy" decoding="async" width={40} height={40} className="w-10 h-10 rounded-full object-cover ring-1 ring-white/15" />
       ) : (
         <span className="w-10 h-10 rounded-full grid place-items-center ring-1 ring-white/15 text-lg" style={{ ...PIXEL, background: VELVET, color: PAPER }}>
           {whisper.from_user.username.charAt(0).toUpperCase()}
@@ -758,6 +901,15 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
                 </section>
               )}
             </SheetFade>
+
+            {hasMore && (
+              <div className="mt-5 flex justify-center">
+                <button onClick={loadMore} disabled={loadingMore} className={`${ghostButton} py-2`} style={{ color: PAPER }}>
+                  {loadingMore && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
+                  {t('indications.loadMore')}
+                </button>
+              </div>
+            )}
           </>
         )}
       </OracleSheet>
