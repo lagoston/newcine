@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { ensureMovieCachedIfMissing } from '../../lib/tmdb';
 import { cache, CACHE_KEYS } from '../../lib/cache';
-import { markSeasonalStale } from '../../contexts/SeasonalEventContext';
+import { emit } from '../../lib/bus';
 import { useEvent } from '../../hooks/useEvent';
 
 // O título na biblioteca de quem olha: está lá? com que nota? Mais as duas
@@ -90,14 +90,14 @@ export function useTitleRelation(
     setUserRating(rating !== undefined ? rating : null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
-    // pode ter avançado o evento sazonal: confere na próxima troca de página
-    markSeasonalStale();
-    // Onda 2b (Protocolo Reborn): aqui e no `remove` abaixo são os dois únicos
-    // pontos em que o menu muda a biblioteca. Quando a camada de dados assumir,
-    // o markSeasonalStale sai e entra o aviso do barramento (lib/bus.ts):
-    // emit('title:rated', { id, mediaType, rating }) com nota, ou
-    // emit('title:watchlist', { id, mediaType, on: true }) sem nota. Por ora
-    // fica exatamente como era (junto com a prop onAddToLibrary).
+    // 19/11/2026 (Reborn, onda 2b): aqui e no `remove` abaixo são os dois
+    // únicos pontos em que o menu muda a biblioteca. O menu AVISA no barramento
+    // (lib/bus.ts) e a camada de dados marca como vencido o que dependia disso
+    // (lib/data/events.ts: evento sazonal e estado do Jackpot, sem pedir nada na
+    // hora — refazem na próxima troca de página ou quando a tela pedir). Antes
+    // era um markSeasonalStale() direto. A prop onAddToLibrary segue como era.
+    if (rating !== undefined) emit('title:rated', { id: movieId, mediaType, rating });
+    else emit('title:watchlist', { id: movieId, mediaType, on: true });
     toast.success(t('library.inLibrary'));
     if (onAddToLibrary) {
       onAddToLibrary();
@@ -120,11 +120,14 @@ export function useTitleRelation(
       return;
     }
 
+    // o que saiu: um título com nota, ou só um item da Watchlist
+    const wasRated = userRating !== null;
     setIsInLibrary(false);
     setUserRating(null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
-    markSeasonalStale();
+    if (wasRated) emit('title:rated', { id: movieId, mediaType, rating: null });
+    else emit('title:watchlist', { id: movieId, mediaType, on: false });
     toast.success(t('library.movieRemovedSuccess'));
     if (onAddToLibrary) {
       onAddToLibrary();

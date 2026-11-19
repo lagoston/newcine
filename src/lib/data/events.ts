@@ -43,10 +43,7 @@ const RULES: { [E in BusEvent]: (payload: BusEvents[E]) => Rule[] } = {
     [typeof e?.id === 'number' ? ['tvProgress', e.id] : ['tvProgress'], 'now'],
     [['profile', 'stats'], 'later'],
   ],
-  'profile:updated': () => [
-    [['me', 'profile'], 'now'],
-    [['boot'], 'later'],
-  ],
+  'profile:updated': () => [[['me', 'profile'], 'now']],
   'friendship:changed': () => [
     [['me', 'friendIds'], 'now'],
     [['feed'], 'later'],
@@ -74,10 +71,4 @@ export function startDataEvents(): void {
       rules.forEach(([key, when]) => void invalidate(key, when));
     });
   });
-}
-
-// O mesmo efeito de um evento, para o código antigo que ainda não emite no
-// barramento (ex.: markSeasonalStale). Some quando os chamadores migrarem (2b).
-export function applyRules(rules: Rule[]): void {
-  rules.forEach(([key, when]) => void invalidate(key, when));
 }

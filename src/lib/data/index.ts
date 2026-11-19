@@ -30,5 +30,4 @@ export { ownerNow } from './scope';
 export { fetchCached } from './fetch';
 export { takeBootPart, onBootPart, type BootPart, type BootValue } from './boot';
 export { useCached, useOwner, type Cached, type UseCachedOptions } from './use';
-export { applyRules } from './events';
 export { useMyProfile, fetchMyProfile, patchMyProfile, refreshMyProfile, fetchMyFriendIds, loadMyPremium, type MyProfile, type MyPremium } from './me';

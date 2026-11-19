@@ -64,8 +64,8 @@ function spec(owner: Owner, key: QueryKey, staleTime: QuerySpec['staleTime'], pe
 // uid = quem está logado (useOwner() nos hooks; ownerNow() fora deles).
 export const Q = {
   // ---- a casca -------------------------------------------------------------
-  // (2b) get_app_bootstrap: premium, diretor, não lidos, sazonal… numa ida só
-  boot: (uid: Owner) => spec(uid, ['boot', uid], 5 * MIN, true),
+  // (get_app_bootstrap, a casca numa ida só, NÃO é uma consulta guardada: cada
+  // parte dela entra na consulta do seu consumidor — ver boot.ts)
   // o próprio perfil: UMA leitura para a casca inteira (eram 14 numa sessão de 6 telas)
   myProfile: (uid: Owner) => spec(uid, ['me', 'profile', uid], 10 * MIN, true),
   // premium + vitalício. Não vai para o aparelho: quem decide o que é pago é

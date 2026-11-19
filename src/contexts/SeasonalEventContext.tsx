@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { emit } from '../lib/bus';
-import { Q, applyRules, invalidate, onBootPart, refetchIfStale, seedCached, takeBootPart, useCached, useOwner } from '../lib/data';
+import { Q, invalidate, onBootPart, refetchIfStale, seedCached, takeBootPart, useCached, useOwner } from '../lib/data';
 import { useDirector } from './DirectorContext';
 import {
   SEASONAL_THEMES,
@@ -58,23 +58,11 @@ export const requestSeasonalRefresh = () => {
   emit('seasonal:stale', {});
 };
 
-// "O evento pode ter mudado" (a pessoa avaliou algo), sem pedir nada na hora:
-// a consulta fica marcada como vencida e é refeita na próxima troca de página
-// ou volta ao app. 18/11/2026 (Reborn, onda 2a): a marca saiu de uma variável
-// deste arquivo e foi para a camada de dados. É o mesmo efeito que o aviso
-// 'title:rated' do barramento tem no evento sazonal e no estado do Jackpot;
-// quando o menu do título e a Biblioteca passarem a emitir 'title:rated' (2b),
-// esta função some.
-export const markSeasonalStale = () => {
-  applyRules([
-    [['seasonal'], 'later'],
-    [['jackpot', 'state'], 'later'],
-  ]);
-};
-
 // Sair de uma destas páginas refaz a consulta: nelas se avalia por caminhos que
-// ainda não avisam ninguém (Adicionar filmes, listas, edição em lote). Sai
-// daqui quando todos emitirem 'title:rated' (2b).
+// ainda não avisam no barramento (Adicionar filmes, listas, edição em lote).
+// O menu do título e as notas da Biblioteca já avisam ('title:rated', desde
+// 19/11/2026): o evento fica marcado como vencido e é refeito na próxima troca
+// de página. Esta lista sai quando todos os caminhos avisarem.
 const RATING_PAGES = ['/library', '/add-movies', '/lists'];
 // A resposta sem o relógio do servidor (`now` muda a cada chamada): duas
 // respostas iguais aqui são o mesmo estado do evento.
@@ -154,7 +142,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Trocou de página: atualiza se a pessoa pode ter avaliado (saiu da
   // Biblioteca, de Adicionar filmes ou das listas) ou se a resposta venceu
-  // (5 min, ou marcada por markSeasonalStale / 'title:rated').
+  // (5 min, ou marcada pelo aviso 'title:rated' do barramento).
   const previousPath = useRef<string | null>(null);
   useEffect(() => {
     const from = previousPath.current;
