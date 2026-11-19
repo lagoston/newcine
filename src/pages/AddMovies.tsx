@@ -9,7 +9,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import IMDbImportModal from '../components/IMDbImportModal';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { useOpenTitle } from '../overlays';
 import QuickAddMenu from '../components/QuickAddMenu';
 import OracleForYouBox from '../components/OracleForYouBox';
 import OptimizedPoster from '../components/OptimizedPoster';
@@ -42,7 +44,6 @@ export default function AddMovies() {
   const [libraryCount, setLibraryCount] = useState<number | null>(null);
   const [personaCode, setPersonaCode] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [quickAddTarget, setQuickAddTarget] = useState<Movie | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,14 @@ export default function AddMovies() {
     setLibraryKeys(new Set(rows.map((row) => itemKey(row.movie_id, row.media_type))));
     setLibraryCount(rows.length);
   }, [userId]);
+
+  // ao adicionar pelo menu do título, a lista da biblioteca é lida de novo
+  const showTitle = useOpenTitle({
+    onAddToLibrary: () => {
+      cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId || ''));
+      fetchLibrary();
+    },
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -136,7 +145,7 @@ export default function AddMovies() {
       // Do banco; fora dele, a cache-title busca, grava e devolve. Vencido,
       // atualiza em segundo plano (ver getMovieDetails).
       const details = await getMovieDetails(movie.id, mediaType);
-      setSelectedMovie(details);
+      showTitle(details);
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
@@ -358,17 +367,6 @@ export default function AddMovies() {
         }}
       />
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-          onAddToLibrary={() => {
-            cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId || ''));
-            fetchLibrary();
-          }}
-        />
-      )}
 
       {quickAddTarget && (
         <QuickAddMenu

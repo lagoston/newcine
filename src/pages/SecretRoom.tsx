@@ -3,9 +3,10 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Lock, Skull } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
-import type { Movie } from '../lib/tmdb';
 import { getFullTitle } from '../lib/titleCards';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import UserAvatar from '../components/UserAvatar';
 import GlassLoader from '../components/GlassLoader';
 import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
@@ -63,7 +64,6 @@ export default function SecretRoom() {
   const [data, setData] = useState<SecretRoomData | null>(null);
   const [error, setError] = useState(false);
   const [predictions, setPredictions] = useState<SecretRoomPredictions | null>(null);
-  const [selected, setSelected] = useState<Movie | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -110,9 +110,9 @@ export default function SecretRoom() {
       },
       onOpen: async (card) => {
         try {
-          setSelected(await getFullTitle({ id: card.id, media_type: card.type }));
+          openTitle(await getFullTitle({ id: card.id, media_type: card.type }));
         } catch {
-          setSelected({
+          openTitle({
             id: card.id,
             title: cardTitle(card, pt),
             poster_path: (pt ? card.p_pt || card.p_en : card.p_en || card.p_pt) || '',
@@ -324,7 +324,6 @@ export default function SecretRoom() {
 
       <HowToEnter live={Boolean(access.event_live)} tagName={access.tag?.name ?? 'Deadly Sleeping'} />
 
-      {selected && <MovieDetailsModal movie={selected} isOpen onClose={() => setSelected(null)} isOtherUserProfile={false} />}
     </RoomShell>
   );
 }

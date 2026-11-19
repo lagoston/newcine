@@ -5,11 +5,12 @@ import { LibraryBig, Plus, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import OracleSheet from '../OracleSheet';
 import PersonaWorks from '../PersonaWorks';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle as openTitleLayer } from '../../overlays';
 import { PERSONA_THRESHOLD, type PersonaEntry, type UserPersona } from '../../lib/persona';
 import { arrangementOf, fetchPersonaWorld, savePersonaLayout, type PersonaWorld, type StudioArrangement, type WorldTitle } from '../../lib/personaWorld';
 import { getFullTitle } from '../../lib/titleCards';
-import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
 import { fetchPersonaEntries, fetchPersonaHistory, worldAt, type PersonaHistory } from '../../lib/personaHistory';
 import { fetchPersonaThemes, readThemes, type PersonaThemes } from '../../lib/personaThemes';
@@ -88,7 +89,6 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
   const { t } = useTranslation();
   const [world, setWorld] = useState<PersonaWorld | null>(initialWorld);
   const [failed, setFailed] = useState(false);
-  const [movie, setMovie] = useState<Movie | null>(null);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -238,7 +238,12 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
     const key = `${title.type}:${title.id}`;
     setOpeningKey(key);
     try {
-      setMovie(await getFullTitle({ id: title.id, media_type: title.type }));
+      openTitleLayer(await getFullTitle({ id: title.id, media_type: title.type }), {
+        // a nota pode ter mudado lá dentro: a cena acompanha
+        onClose: () => {
+          if (isOwn) load();
+        },
+      });
     } catch (error) {
       console.error('Persona world title:', error);
     } finally {
@@ -257,7 +262,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
         title={isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerName ?? '' })}
         subtitle={t('personaWorld.subtitle')}
         size="lg"
-        escapeEnabled={!shareOpen && !movie && !guideOpen && !doors.covering}
+        escapeEnabled={!shareOpen && !guideOpen && !doors.covering}
       >
         <div className="space-y-6">
           {shownWorld ? (
@@ -366,17 +371,6 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
         <Suspense fallback={null}>
           <StudioGuide world={world} isOwn={isOwn} ownerName={ownerName ?? null} extras={doors.extras} onClose={() => setGuideOpen(false)} />
         </Suspense>
-      )}
-      {movie && (
-        <MovieDetailsModal
-          movie={movie}
-          isOpen={true}
-          onClose={() => {
-            setMovie(null);
-            // a nota pode ter mudado lá dentro: a cena acompanha
-            if (isOwn) load();
-          }}
-        />
       )}
     </>
   );

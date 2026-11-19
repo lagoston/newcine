@@ -7,8 +7,11 @@ import { useAuth } from '../lib/auth';
 import { Movie, getTrending, getComingSoon, getBestOfYear } from '../lib/tmdb';
 import { asMediaType, getFullTitle, prefetchFullTitle } from '../lib/titleCards';
 import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal } from '../hooks/useLazyList';
-// 18/11/2026 (otimização): o modal do filme só baixa quando um filme é aberto (ver LazyMovieDetailsModal).
-import MovieDetailsModal from '../components/LazyMovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays): a Home abre com openTitle() e não guarda mais o filme aberto
+// num estado — abrir um título não desenha a Home de novo, e o menu não entra
+// no pedaço dela.
+import { openTitle, updateTitle } from '../overlays';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingFriendBubbles';
@@ -310,7 +313,6 @@ const Home = () => {
   const [readyTimeout, setReadyTimeout] = useState(false);
   const [guestTrendingMovies, setGuestTrendingMovies] = useState<Movie[]>([]);
   const [guestLoadingTrending, setGuestLoadingTrending] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   // 19/11/2026 (Reborn, onda 2b): o nome vem da leitura única do próprio perfil
   // (src/lib/data); antes a Home lia public_profiles(username) a cada montagem.
   const username = useMyProfile().data?.username || '';
@@ -415,15 +417,22 @@ const Home = () => {
   );
   const friendActivity = useFriendActivity(userId, allShelfMovies);
 
-  const handleMovieClick = useCallback(async (movie: Movie) => {
-    setSelectedMovie(movie);
-    try {
-      const details = await getOrFetchDetails(movie.id, movie.media_type || 'movie');
-      setSelectedMovie(details);
-    } catch (error) {
-      console.error('Error fetching movie details:', error);
-    }
-  }, []);
+  // Abre o menu na hora com o cartão leve e troca pelos detalhes completos
+  // quando chegam. Visitante: o menu é só de leitura e "adicionar" leva ao
+  // cadastro. Logado: ao fechar, a nota pode ter avançado o evento sazonal
+  // (tags, progresso).
+  const loggedIn = !!session;
+  const handleMovieClick = useCallback(
+    async (movie: Movie) => {
+      const mark = openTitle(movie, loggedIn ? { onClose: requestSeasonalRefresh } : { isOtherUserProfile: true, onAddToLibrary: () => navigate('/auth') });
+      try {
+        updateTitle(mark, await getOrFetchDetails(movie.id, movie.media_type || 'movie'));
+      } catch (error) {
+        console.error('Error fetching movie details:', error);
+      }
+    },
+    [loggedIn, navigate],
+  );
 
   const handlePanelsReady = useCallback(() => setPanelsReady(true), []);
   const handleAddToLibrary = () => {};
@@ -439,15 +448,6 @@ const Home = () => {
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('guestHome.trendingTitle'), movies: guestTrendingMovies })}
         />
 
-        {selectedMovie && (
-          <MovieDetailsModal
-            movie={selectedMovie}
-            isOpen={true}
-            onClose={() => setSelectedMovie(null)}
-            isOtherUserProfile={true}
-            onAddToLibrary={() => navigate('/auth')}
-          />
-        )}
 
         <AllMoviesModal
           isOpen={allMoviesModal.isOpen}
@@ -549,19 +549,6 @@ const Home = () => {
         />
       </div>
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => {
-            setSelectedMovie(null);
-            // a nota pode ter avançado o evento sazonal (tags, progresso)
-            requestSeasonalRefresh();
-          }}
-          isOtherUserProfile={false}
-          onAddToLibrary={handleAddToLibrary}
-        />
-      )}
       <AllMoviesModal
         isOpen={allMoviesModal.isOpen}
         onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}

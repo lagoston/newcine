@@ -13,7 +13,7 @@ import React, { Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalSto
 import { useLocation, useNavigationType } from 'react-router-dom';
 import * as history from './history';
 import GlassLoader from '../components/GlassLoader';
-import { getDef, getDefs, getMounts, outletMounted, overlays, registerOverlays, subscribeMounts, type Mount } from './host';
+import { getDef, getDefs, getMounts, outletMounted, overlays, registerOverlays, routerMovedHosted, subscribeMounts, type Mount } from './host';
 import { ScopeContext, SlotContext } from './hooks';
 import type { OverlayRegistry } from './registry';
 import './covered.css';
@@ -32,6 +32,8 @@ const HistoryBridge: React.FC = () => {
   useLayoutEffect(() => {
     const href = location.pathname + location.search + location.hash;
     history.routerMoved({ key: location.key, state: location.state, href }, first.current ? 'INIT' : move);
+    // as camadas do host fecham quando a página muda
+    routerMovedHosted(location.key, location.pathname, first.current ? 'INIT' : move);
     first.current = false;
   }, [location, move]);
   return null;

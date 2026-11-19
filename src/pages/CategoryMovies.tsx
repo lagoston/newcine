@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Loader2 } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { Movie, getTrending, getComingSoon, getTopRatedGems, getHiddenIndies, getMovieDetails } from '../lib/tmdb';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +19,6 @@ const CategoryMovies = () => {
   const { session } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const fetchFriendsWatching = async (): Promise<Movie[]> => {
     try {
@@ -107,7 +108,7 @@ const CategoryMovies = () => {
   const handleMovieClick = async (movie: Movie) => {
     try {
       const details = await getMovieDetails(movie.id);
-      setSelectedMovie(details);
+      openTitle(details);
     } catch (error) {
       console.error('Error fetching movie details:', error);
       toast.error('Failed to load movie details');
@@ -198,13 +199,6 @@ const CategoryMovies = () => {
         </motion.div>
       </div>
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={!!selectedMovie}
-          onClose={() => setSelectedMovie(null)}
-        />
-      )}
     </div>
   );
 };

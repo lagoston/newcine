@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, Check, Film, Loader2, Pencil } from 'lucide-react';
@@ -7,7 +7,6 @@ import OracleSheet from '../OracleSheet';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../../lib/moods';
 import { fetchMyMoodTitles, myMoodPick, saveMoodPick, worldState, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
 import { getFullTitle } from '../../lib/titleCards';
-import type { Movie } from '../../lib/tmdb';
 import { PROGRESSION_TAGS } from '../../lib/tags';
 import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ratingTone } from '../../lib/oracleTheme';
 import { formatOne } from '../profile/observatoryKit';
@@ -15,7 +14,9 @@ import { fmtRating, studioItemArt } from './draw';
 import { MOOD_ITEM_GOAL, moodItemOf, type MoodItemId } from './moodItems';
 import type { StudioExtras } from './studio';
 
-const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../../overlays';
 
 // O cartão de um móvel de humor (17/11/2026).
 //
@@ -122,13 +123,12 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
   };
 
   // o favorito abre por cima do cartão
-  const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState(false);
   const openFavorite = async () => {
     if (!favorite || opening) return;
     setOpening(true);
     try {
-      setMovie(await getFullTitle({ id: favorite.id, media_type: favorite.type }));
+      openTitle(await getFullTitle({ id: favorite.id, media_type: favorite.type }));
     } catch (error) {
       console.error('Mood object favorite:', error);
     } finally {
@@ -153,7 +153,6 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
         onClose={onClose}
         size="md"
         zIndexClass="z-[9995]"
-        escapeEnabled={!movie}
         title={t(`studio.inventory.names.${id}`)}
         subtitle={
           <span style={{ color: mood.color }}>
@@ -332,11 +331,6 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
           </Link>
         </div>
       </OracleSheet>
-      {movie && (
-        <Suspense fallback={null}>
-          <MovieDetailsModal movie={movie} isOpen onClose={() => setMovie(null)} />
-        </Suspense>
-      )}
     </>
   );
 };

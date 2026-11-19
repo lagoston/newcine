@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { AlertCircle, Bookmark, ChevronRight, Film, Loader2, RotateCcw, Sparkles, Star, User } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import OptimizedPoster from '../OptimizedPoster';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle as openTitleLayer } from '../../overlays';
 import PersonPageSheet, { type PersonSeed } from '../PersonPageSheet';
-import type { Movie } from '../../lib/tmdb';
 import { getFullTitle, prefetchFullTitle } from '../../lib/titleCards';
 import {
   composeTop,
@@ -51,7 +52,6 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('movies');
   const [loreOpen, setLoreOpen] = useState(false);
-  const [selected, setSelected] = useState<Movie | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [person, setPerson] = useState<PersonSeed | null>(null);
   const [personMovieLoading, setPersonMovieLoading] = useState<number | null>(null);
@@ -92,7 +92,7 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
     const key = `${title.type}:${title.id}`;
     setLoadingKey(key);
     try {
-      setSelected(await getFullTitle({ id: title.id, media_type: title.type }));
+      openTitleLayer(await getFullTitle({ id: title.id, media_type: title.type }));
     } catch {
       /* sem detalhes: fica na gaveta */
     } finally {
@@ -102,7 +102,7 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
   const openPersonMovie = async (movieId: number) => {
     setPersonMovieLoading(movieId);
     try {
-      setSelected(await getFullTitle({ id: movieId, media_type: 'movie' }));
+      openTitleLayer(await getFullTitle({ id: movieId, media_type: 'movie' }));
     } catch {
       /* fica na página da pessoa */
     } finally {
@@ -241,7 +241,7 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
         title={<span style={{ color }}>{oracle.name}</span>}
         subtitle={subtitle}
         size="lg"
-        escapeEnabled={!selected && !person}
+        escapeEnabled={!person}
         contentKey={oracleId}
       >
         <div className="flex gap-4">
@@ -532,10 +532,8 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
         onClose={() => setPerson(null)}
         onOpenMovie={openPersonMovie}
         loadingMovieId={personMovieLoading}
-        escapeEnabled={!selected}
       />
 
-      {selected && <MovieDetailsModal movie={selected} isOpen onClose={() => setSelected(null)} isOtherUserProfile={false} />}
     </>
   );
 };

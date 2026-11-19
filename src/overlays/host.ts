@@ -19,6 +19,9 @@ export interface Mount {
   z: number;
   // false = fechando (ainda montada para a animação de saída)
   open: boolean;
+  // a página em que a camada abriu: a entrada do roteador (a chave dela) e o caminho
+  page: string;
+  path: string;
 }
 
 // O componente de dentro (um OracleSheet, o menu do título) assume a entrada
@@ -77,6 +80,16 @@ function closeLayer(mark: string): void {
   }, EXIT_MS);
 }
 
+// A chave que o roteador deu à entrada atual do histórico.
+const pageKey = (): string => {
+  try {
+    const key = (window.history.state as { key?: unknown } | null)?.key;
+    return typeof key === 'string' ? key : 'default';
+  } catch {
+    return 'default';
+  }
+};
+
 function openLayer(kind: string, params: unknown): string | null {
   const def = defs.get(kind);
   if (!def || outlets <= 0) {
@@ -92,9 +105,35 @@ function openLayer(kind: string, params: unknown): string | null {
     },
     def.z ?? stack.DEFAULT_Z,
   );
-  mounts = [...mounts, { mark, kind, params, z, open: true }];
+  mounts = [...mounts, { mark, kind, params, z, open: true, page: pageKey(), path: window.location.pathname }];
   emit();
   return mark;
+}
+
+// Troca parte dos parâmetros de uma camada aberta (os detalhes completos do
+// título chegando depois do cartão leve). Camada já fechada: não faz nada.
+function updateLayer(mark: string, patch: object): void {
+  if (!mounts.some((m) => m.mark === mark && m.open)) return;
+  mounts = mounts.map((m) => (m.mark === mark ? { ...m, params: { ...(m.params as object), ...patch } } : m));
+  emit();
+}
+
+// A página mudou (o OverlayProvider avisa). As camadas do host pertencem à
+// página em que abriram: antes, o menu do título era filho da página e sumia
+// com ela (a bolha do amigo, um link dentro do menu); agora quem fecha é o
+// host. Um `replace` na mesma página (limpar o location.state, um filtro na
+// URL) não é troca de página: as camadas continuam.
+export function routerMovedHosted(key: string, path: string, move: 'INIT' | 'PUSH' | 'REPLACE' | 'POP'): void {
+  if (move === 'INIT') return;
+  mounts
+    .filter((m) => m.open)
+    .forEach((m) => {
+      if (move === 'REPLACE' && m.path === path) {
+        m.page = key;
+        return;
+      }
+      if (m.page !== key) closeLayer(m.mark);
+    });
 }
 
 // O componente de dentro pede a entrada da camada. Só o primeiro leva.
@@ -114,6 +153,8 @@ export interface OverlayApi {
   open: <K extends OverlayKind>(kind: K, params: OverlaySpec[K]) => string | null;
   // Fecha uma camada aberta com open() (com a animação de saída).
   close: (mark: string) => void;
+  // Troca parte dos parâmetros de uma camada aberta.
+  update: <K extends OverlayKind>(mark: string, patch: Partial<OverlaySpec[K]>) => void;
   // Baixa o código de um tipo de camada antes do toque (hover, pointerdown).
   prefetch: (kind: OverlayKind) => void;
 }
@@ -121,6 +162,7 @@ export interface OverlayApi {
 export const overlays: OverlayApi = {
   open: (kind, params) => openLayer(kind as string, params),
   close: closeLayer,
+  update: (mark, patch) => updateLayer(mark, patch),
   prefetch: (kind) => {
     void defs
       .get(kind as string)

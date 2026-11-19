@@ -12,7 +12,9 @@ import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ListFormModal from '../components/ListFormModal';
 import ReorderListModal from '../components/ReorderListModal';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +53,6 @@ export default function PersonalLists() {
   const [formModal, setFormModal] = useState<{ mode: 'create' | 'edit'; list?: List } | null>(null);
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const [reorderListId, setReorderListId] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const reveal = useReveal();
 
   // Os pôsteres são cartões leves (lib/titleCards); os detalhes completos só
@@ -59,9 +60,9 @@ export default function PersonalLists() {
   const openMovie = async (movie: Movie) => {
     try {
       const full = await getFullTitle({ id: movie.id, media_type: asMediaType(movie.media_type) });
-      setSelectedMovie({ ...full, userRating: movie.userRating });
+      openTitle({ ...full, userRating: movie.userRating });
     } catch {
-      setSelectedMovie(movie);
+      openTitle(movie);
     }
   };
 
@@ -374,14 +375,6 @@ export default function PersonalLists() {
         />
       )}
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-          isOtherUserProfile={false}
-        />
-      )}
     </div>
   );
 }

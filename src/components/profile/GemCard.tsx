@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Film, Clapperboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { PAPER, MIST, PIXEL, VELVET, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
-import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
+import { getMovieDetailsFromDB } from '../../lib/tmdb';
 import { GEM_MIN_RATING } from '../../lib/tasteStats';
 import type { MovieWithRating } from '../../hooks/useProfileData';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../../overlays';
 import { ModuleTitle, Ring } from './observatoryKit';
 
 // A joia menos conhecida: entre os títulos que a pessoa deu 7 ou mais, o que
@@ -25,14 +27,13 @@ const GEM = '#34D399';
 const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState<number | null>(null);
   const [main, ...others] = gems;
 
   const open = async (item: MovieWithRating) => {
     setOpening(item.id);
     try {
-      setMovie(await getMovieDetailsFromDB(item.id, item.media_type === 'tv' ? 'tv' : 'movie'));
+      openTitle(await getMovieDetailsFromDB(item.id, item.media_type === 'tv' ? 'tv' : 'movie'));
     } catch {
       toast.error(t('common.error'));
     } finally {
@@ -157,7 +158,6 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
           )}
         </>
       )}
-      {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
     </section>
   );
 };

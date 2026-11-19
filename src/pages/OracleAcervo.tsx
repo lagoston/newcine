@@ -15,7 +15,10 @@ import { isAcervoMood, shelfKey, useAcervo } from '../components/oracleAcervo/us
 import { useMoodOrder } from '../components/oracleAcervo/useMoodOrder';
 import { readAcervoParams } from '../components/oracleAcervo/acervoTarget';
 import OracleProfileSheet from '../components/oracleHub/OracleProfileSheet';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
+import { useEvent } from '../hooks/useEvent';
 import { getFullTitle } from '../lib/titleCards';
 import type { Movie } from '../lib/tmdb';
 import type { AcervoItem, AcervoMedia, OracleSlot } from '../lib/mesa/types';
@@ -87,7 +90,6 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
   }, [shelf, filterKey, onFilter]);
 
   const [profileOracle, setProfileOracle] = useState<OracleSlot | null>(null);
-  const [selected, setSelected] = useState<{ movie: Movie; item: AcervoItem } | null>(null);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   // Estilo de carta do Personalizar perfil, para o perfil do oráculo.
   const [cardStyle, setCardStyle] = useState('default');
@@ -124,16 +126,17 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
   const openerRef = useRef<HTMLElement | null>(null);
   // Fechou o menu do título: se a pessoa deu nota, ele sai da grade (o
   // Acervo só mostra o que falta avaliar); se mexeu na Watchlist, a marca muda.
-  const closeDetails = useCallback(() => {
-    const closing = selected?.item;
-    setSelected(null);
+  // 19/11/2026 (Reborn, onda 2b): o menu é uma camada do host, que já cuida do
+  // Esc e do voltar (ele não entra mais na pilha do Acervo); isto roda quando
+  // ele fecha, pelo onClose de openTitle.
+  const afterDetails = useEvent((closing: AcervoItem) => {
     const opener = openerRef.current;
     openerRef.current = null;
     window.requestAnimationFrame(() => {
       if (opener && opener.isConnected) opener.focus({ preventScroll: true });
       else rootRef.current?.focus({ preventScroll: true });
     });
-    if (!closing || !userId) return;
+    if (!userId) return;
     supabase
       .from('user_movies')
       .select('rating')
@@ -152,8 +155,7 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
           });
         } else setWatchlist(closing.tmdb_id, closing.media_type, Boolean(row));
       });
-  }, [selected, userId, removeItem, setWatchlist]);
-  useLayerEntry(selected !== null, closeDetails, { ownEscape: true });
+  });
 
   const openItem = useCallback(
     async (item: AcervoItem) => {
@@ -162,14 +164,14 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
       setOpeningKey(key);
       try {
         const movie = await getFullTitle({ id: item.tmdb_id, media_type: item.media_type });
-        setSelected({ movie, item });
+        openTitle(movie, { onClose: () => afterDetails(item) });
       } catch {
-        setSelected({ movie: fallbackMovie(item, lang), item });
+        openTitle(fallbackMovie(item, lang), { onClose: () => afterDetails(item) });
       } finally {
         setOpeningKey((current) => (current === key ? null : current));
       }
     },
-    [lang]
+    [lang, afterDetails]
   );
 
   // Trocou de filtro com a grade já rolada para baixo: volta até o nome da
@@ -345,7 +347,6 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
       </div>
 
       <OracleProfileSheet oracleId={profileOracle} cardStyle={cardStyle} onClose={closeProfile} />
-      {selected && <MovieDetailsModal movie={selected.movie} isOpen={true} onClose={closeDetails} isOtherUserProfile={false} />}
     </div>
   );
 };

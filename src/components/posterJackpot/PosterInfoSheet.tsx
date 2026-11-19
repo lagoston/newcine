@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { Loader2, Maximize2 } from 'lucide-react';
@@ -6,7 +6,7 @@ import OracleSheet from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
 import { SerialLine } from './CollectorMark';
 import TablePrizeSeal from '../poker/jackpot/TablePrizeSeal';
-import { getMovieDetails, type Movie } from '../../lib/tmdb';
+import { getMovieDetails } from '../../lib/tmdb';
 import { MIST, FOCUS_RING } from '../../lib/oracleTheme';
 import { titleOf, type PosterEffect, type PosterItem } from '../../lib/posterJackpot';
 
@@ -24,7 +24,9 @@ import { titleOf, type PosterEffect, type PosterItem } from '../../lib/posterJac
 
 // O menu do título, carregado sob demanda: o MovieDetailsModal também mostra
 // pôsteres do Jackpot, e assim os dois módulos não se puxam na carga.
-const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle as openTitleLayer } from '../../overlays';
 
 export type InfoPoster = PosterItem & { effect: PosterEffect; tradeable?: boolean };
 
@@ -43,7 +45,6 @@ interface PosterInfoSheetProps {
 const PosterInfoSheet: React.FC<PosterInfoSheetProps> = ({ poster, onClose, caption, children, onLayer }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
-  const [movie, setMovie] = useState<Movie | null>(null);
   const [loadingMovie, setLoadingMovie] = useState(false);
   // o último pôster aberto fica na gaveta enquanto ela sai (sem piscar vazia)
   const last = useRef<InfoPoster | null>(poster);
@@ -73,7 +74,7 @@ const PosterInfoSheet: React.FC<PosterInfoSheetProps> = ({ poster, onClose, capt
     if (loadingMovie) return;
     setLoadingMovie(true);
     try {
-      setMovie(await getMovieDetails(item.tmdb_id, item.media_type));
+      openTitleLayer(await getMovieDetails(item.tmdb_id, item.media_type));
     } catch (error) {
       console.error('Poster info open title:', error);
       toast.error(t('common.error'));
@@ -91,7 +92,6 @@ const PosterInfoSheet: React.FC<PosterInfoSheetProps> = ({ poster, onClose, capt
         subtitle={shown?.year ? String(shown.year) : undefined}
         size="md"
         zIndexClass="z-[10005]"
-        escapeEnabled={!movie}
       >
         {shown && (
           <div className="text-center">
@@ -143,12 +143,6 @@ const PosterInfoSheet: React.FC<PosterInfoSheetProps> = ({ poster, onClose, capt
           </div>
         )}
       </OracleSheet>
-
-      {movie && (
-        <Suspense fallback={null}>
-          <MovieDetailsModal movie={movie} isOpen onClose={() => setMovie(null)} zIndexClass="z-[10010]" />
-        </Suspense>
-      )}
     </>
   );
 };
