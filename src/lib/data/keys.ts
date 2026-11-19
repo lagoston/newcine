@@ -68,9 +68,8 @@ export const Q = {
   // parte dela entra na consulta do seu consumidor — ver boot.ts)
   // o próprio perfil: UMA leitura para a casca inteira (eram 14 numa sessão de 6 telas)
   myProfile: (uid: Owner) => spec(uid, ['me', 'profile', uid], 10 * MIN, true),
-  // premium + vitalício. Não vai para o aparelho: quem decide o que é pago é
-  // sempre o servidor, na hora (2b: hoje mora em lib/auth.tsx)
-  myPremium: (uid: Owner) => spec(uid, ['me', 'premium', uid], 5 * MIN),
+  // (premium e vitalício NÃO são consulta guardada: quem decide o que é pago é
+  // sempre o servidor, na hora — lib/auth.tsx lê da ida da casca, ou das RPCs)
   // ids dos amigos. Só na memória: é dado de terceiros
   myFriendIds: (uid: Owner) => spec(uid, ['me', 'friendIds', uid], 5 * MIN),
   // o evento sazonal com o progresso da pessoa (visitante: o evento sem progresso)

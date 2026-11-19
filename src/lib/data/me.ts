@@ -86,22 +86,3 @@ async function loadFriendIds(uid: string): Promise<string[]> {
 export function fetchMyFriendIds(uid: string): Promise<string[]> {
   return fetchCached(Q.myFriendIds(uid), () => loadFriendIds(uid));
 }
-
-// ---- premium (2b) -----------------------------------------------------------------
-// Hoje quem lê o premium é lib/auth.tsx (2 RPCs por login), e o WatchListDuelModal
-// e o OracleDuel leem de novo por conta própria. A linha e a busca já ficam
-// prontas; a troca dentro do auth.tsx é da 2b (ele importa de './data/fetch').
-export interface MyPremium {
-  premium: boolean;
-  lifetime: boolean;
-}
-
-export async function loadMyPremium(uid: string): Promise<MyPremium> {
-  const [premium, lifetime] = await Promise.all([
-    supabase.rpc('get_user_premium_status', { user_id_input: uid }),
-    supabase.rpc('is_lifetime_premium', { user_id_input: uid }),
-  ]);
-  if (premium.error) throw premium.error;
-  if (lifetime.error) throw lifetime.error;
-  return { premium: premium.data === true, lifetime: lifetime.data === true };
-}
