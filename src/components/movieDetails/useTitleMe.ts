@@ -18,9 +18,10 @@ import { peekTitlePrediction } from '../../lib/titlePrediction';
 //   • quem grava (adicionar, remover, marcar episódio) corrige a cópia com
 //     patchTitleMe; os avisos do barramento (title:rated, title:watchlist,
 //     title:episodes) apagam a cópia de quem não está com o menu aberto.
-//
-// PLANO B: se a função não existir neste banco (PGRST202) ou falhar, a
-// resposta é null e CADA hook roda a consulta que sempre rodou.
+// PLANO B: se a função não existir neste banco (PGRST202), falhar ou responder
+// vazio, a MESMA leitura roda as consultas que cada hook sempre rodou (lado a
+// lado) e monta a resposta no mesmo formato. Os hooks só conhecem um caminho —
+// e a casca do menu redesenha uma vez só quando a resposta chega, nos dois casos.
 
 export interface TitleMe {
   // a linha de user_movies; null = fora da biblioteca; rating null = Watchlist
@@ -34,24 +35,47 @@ export interface TitleMe {
   prediction: Record<string, unknown> | null;
 }
 
+type Row = Record<string, unknown>;
+const NOTHING: TitleMe = { relation: null, episodes: [], pools: [], oracle_comments: [], prediction: null };
+
+// As consultas de sempre, uma por parte (o que cada hook fazia até 19/11/2026).
+// Cada parte que falha fica vazia e registrada, como antes; visitante só pede
+// os comentários (as outras partes nunca foram pedidas sem login).
+async function loadTitleMeOld(uid: string | null, movieId: number, mediaType: 'movie' | 'tv'): Promise<TitleMe> {
+  const [relation, episodes, pools, comments] = await Promise.all([
+    uid
+      ? supabase.from('user_movies').select('id, rating, movies!inner(media_type)').eq('user_id', uid).eq('movie_id', movieId).eq('movies.media_type', mediaType).maybeSingle()
+      : null,
+    uid && mediaType === 'tv' ? supabase.from('watched_episodes').select('season_number, episode_number').eq('user_id', uid).eq('tmdb_id', movieId) : null,
+    uid ? supabase.rpc('get_pools_containing_title', { p_id: movieId, p_media_type: mediaType }) : null,
+    supabase.rpc('get_title_oracle_comments', { p_id: movieId, p_media_type: mediaType }),
+  ]);
+  if (relation?.error) console.warn('Error checking library:', relation.error);
+  if (episodes?.error) console.error('Error loading watched episodes:', episodes.error);
+  if (pools?.error) console.error('Error loading movie mood:', pools.error);
+  if (comments.error) console.error('Error fetching oracle comments:', comments.error);
+  const row = relation && !relation.error ? (relation.data as Row | null) : null;
+  return {
+    relation: row ? { id: String(row.id), rating: (row.rating as number | null) ?? null } : null,
+    episodes: episodes && !episodes.error && Array.isArray(episodes.data) ? (episodes.data as TitleMe['episodes']) : [],
+    pools: pools && !pools.error && Array.isArray(pools.data) ? (pools.data as TitleMe['pools']) : [],
+    oracle_comments: !comments.error && Array.isArray(comments.data) ? (comments.data as TitleMe['oracle_comments']) : [],
+    prediction: null,
+  };
+}
+
 // A função não existe neste banco: não se pergunta de novo nesta visita.
 let missing = false;
 
-async function loadTitleMe(uid: string | null, movieId: number, mediaType: 'movie' | 'tv'): Promise<TitleMe | null> {
-  if (missing) return null;
+async function loadTitleMe(uid: string | null, movieId: number, mediaType: 'movie' | 'tv'): Promise<TitleMe> {
+  if (missing) return loadTitleMeOld(uid, movieId, mediaType);
   const withPrediction = !!uid && peekTitlePrediction(uid, movieId, mediaType) === undefined;
   const { data, error } = await supabase.rpc('get_title_me', { p_id: movieId, p_media_type: mediaType, p_with_prediction: withPrediction });
-  if (isMissingFunction(error)) {
-    missing = true;
-    return null;
-  }
-  if (error) {
-    // erro de verdade: fica registrado, e cada hook tenta a consulta de sempre
-    console.error('get_title_me:', error);
-    return null;
-  }
-  const raw = data as Partial<TitleMe> | null;
-  if (!raw || typeof raw !== 'object') return null;
+  if (isMissingFunction(error)) missing = true;
+  // erro de verdade: fica registrado; as consultas de sempre tentam em seguida
+  else if (error) console.error('get_title_me:', error);
+  const raw = error ? null : (data as Partial<TitleMe> | null);
+  if (!raw || typeof raw !== 'object') return loadTitleMeOld(uid, movieId, mediaType);
   return {
     relation: raw.relation && typeof raw.relation === 'object' ? raw.relation : null,
     episodes: Array.isArray(raw.episodes) ? raw.episodes : [],
@@ -61,21 +85,22 @@ async function loadTitleMe(uid: string | null, movieId: number, mediaType: 'movi
   };
 }
 
-// undefined = ainda não chegou; null = plano B (o hook usa a consulta antiga);
-// objeto = a resposta. Visitante também pede (vêm só prateleiras e comentários).
-export function useTitleMe(movieId: number, mediaType: 'movie' | 'tv'): TitleMe | null | undefined {
+// undefined = ainda não chegou; objeto = a resposta (se tudo falhou, vazia:
+// fora da biblioteca, sem prateleira, sem comentário — como as falhas de antes).
+// Visitante também pede (vêm só prateleiras e comentários).
+export function useTitleMe(movieId: number, mediaType: 'movie' | 'tv'): TitleMe | undefined {
   const owner = useOwner();
-  const query = useCached<TitleMe | null>(Q.titleMe(owner, mediaType, movieId), () => loadTitleMe(owner ?? null, movieId, mediaType));
-  return query.error ? null : query.data;
+  const query = useCached<TitleMe>(Q.titleMe(owner, mediaType, movieId), () => loadTitleMe(owner ?? null, movieId, mediaType));
+  return query.error ? NOTHING : query.data;
 }
 
 // A mesma resposta, fora de componente (a previsão usa: lib/titlePrediction).
 export function fetchTitleMe(uid: string, movieId: number, mediaType: 'movie' | 'tv'): Promise<TitleMe | null> {
-  return fetchCached<TitleMe | null>(Q.titleMe(uid, mediaType, movieId), () => loadTitleMe(uid, movieId, mediaType)).catch(() => null);
+  return fetchCached<TitleMe>(Q.titleMe(uid, mediaType, movieId), () => loadTitleMe(uid, movieId, mediaType)).catch(() => null);
 }
 
 // Quem acabou de gravar corrige a cópia guardada (o menu aberto não relê).
 export function patchTitleMe(uid: string | null, movieId: number, mediaType: 'movie' | 'tv', patch: Partial<TitleMe>): void {
   if (!uid) return;
-  patchCached<TitleMe | null>(Q.titleMe(uid, mediaType, movieId), (current) => (current ? { ...current, ...patch } : current));
+  patchCached<TitleMe>(Q.titleMe(uid, mediaType, movieId), (current) => ({ ...current, ...patch }));
 }

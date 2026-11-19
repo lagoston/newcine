@@ -47,17 +47,14 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
   // resposta única "eu e este título" (useTitleMe → get_title_me, parte
   // "episodes"); antes era uma consulta só para isto a cada série aberta. O
   // perfil de outra pessoa continua na leitura dela (getWatchedEpisodesForProfile).
-  // `mine` undefined = ainda não chegou; null = plano B (a consulta de sempre).
   const me = useTitleMe(movieId, isTv ? 'tv' : 'movie');
   const own = !(isOtherUserProfile && profileUserId);
-  const mine = !own ? null : me === undefined ? undefined : me === null ? null : me.episodes;
-  // só o que a pessoa acabou de marcar vai para a cópia guardada (ver abaixo)
-  const touched = useRef(false);
+  const mine = own ? me?.episodes : undefined;
 
   useEffect(() => {
     if (!userId || !isTv) return;
-    if (mine === undefined) return;
-    if (mine) {
+    if (own) {
+      if (!mine) return; // ainda não chegou
       setWatchedEpisodes((prev) => {
         const same = prev.size === mine.length && mine.every((ep) => prev.has(`${ep.season_number}-${ep.episode_number}`));
         return same ? prev : new Set(mine.map((ep) => `${ep.season_number}-${ep.episode_number}`));
@@ -70,24 +67,7 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
         // Em perfil de outra pessoa, os episódios marcados como assistidos
         // são os DELA — usa a variante que respeita visibilidade de
         // perfil e lê da conta do dono, não de quem está olhando.
-        if (isOtherUserProfile && profileUserId) {
-          const watched = await getWatchedEpisodesForProfile(userId, profileUserId, movieId);
-          if (alive) setWatchedEpisodes(watched);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('watched_episodes')
-          .select('season_number, episode_number')
-          .eq('user_id', userId)
-          .eq('tmdb_id', movieId);
-
-        if (error) throw error;
-
-        const watched = new Set<string>();
-        data?.forEach((ep: { season_number: number; episode_number: number }) => {
-          watched.add(`${ep.season_number}-${ep.episode_number}`);
-        });
+        const watched = await getWatchedEpisodesForProfile(userId, profileUserId as string, movieId);
         if (alive) setWatchedEpisodes(watched);
       } catch (error) {
         console.error('Error loading watched episodes:', error);
@@ -96,21 +76,27 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
     return () => {
       alive = false;
     };
-  }, [userId, movieId, isTv, isOtherUserProfile, profileUserId, mine]);
+  }, [userId, movieId, isTv, own, profileUserId, mine]);
 
-  // Marcou ou desmarcou: a cópia guardada de "eu e este título" recebe a lista
-  // nova (o menu aberto não relê, e reabrir já vem certo).
+  // O que a pessoa marcou ou desmarcou vai para a cópia guardada de "eu e este
+  // título" quando o menu fecha (ou troca de título): reabrir já vem certo, e
+  // marcar um episódio não redesenha a ficha inteira a cada toque.
+  const touched = useRef(false);
+  const latest = useRef(watchedEpisodes);
+  latest.current = watchedEpisodes;
   useEffect(() => {
-    if (!touched.current || !userId || !isTv || !own) return;
-    touched.current = false;
-    patchTitleMe(userId, movieId, 'tv', {
-      episodes: Array.from(watchedEpisodes, (key) => {
-        const [season, episode] = key.split('-').map(Number);
-        return { season_number: season, episode_number: episode };
-      }),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedEpisodes]);
+    if (!userId || !isTv || !own) return;
+    return () => {
+      if (!touched.current) return;
+      touched.current = false;
+      patchTitleMe(userId, movieId, 'tv', {
+        episodes: Array.from(latest.current, (key) => {
+          const [season, episode] = key.split('-').map(Number);
+          return { season_number: season, episode_number: episode };
+        }),
+      });
+    };
+  }, [userId, movieId, isTv, own]);
 
   const fetchSeasons = async () => {
     if (!isTv || loadingSeasons) return;

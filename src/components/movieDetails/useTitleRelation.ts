@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -6,7 +6,7 @@ import { ensureMovieCachedIfMissing } from '../../lib/tmdb';
 import { cache, CACHE_KEYS } from '../../lib/cache';
 import { emit } from '../../lib/bus';
 import { useEvent } from '../../hooks/useEvent';
-import { patchTitleMe, useTitleMe } from './useTitleMe';
+import { patchTitleMe, useTitleMe, type TitleMe } from './useTitleMe';
 
 // O título na biblioteca de quem olha: está lá? com que nota? Mais as duas
 // ações do rodapé (adicionar e remover). Fica na casca do menu, porque o
@@ -23,69 +23,20 @@ export function useTitleRelation(
   onAddToLibrary?: () => void
 ) {
   const { t } = useTranslation();
-  const [isInLibrary, setIsInLibrary] = useState(false);
-  const [userRating, setUserRating] = useState<number | null>(null);
-  // A nota do próprio usuário chega por uma consulta separada — até ela
-  // voltar, o espaço da nota fica com um esqueleto (sem piscar a prevista).
-  const [userRatingLoaded, setUserRatingLoaded] = useState(false);
-  // de qual pedido é a resposta (trocar de título no meio não pode pôr a nota
-  // do anterior no novo)
-  const request = useRef(0);
-
   // 19/11/2026 (Reborn, onda 3): a biblioteca e a nota vêm da resposta única
   // "eu e este título" (useTitleMe → get_title_me), a mesma que serve os
-  // episódios, as prateleiras, os comentários e a previsão. `me` undefined =
-  // ainda não chegou; null = plano B (a função não existe neste banco): aí
-  // roda a consulta de sempre, logo abaixo.
+  // episódios, as prateleiras, os comentários e a previsão — antes era uma
+  // consulta só para isto. `me` undefined = ainda não chegou (o espaço da nota
+  // fica com o esqueleto, sem piscar a prevista).
   const me = useTitleMe(movieId, mediaType);
-  const relation = me ? me.relation : undefined;
-  const source = me === undefined ? 'wait' : me === null ? 'old' : 'me';
-
-  useEffect(() => {
-    if (!userId) return;
-    if (source === 'wait') {
-      request.current += 1;
-      setUserRatingLoaded(false);
-      return;
-    }
-    if (source === 'me') {
-      request.current += 1;
-      setIsInLibrary(relation != null);
-      setUserRating(relation?.rating ?? null);
-      setUserRatingLoaded(true);
-      return;
-    }
-    const mine = ++request.current;
-    setUserRatingLoaded(false);
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_movies')
-          .select(`
-          id,
-          rating,
-          movies!inner(media_type)
-        `)
-          .eq('user_id', userId)
-          .eq('movie_id', movieId)
-          .eq('movies.media_type', mediaType)
-          .maybeSingle();
-
-        if (mine !== request.current) return;
-        if (error) {
-          console.warn('Error checking library:', error);
-          return;
-        }
-
-        setIsInLibrary(data !== null);
-        setUserRating(data?.rating !== undefined ? data.rating : null);
-      } catch (error) {
-        console.error('Error checking library:', error);
-      } finally {
-        if (mine === request.current) setUserRatingLoaded(true);
-      }
-    })();
-  }, [userId, movieId, mediaType, source, relation]);
+  // O que a pessoa acabou de fazer (adicionar, remover) vale na hora, por cima
+  // da resposta em que se baseou; quando a resposta muda (a cópia guardada é
+  // corrigida no mesmo instante), ela volta a mandar.
+  const [override, setOverride] = useState<{ on: TitleMe | undefined; relation: TitleMe['relation'] } | null>(null);
+  const relation = !userId ? null : override && override.on === me ? override.relation : (me?.relation ?? null);
+  const isInLibrary = relation !== null;
+  const userRating = relation ? relation.rating : null;
+  const userRatingLoaded = !!userId && (me !== undefined || (override !== null && override.on === me));
 
   const add = useEvent(async (rating?: number) => {
     if (!userId) return;
@@ -108,10 +59,11 @@ export function useTitleRelation(
 
     if (libraryError) throw libraryError;
 
-    setIsInLibrary(true);
-    setUserRating(rating !== undefined ? rating : null);
-    // a cópia guardada de "eu e este título" já fica certa (o menu não relê)
-    patchTitleMe(userId, movieId, mediaType, { relation: { id: relation?.id ?? '', rating: rating !== undefined ? rating : null } });
+    // vale na hora na tela, e a cópia guardada de "eu e este título" já fica
+    // certa (o menu não relê)
+    const added = { id: relation?.id ?? '', rating: rating !== undefined ? rating : null };
+    setOverride({ on: me, relation: added });
+    patchTitleMe(userId, movieId, mediaType, { relation: added });
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
     // 19/11/2026 (Reborn, onda 2b): aqui e no `remove` abaixo são os dois
@@ -146,8 +98,7 @@ export function useTitleRelation(
 
     // o que saiu: um título com nota, ou só um item da Watchlist
     const wasRated = userRating !== null;
-    setIsInLibrary(false);
-    setUserRating(null);
+    setOverride({ on: me, relation: null });
     patchTitleMe(userId, movieId, mediaType, { relation: null });
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');

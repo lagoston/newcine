@@ -94,13 +94,12 @@ export const Q = {
   titleCard: (type: 'movie' | 'tv', id: number, lang: string) => spec('pub', ['title', 'card', type, id, lang], 24 * HOUR),
   titleFull: (type: 'movie' | 'tv', id: number, lang: string) => spec('pub', ['title', 'full', type, id, lang], 30 * MIN),
   // "Eu e este título" (get_title_me, onda 3): na biblioteca?, minha nota,
-  // episódios vistos, prateleiras, comentários dos oráculos e a previsão. Uma
-  // resposta "plano B" (null: a função não existe ou falhou) não fica valendo.
+  // episódios vistos, prateleiras, comentários dos oráculos e a previsão.
   // Visitante: só o que é do título (prateleiras e comentários), sem pessoa.
   titleMe: (uid: Owner, type: 'movie' | 'tv', id: number) =>
     typeof uid === 'string'
-      ? spec(uid, ['title', 'me', type, id, uid], (data) => (data ? 2 * MIN : 0))
-      : spec(uid === null ? 'pub' : undefined, ['title', 'me', type, id, 'visitante'], (data) => (data ? 2 * MIN : 0)),
+      ? spec(uid, ['title', 'me', type, id, uid], 2 * MIN)
+      : spec(uid === null ? 'pub' : undefined, ['title', 'me', type, id, 'visitante'], 2 * MIN),
   // As bolhas de quem já viu (get_title_social, onda 3). Dado de terceiros: só na memória.
   titleSocial: (uid: Owner, type: 'movie' | 'tv', id: number) => spec(uid, ['title', 'social', type, id, uid], 2 * MIN),
   libraryRows: (uid: Owner) => spec(uid, ['library', 'rows', uid], 2 * MIN, true),
