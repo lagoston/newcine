@@ -1,12 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Q, isMissingFunction, useCached } from '../../lib/data';
 import type { FriendRating } from './shared';
 
 // Quem já viu este título (as bolhas sobre o pôster): amigos primeiro, depois
-// resenhas de outras pessoas, depois amigos de amigos — até 5. A cascata de
-// consultas é a mesma de sempre; desde 18/11/2026 ela mora neste hook, usado
-// só pela seção das bolhas (FriendBubbles): quando a resposta chega, só as
-// bolhas re-renderizam, não a ficha inteira.
+// resenhas de outras pessoas, depois amigos de amigos — até 5. Desde
+// 18/11/2026 mora neste hook, usado só pela seção das bolhas (FriendBubbles):
+// quando a resposta chega, só as bolhas re-renderizam, não a ficha inteira.
+//
+// 19/11/2026 (Reborn, onda 3; rede.md A3): a lista vem pronta do banco, numa
+// ida só (get_title_social: mesma ordem dos grupos, mesmo teto de 5). Antes
+// eram de 4 a 11 consultas EM SÉRIE a cada abertura (medido na prévia de rede:
+// 4 para quem tem amigos que viram o título; quem tem poucos amigos caía sempre
+// nos níveis 2 e 3). A resposta fica guardada 2 min por pessoa + título (reabrir
+// não pede de novo) e só na memória: é dado de outras pessoas. A cascata antiga
+// continua abaixo como PLANO B, para um banco que ainda não tenha a função.
 
 type Entry = { user_id: string; rating: number | null };
 type Profile = { id: string; username: string; avatar_url: string | null };
@@ -243,30 +251,31 @@ async function fetchFriendRatings(userId: string, movieId: number, mediaType: 'm
   return combined;
 }
 
+// A função não existe neste banco: não se pergunta de novo nesta visita.
+let missing = false;
+
+async function loadTitleSocial(userId: string, movieId: number, mediaType: 'movie' | 'tv'): Promise<FriendRating[]> {
+  if (missing) return fetchFriendRatings(userId, movieId, mediaType);
+  const { data, error } = await supabase.rpc('get_title_social', { p_id: movieId, p_media_type: mediaType });
+  if (isMissingFunction(error)) {
+    missing = true;
+    return fetchFriendRatings(userId, movieId, mediaType);
+  }
+  if (error) throw error;
+  // a função sempre devolve uma lista ([] quando ninguém viu); qualquer outra
+  // coisa não é resposta dela: vale a cascata
+  if (!Array.isArray(data)) return fetchFriendRatings(userId, movieId, mediaType);
+  return data as FriendRating[];
+}
+
+const NO_FRIENDS: FriendRating[] = [];
+
 export function useTitleFriends(movieId: number, mediaType: 'movie' | 'tv', userId: string | null) {
-  const [friends, setFriends] = useState<FriendRating[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const query = useCached<FriendRating[]>(Q.titleSocial(userId, mediaType, movieId), () => loadTitleSocial(userId as string, movieId, mediaType));
+  const { error } = query;
   useEffect(() => {
-    if (!userId) return;
-    // a resposta de um título que já saiu da tela não entra no lugar da nova
-    let alive = true;
-    setLoading(true);
-    (async () => {
-      try {
-        const list = await fetchFriendRatings(userId, movieId, mediaType);
-        if (alive) setFriends(list);
-      } catch (error) {
-        console.error('Error loading friend ratings:', error);
-        if (alive) setFriends([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [userId, movieId, mediaType]);
-
-  return { friends, loading };
+    if (error) console.error('Error loading friend ratings:', error);
+  }, [error]);
+  // sem login nada é pedido e as bolhas ficam "carregando", como antes
+  return { friends: query.data ?? NO_FRIENDS, loading: query.isPending && !error };
 }

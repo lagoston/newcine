@@ -27,13 +27,20 @@ export function useOwner(): string | null | undefined {
 // A consulta desta linha já pode rodar? (o que estava no aparelho já voltou
 // para a memória e, se for pessoal, a pessoa é mesmo a que está logada)
 function useScopeReady(owner: Owner): boolean {
-  const scope = useSyncExternalStore(subscribeScope, getScope);
+  // 19/11/2026 (onda 3): o componente acompanha só a RESPOSTA ("já pode?"), não
+  // o estado inteiro — antes ele redesenhava a cada mudança do estado (o balde
+  // público chegou, a pessoa foi reconhecida, o balde dela chegou), mesmo quando
+  // a resposta para ele era a mesma. Medido no teste do menu do título: 3
+  // desenhos a menos na casca ao abrir o primeiro título.
+  const ready = useSyncExternalStore(subscribeScope, () => {
+    const scope = getScope();
+    return owner === 'pub' ? scope.pubReady : typeof owner === 'string' && scope.uid === owner && scope.userReady;
+  });
   useEffect(() => {
     // é aqui que a camada fica sabendo quem entrou ou saiu
     if (owner !== 'pub' && owner !== undefined) claimScope(owner);
   }, [owner]);
-  if (owner === 'pub') return scope.pubReady;
-  return typeof owner === 'string' && scope.uid === owner && scope.userReady;
+  return ready;
 }
 
 // O que um componente recebe (o mesmo formato, seja qual for a biblioteca por trás).

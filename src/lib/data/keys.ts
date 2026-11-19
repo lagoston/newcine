@@ -93,11 +93,23 @@ export const Q = {
   // ---- reservadas para a 2b (as telas) — mesmas chaves da tabela 4.1 --------
   titleCard: (type: 'movie' | 'tv', id: number, lang: string) => spec('pub', ['title', 'card', type, id, lang], 24 * HOUR),
   titleFull: (type: 'movie' | 'tv', id: number, lang: string) => spec('pub', ['title', 'full', type, id, lang], 30 * MIN),
-  titleMe: (uid: Owner, type: 'movie' | 'tv', id: number) => spec(uid, ['title', 'me', type, id, uid], 2 * MIN),
+  // "Eu e este título" (get_title_me, onda 3): na biblioteca?, minha nota,
+  // episódios vistos, prateleiras, comentários dos oráculos e a previsão.
+  // Visitante: só o que é do título (prateleiras e comentários), sem pessoa.
+  titleMe: (uid: Owner, type: 'movie' | 'tv', id: number) =>
+    typeof uid === 'string'
+      ? spec(uid, ['title', 'me', type, id, uid], 2 * MIN)
+      : spec(uid === null ? 'pub' : undefined, ['title', 'me', type, id, 'visitante'], 2 * MIN),
+  // As bolhas de quem já viu (get_title_social, onda 3). Dado de terceiros: só na memória.
   titleSocial: (uid: Owner, type: 'movie' | 'tv', id: number) => spec(uid, ['title', 'social', type, id, uid], 2 * MIN),
   libraryRows: (uid: Owner) => spec(uid, ['library', 'rows', uid], 2 * MIN, true),
   // números e estúdio de um perfil: só os da própria pessoa vão para o aparelho
-  profileStats: (uid: Owner, of: string) => spec(uid, ['profile', 'stats', of, uid], 5 * MIN, of === uid),
+  // (get_profile_stats_v2, onda 3. Uma resposta "plano B" — null — não fica
+  // valendo. Visitante vê o perfil público: guardado como dado público, só na memória.)
+  profileStats: (uid: Owner, of: string) =>
+    typeof uid === 'string'
+      ? spec(uid, ['profile', 'stats', of, uid], (data) => (data ? 5 * MIN : 0), of === uid)
+      : spec(uid === null ? 'pub' : undefined, ['profile', 'stats', of, 'visitante'], (data) => (data ? 5 * MIN : 0)),
   personaWorld: (uid: Owner, of: string) => spec(uid, ['persona', 'world', of, uid], 10 * MIN, of === uid),
   feed: (uid: Owner) => spec(uid, ['feed', uid], 1 * MIN),
 };

@@ -150,7 +150,10 @@ export default function Profile() {
     countryAvgRatings,
     movies,
     refetch: refetchProfileData,
-  } = useProfileData(session?.user?.id, i18n.language);
+    // 19/11/2026 (Reborn, onda 3): os números do topo vêm prontos do banco; a
+    // lista pesada só é pedida se há títulos avaliados (é ela que alimenta o
+    // retrato de gosto e os filmes de um país — sem notas, nada disso aparece)
+  } = useProfileData(session?.user?.id, i18n.language, { list: 'rated' });
   // Perfil decorado de Halloween/Natal: com 🎃 Headless Horseman ou 🎅 Ho Ho Ho em uso.
   const seasonalDecoration = useTagDecoration(session?.user?.id, profile?.active_tag, true);
 

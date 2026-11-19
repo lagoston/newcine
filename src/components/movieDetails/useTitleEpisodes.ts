@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { getTVSeasons, getWatchedEpisodesForProfile } from '../../lib/tmdb';
 import { emit } from '../../lib/bus';
 import { useEvent } from '../../hooks/useEvent';
 import type { TitleMovie, TitleSeason } from './shared';
+import { patchTitleMe, useTitleMe } from './useTitleMe';
 
 // As temporadas de uma série e os episódios marcados como vistos. Fica na
 // casca do menu: o botão "Temporadas e episódios" (a contagem) e a gaveta das
@@ -42,32 +43,31 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieId]);
 
+  // 19/11/2026 (Reborn, onda 3): os episódios vistos de QUEM OLHA vêm da
+  // resposta única "eu e este título" (useTitleMe → get_title_me, parte
+  // "episodes"); antes era uma consulta só para isto a cada série aberta. O
+  // perfil de outra pessoa continua na leitura dela (getWatchedEpisodesForProfile).
+  const me = useTitleMe(movieId, isTv ? 'tv' : 'movie');
+  const own = !(isOtherUserProfile && profileUserId);
+  const mine = own ? me?.episodes : undefined;
+
   useEffect(() => {
     if (!userId || !isTv) return;
+    if (own) {
+      if (!mine) return; // ainda não chegou
+      setWatchedEpisodes((prev) => {
+        const same = prev.size === mine.length && mine.every((ep) => prev.has(`${ep.season_number}-${ep.episode_number}`));
+        return same ? prev : new Set(mine.map((ep) => `${ep.season_number}-${ep.episode_number}`));
+      });
+      return;
+    }
     let alive = true;
     (async () => {
       try {
         // Em perfil de outra pessoa, os episódios marcados como assistidos
         // são os DELA — usa a variante que respeita visibilidade de
         // perfil e lê da conta do dono, não de quem está olhando.
-        if (isOtherUserProfile && profileUserId) {
-          const watched = await getWatchedEpisodesForProfile(userId, profileUserId, movieId);
-          if (alive) setWatchedEpisodes(watched);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('watched_episodes')
-          .select('season_number, episode_number')
-          .eq('user_id', userId)
-          .eq('tmdb_id', movieId);
-
-        if (error) throw error;
-
-        const watched = new Set<string>();
-        data?.forEach((ep: { season_number: number; episode_number: number }) => {
-          watched.add(`${ep.season_number}-${ep.episode_number}`);
-        });
+        const watched = await getWatchedEpisodesForProfile(userId, profileUserId as string, movieId);
         if (alive) setWatchedEpisodes(watched);
       } catch (error) {
         console.error('Error loading watched episodes:', error);
@@ -76,7 +76,27 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
     return () => {
       alive = false;
     };
-  }, [userId, movieId, isTv, isOtherUserProfile, profileUserId]);
+  }, [userId, movieId, isTv, own, profileUserId, mine]);
+
+  // O que a pessoa marcou ou desmarcou vai para a cópia guardada de "eu e este
+  // título" quando o menu fecha (ou troca de título): reabrir já vem certo, e
+  // marcar um episódio não redesenha a ficha inteira a cada toque.
+  const touched = useRef(false);
+  const latest = useRef(watchedEpisodes);
+  latest.current = watchedEpisodes;
+  useEffect(() => {
+    if (!userId || !isTv || !own) return;
+    return () => {
+      if (!touched.current) return;
+      touched.current = false;
+      patchTitleMe(userId, movieId, 'tv', {
+        episodes: Array.from(latest.current, (key) => {
+          const [season, episode] = key.split('-').map(Number);
+          return { season_number: season, episode_number: episode };
+        }),
+      });
+    };
+  }, [userId, movieId, isTv, own]);
 
   const fetchSeasons = async () => {
     if (!isTv || loadingSeasons) return;
@@ -180,6 +200,7 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
       // isso, marcar vários episódios rapidamente fazia cada resposta
       // sobrescrever o Set inteiro a partir de uma foto antiga,
       // perdendo as marcações que já tinham "chegado" antes dela.
+      touched.current = true;
       setWatchedEpisodes((prev) => {
         const next = new Set(prev);
         if (wasWatched) {
@@ -237,6 +258,7 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
 
         // Forma funcional — parte sempre do estado mais recente, não
         // de uma foto capturada antes da chamada de rede terminar.
+        touched.current = true;
         setWatchedEpisodes((prev) => {
           const next = new Set(prev);
           episodes.forEach((ep) => {
@@ -261,6 +283,7 @@ export function useTitleEpisodes({ movie, userId, userRating, isOtherUserProfile
 
         if (error) throw error;
 
+        touched.current = true;
         setWatchedEpisodes((prev) => {
           const next = new Set(prev);
           episodes.forEach((ep) => {

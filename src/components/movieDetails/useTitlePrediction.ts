@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { prefetchPatronus } from '../patronus/patronus';
-import { fetchTitlePrediction, peekTitlePrediction, type PredictionScope, type TitlePrediction } from '../../lib/titlePrediction';
+import { fetchTitlePrediction, peekTitlePrediction, type Answer, type PredictionScope, type TitlePrediction } from '../../lib/titlePrediction';
+import { fetchTitleMe } from './useTitleMe';
 
 // Nota Prevista para Você — mesmo modelo usado nas prateleiras da
 // Biblioteca dos Oráculos e no Match Movie. Fica vazia quando o usuário
@@ -64,7 +65,12 @@ export function useTitlePrediction(movieId: number, mediaType: 'movie' | 'tv', u
     setView(LOADING);
     (async () => {
       try {
-        const value = await fetchTitlePrediction(userId, movieId, mediaType);
+        // 19/11/2026 (Reborn, onda 3): a previsão viaja na resposta única "eu
+        // e este título" (get_title_me), a mesma que a casca do menu já pede;
+        // sem ela (plano B), fetchTitlePrediction pergunta ao banco como sempre.
+        const value = await fetchTitlePrediction(userId, movieId, mediaType, () =>
+          fetchTitleMe(userId, movieId, mediaType).then((me) => (me?.prediction as Answer | null | undefined) ?? null),
+        );
         if (alive) setView(viewOf(value));
       } catch (error) {
         console.error('Error loading predicted rating:', error);
