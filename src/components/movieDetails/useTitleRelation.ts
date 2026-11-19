@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { ensureMovieCachedIfMissing } from '../../lib/tmdb';
 import { cache, CACHE_KEYS } from '../../lib/cache';
-import { emit } from '../../lib/bus';
 import { markSeasonalStale } from '../../contexts/SeasonalEventContext';
 import { useEvent } from '../../hooks/useEvent';
 
@@ -93,11 +92,12 @@ export function useTitleRelation(
     cache.invalidatePattern('stats:');
     // pode ter avançado o evento sazonal: confere na próxima troca de página
     markSeasonalStale();
-    // 18/11/2026 (Protocolo Reborn): o menu também avisa pelo barramento
-    // (lib/bus.ts) o que mudou, com o título e a nota; as telas e a camada de
-    // dados escutam. As props onAddToLibrary continuam chamadas como antes.
-    if (rating !== undefined) emit('title:rated', { id: movieId, mediaType, rating });
-    else emit('title:watchlist', { id: movieId, mediaType, on: true });
+    // Onda 2b (Protocolo Reborn): aqui e no `remove` abaixo são os dois únicos
+    // pontos em que o menu muda a biblioteca. Quando a camada de dados assumir,
+    // o markSeasonalStale sai e entra o aviso do barramento (lib/bus.ts):
+    // emit('title:rated', { id, mediaType, rating }) com nota, ou
+    // emit('title:watchlist', { id, mediaType, on: true }) sem nota. Por ora
+    // fica exatamente como era (junto com a prop onAddToLibrary).
     toast.success(t('library.inLibrary'));
     if (onAddToLibrary) {
       onAddToLibrary();
@@ -120,14 +120,11 @@ export function useTitleRelation(
       return;
     }
 
-    const hadRating = userRating !== null;
     setIsInLibrary(false);
     setUserRating(null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
     markSeasonalStale();
-    if (hadRating) emit('title:rated', { id: movieId, mediaType, rating: null });
-    else emit('title:watchlist', { id: movieId, mediaType, on: false });
     toast.success(t('library.movieRemovedSuccess'));
     if (onAddToLibrary) {
       onAddToLibrary();
