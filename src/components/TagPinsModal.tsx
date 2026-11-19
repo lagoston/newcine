@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useDirector } from '../contexts/DirectorContext';
-import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
+import { syncMyTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS } from '../lib/tags';
 import {
   fetchTagProgress,
+  fetchMyTagProgress,
   fetchGameTagProgress,
   gameTagGoal,
   sortGameTags,
@@ -103,7 +104,9 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       setLoading(true);
       const isSelf = userId === session?.user?.id;
       const [progress, { data: profileData }, games, poker] = await Promise.all([
-        fetchTagProgress(userId),
+        // 19/11/2026 (Reborn): as próprias tags vêm prontas do banco (uma ida);
+        // as de outra pessoa continuam calculadas aqui
+        isSelf ? fetchMyTagProgress(userId) : fetchTagProgress(userId),
         supabase.from('profiles').select('active_tag').eq('id', userId).single(),
         // o banco só devolve o progresso de quem está logado
         isSelf ? fetchGameTagProgress() : Promise.resolve({} as Record<string, number>),
@@ -123,7 +126,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       const unlocked = unlockedPinsFrom(progress);
       setPins(unlocked);
       // Notifica tag nova só pro próprio usuário logado.
-      if (isSelf) syncUnlockedTagsAndNotify(userId, unlocked);
+      if (isSelf) syncMyTagsAndNotify(userId, unlocked);
     } catch (error) {
       console.error('Error fetching tag pins data:', error);
     } finally {

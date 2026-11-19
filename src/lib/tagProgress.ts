@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { fetchAllPages } from './fetchAllPages';
+import { isMissingFunction } from './data/missing';
 import { getContinent } from './continents';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES, GAME_TAGS, type GameId } from './tags';
 
@@ -291,6 +292,48 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     gameTags,
     pokerUpcomingTags,
   };
+}
+
+// O progresso das tags da PRÓPRIA pessoa, pronto do banco (19/11/2026, Reborn,
+// onda 3; rede.md A6). O cálculo acima (fetchTagProgress) são 10 a 14 pedidos
+// e ~139 kB para a maior biblioteca de gente: todos os avaliados, as 30
+// prateleiras inteiras, diretor e país de cada título, o progresso de cada
+// série. get_tag_progress() devolve o mesmo objeto numa ida (~15 kB),
+// calculado com a cópia das regras de tags.ts que mora no banco (tag_rules;
+// `npm run check:tags` vigia a diferença entre os dois).
+//
+// Só serve para quem está logado (a função não recebe usuário). O perfil de
+// OUTRA pessoa continua em fetchTagProgress.
+//
+// PLANO B: função que não existe neste banco, erro ou resposta estranha →
+// o cálculo de sempre, no aparelho.
+let myProgressMissing = false;
+export async function fetchMyTagProgress(userId: string): Promise<TagProgress> {
+  if (!myProgressMissing) {
+    try {
+      const { data, error } = await supabase.rpc('get_tag_progress');
+      if (isMissingFunction(error)) {
+        myProgressMissing = true;
+      } else if (error) {
+        console.error('get_tag_progress:', error);
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const raw = data as Partial<TagProgress>;
+        return {
+          ratedCount: Number(raw.ratedCount) || 0,
+          followers: Number(raw.followers) || 0,
+          basic: raw.basic && typeof raw.basic === 'object' ? raw.basic : {},
+          theme: raw.theme && typeof raw.theme === 'object' ? raw.theme : {},
+          oracle: raw.oracle && typeof raw.oracle === 'object' ? raw.oracle : {},
+          specialTags: Array.isArray(raw.specialTags) ? raw.specialTags : [],
+          gameTags: Array.isArray(raw.gameTags) ? raw.gameTags : [],
+          pokerUpcomingTags: Array.isArray(raw.pokerUpcomingTags) ? raw.pokerUpcomingTags : [],
+        };
+      }
+    } catch (error) {
+      console.error('get_tag_progress:', error);
+    }
+  }
+  return fetchTagProgress(userId);
 }
 
 // Progresso das tags de Jogos da pessoa logada, pela métrica de cada uma

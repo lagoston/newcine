@@ -9,6 +9,7 @@ import { PosterArt } from './connectionBits';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { cache, CACHE_KEYS } from '../../lib/cache';
+import { emit } from '../../lib/bus';
 import { ensureMovieCachedIfMissing } from '../../lib/tmdb';
 import { loadTitleCards, titleKey } from '../../lib/titleCards';
 import { connectionPoster, connectionTitleName, type ConnectionSide, type ConnectionTitle } from '../../lib/connection';
@@ -80,6 +81,10 @@ const CalibrateRow: React.FC<CalibrateRowProps> = ({ items, other, onRated, onSh
     }
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(myId));
     cache.invalidatePattern('stats:');
+    // 19/11/2026 (Reborn): avisa o barramento. Sem isto, as telas que guardam
+    // dados (a cópia do menu deste título, o Perfil, as tags) só percebiam a
+    // nota nova quando o prazo delas vencia.
+    emit('title:rated', { id: item.movie_id, mediaType: item.media_type === 'tv' ? 'tv' : 'movie', rating });
     setRated((prev) => ({ ...prev, [titleKey(ref)]: rating }));
     toast.success(t('library.inLibrary'));
     onRated();

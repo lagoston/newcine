@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader2, Check, AlertTriangle, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { emit } from '../lib/bus';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -97,6 +98,9 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
 
       if (error) throw error;
 
+      // 19/11/2026 (Reborn): a biblioteca inteira saiu — o que estava guardado
+      // sobre ela (menu dos títulos, Perfil, tags) deixa de valer.
+      emit('library:bulk', {});
       onReset();
       onClose();
       toast.success(t('library.resetSuccess'));

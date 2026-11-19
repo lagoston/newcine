@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isMissingFunction } from './data/missing';
 import { UnlockedPin } from '../hooks/useUnlockedTagPins';
 
 /**
@@ -64,4 +65,61 @@ export async function syncUnlockedTagsFromHome(userId: string, pins: UnlockedPin
     console.error('Error syncing unlocked tags from home:', error);
     return 0;
   }
+}
+
+// 19/11/2026 (Reborn, onda 3): o banco calcula e registra as tags da própria
+// pessoa (sync_my_tags), sem receber a lista do aparelho. Os efeitos são os
+// das funções antigas (registro, sussurro e story de cada tag nova), porque
+// por dentro ela as chama com a lista calculada no servidor. As duas funções
+// acima continuam: são o PLANO B (banco sem a função nova) e o caminho do APK
+// antigo.
+let syncMyTagsMissing = false;
+
+/**
+ * A própria pessoa: registra e avisa as tags novas, calculadas no banco.
+ * `notifyFirst` = o comportamento do modal de Tags (avisa também na primeira
+ * vez); sem ele, o da Home (na primeira vez só registra).
+ * Devolve quantas tags novas viraram aviso; null = a função não existe neste
+ * banco (quem chamou usa o caminho antigo).
+ */
+async function syncMyTags(notifyFirst: boolean): Promise<number | null> {
+  if (syncMyTagsMissing) return null;
+  const { data, error } = await supabase.rpc('sync_my_tags', notifyFirst ? { p_notify_first: true } : {});
+  if (isMissingFunction(error)) {
+    syncMyTagsMissing = true;
+    return null;
+  }
+  if (error) throw error;
+  return typeof data === 'number' ? data : 0;
+}
+
+/**
+ * O modal de Tags e o card de tags do próprio perfil: no lugar de mandar a
+ * lista calculada no aparelho, pede ao banco que calcule e registre. `pins` é
+ * a lista que a tela já tem, usada só no plano B.
+ */
+export async function syncMyTagsAndNotify(userId: string, pins: UnlockedPin[]): Promise<void> {
+  try {
+    if ((await syncMyTags(true)) !== null) return;
+  } catch (error) {
+    console.error('Error syncing my tags:', error);
+    return;
+  }
+  await syncUnlockedTagsAndNotify(userId, pins);
+}
+
+/**
+ * A Home (de tempos em tempos): uma ida só, sem baixar o progresso inteiro
+ * para montar a lista (eram 11 a 15 pedidos). `fallbackPins` só roda no
+ * plano B. Devolve quantas tags novas apareceram.
+ */
+export async function syncMyTagsFromHome(userId: string, fallbackPins: () => Promise<UnlockedPin[]>): Promise<number> {
+  try {
+    const created = await syncMyTags(false);
+    if (created !== null) return created;
+  } catch (error) {
+    console.error('Error syncing my tags from home:', error);
+    return 0;
+  }
+  return syncUnlockedTagsFromHome(userId, await fallbackPins());
 }

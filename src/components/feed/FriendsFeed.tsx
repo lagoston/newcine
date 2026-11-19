@@ -6,7 +6,7 @@ import type { Movie } from '../../lib/tmdb';
 import { INK, MIST, NIGHT, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone, tagCategoryStyle } from '../../lib/oracleTheme';
 import { SEASONAL_THEMES, isSeasonalEventId } from '../../lib/seasonalEvents';
 import { fetchTagProgress, unlockedPinsFrom } from '../../lib/tagProgress';
-import { syncUnlockedTagsFromHome } from '../../lib/tagNotifications';
+import { syncMyTagsFromHome } from '../../lib/tagNotifications';
 import {
   eventAchievementOf,
   fetchFriendsFeed,
@@ -92,8 +92,9 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
         // sem localStorage: confere de novo na próxima visita
       }
       try {
-        const progress = await fetchTagProgress(userId);
-        const created = await syncUnlockedTagsFromHome(userId, unlockedPinsFrom(progress));
+        // 19/11/2026 (Reborn): o banco calcula e registra (uma ida); o
+        // cálculo no aparelho ficou só para o banco sem a função nova
+        const created = await syncMyTagsFromHome(userId, async () => unlockedPinsFrom(await fetchTagProgress(userId)));
         if (created > 0 && !cancelled) load();
       } catch (error) {
         console.error('feed: tag sync', error);

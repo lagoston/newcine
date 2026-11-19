@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { emit } from '../lib/bus';
 import { searchMovies, findByImdbId } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
@@ -278,6 +279,9 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
     }
 
     if (stats.succeeded > 0) {
+      // 19/11/2026 (Reborn): a importação mexe em muitos títulos de uma vez —
+      // um aviso só para tudo o que guarda dados da biblioteca.
+      emit('library:bulk', {});
       toast.success(t('importer.toastImported', { count: stats.succeeded }));
       onSuccess?.();
     } else if (stats.failed === stats.total) {

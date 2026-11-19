@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
-import { fetchTagProgress, unlockedPinsFrom, type UnlockedPin } from '../lib/tagProgress';
+import { syncMyTagsAndNotify } from '../lib/tagNotifications';
+import { fetchMyTagProgress, fetchTagProgress, unlockedPinsFrom, type UnlockedPin } from '../lib/tagProgress';
 
 export type { UnlockedPin };
 
@@ -23,14 +23,16 @@ export function useUnlockedTagPins(userId: string | undefined) {
     let cancelled = false;
     setLoading(true);
 
-    fetchTagProgress(userId)
+    // 19/11/2026 (Reborn): as próprias tags vêm prontas do banco (uma ida)
+    const isSelf = userId === session?.user?.id;
+    (isSelf ? fetchMyTagProgress(userId) : fetchTagProgress(userId))
       .then((progress) => {
         if (cancelled) return;
         const unlocked = unlockedPinsFrom(progress);
         setPins(unlocked);
         // Notifica tag nova só quando é o PRÓPRIO usuário vendo as próprias
         // tags — nunca ao visitar o perfil de outra pessoa.
-        if (userId === session?.user?.id) syncUnlockedTagsAndNotify(userId, unlocked);
+        if (isSelf) syncMyTagsAndNotify(userId, unlocked);
       })
       .catch((error) => console.error('Error fetching unlocked tag pins:', error))
       .finally(() => {

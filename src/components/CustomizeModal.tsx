@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { frames, FrameId, getFrameClass, frameUsesComponent } from '../lib/frames';
 import { FlipFrame } from './kitFrames/FlipFrame';
 import { THEME_TAGS, PROGRESSION_TAGS } from '../lib/tags';
-import { fetchTagProgress } from '../lib/tagProgress';
+import { fetchMyTagProgress } from '../lib/tagProgress';
 import { banners, BannerId, getBannerClass } from '../lib/banners';
 import { BannerFx } from './BannerFx';
 import { textEffects, TextEffectId, meetsTextEffectRequirement, getTextEffectNameClass } from '../lib/textEffects';
@@ -279,7 +279,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const fetchThemeTagProgress = async () => {
     if (!session?.user?.id) return;
     try {
-      const progress = await fetchTagProgress(session.user.id);
+      const progress = await fetchMyTagProgress(session.user.id);
       setThemeTagProgress({ ...progress.theme, ...progress.basic });
     } catch (error) {
       console.error('Error fetching theme tag progress:', error);

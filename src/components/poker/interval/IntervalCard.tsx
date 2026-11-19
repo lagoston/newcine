@@ -7,6 +7,7 @@ import { PIXEL } from '../../../lib/oracleTheme';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../lib/auth';
 import { cache, CACHE_KEYS } from '../../../lib/cache';
+import { emit } from '../../../lib/bus';
 import { ensureMovieCachedIfMissing } from '../../../lib/tmdb';
 import { loadTitleCards, titleKey } from '../../../lib/titleCards';
 import type { IntervalPick } from '../../../lib/poker/client/apiTypes';
@@ -69,6 +70,10 @@ const IntervalCard: React.FC<{
     }
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(uid));
     cache.invalidatePattern('stats:');
+    // 19/11/2026 (Reborn): avisa o barramento. Sem isto, as telas que guardam
+    // dados (a cópia do menu deste título, o Perfil, as tags) só percebiam a
+    // nota nova quando o prazo delas vencia.
+    emit('title:rated', { id: pick.movie_id, mediaType: pick.media_type === 'tv' ? 'tv' : 'movie', rating: value });
     toast.success(t('library.inLibrary'));
     setRating(false);
     onRated();

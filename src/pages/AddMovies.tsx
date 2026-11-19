@@ -8,6 +8,7 @@ import { Movie, searchMovies, getMovieDetails, ensureMovieCachedIfMissing } from
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { cache, CACHE_KEYS } from '../lib/cache';
+import { emit } from '../lib/bus';
 import IMDbImportModal from '../components/IMDbImportModal';
 // 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
@@ -134,6 +135,11 @@ export default function AddMovies() {
     setLibraryKeys((prev) => new Set([...prev, itemKey(movie.id, mediaType)]));
     setLibraryCount((prev) => (prev ?? 0) + 1);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId || ''));
+    // 19/11/2026 (Reborn): avisa o barramento. Sem isto, as telas que guardam
+    // dados (a cópia do menu deste título, o Perfil, as tags) só percebiam a
+    // nota nova quando o prazo delas vencia.
+    if (rating !== undefined) emit('title:rated', { id: movie.id, mediaType: mediaType === 'tv' ? 'tv' : 'movie', rating });
+    else emit('title:watchlist', { id: movie.id, mediaType: mediaType === 'tv' ? 'tv' : 'movie', on: true });
     toast.success(t('library.inLibrary'));
   };
 

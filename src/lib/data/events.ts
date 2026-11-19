@@ -46,6 +46,19 @@ const RULES: { [E in BusEvent]: (payload: BusEvents[E]) => Rule[] } = {
     [typeof e?.id === 'number' ? ['title', 'me', 'tv', e.id] : ['title', 'me', 'tv'], 'forget'],
     [['profile', 'stats'], 'later'],
   ],
+  // importação ou "apagar tudo": o que vale para uma nota, para todos os títulos
+  'library:bulk': () => [
+    [['library'], 'now'],
+    [['profile', 'stats'], 'later'],
+    [['title', 'me'], 'forget'],
+    [['title', 'social'], 'later'],
+    [['tvProgress'], 'later'],
+    [['seasonal'], 'later'],
+    [['jackpot', 'state'], 'later'],
+    [['persona', 'world'], 'later'],
+    [['forYou'], 'later'],
+    [['tags'], 'later'],
+  ],
   'profile:updated': () => [[['me', 'profile'], 'now']],
   'friendship:changed': () => [
     [['me', 'friendIds'], 'now'],
