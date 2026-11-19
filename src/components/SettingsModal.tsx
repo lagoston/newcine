@@ -74,7 +74,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        // 19/11/2026 (Reborn): maybeSingle no lugar de single. Quem nunca mandou
+        // feedback recebia um erro 406 do servidor a cada abertura das
+        // Configurações (3 nos registros de hoje); sem linha, agora vem nulo.
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
 

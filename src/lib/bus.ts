@@ -39,6 +39,10 @@ export type BusEvents = {
   'posters:changed': Record<string, never>;
   // o evento sazonal precisa ser lido de novo (avaliações que contam para ele)
   'seasonal:stale': Record<string, never>;
+  // 19/11/2026 (onda 3): chegou um sussurro novo para a pessoa logada. Quem
+  // emite é o canal ao vivo (src/lib/userChannel.ts), a partir do aviso do
+  // banco; `type` é o tipo do sussurro (poker_invite, friend_request…).
+  'whispers:new': { type?: string };
 };
 export type BusEvent = keyof BusEvents;
 

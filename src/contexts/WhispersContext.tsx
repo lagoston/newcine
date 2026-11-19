@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { takeBootPart } from '../lib/data';
+import { useBus } from '../lib/bus';
 
 // Sussurros: a contagem de não lidos e o modal, num lugar só.
 //
@@ -48,7 +49,16 @@ export const useWhispers = () => useContext(WhispersContext);
 // e de quem já chama refetchUnreadCount (o modal, ao marcar como lidos). O
 // aviso em tempo real volta na Onda 2 por Broadcast (tópico privado
 // user:<id>, como o pôquer).
+//
+// 19/11/2026 (Reborn, onda 3): voltou, e agora funciona. O banco manda um
+// aviso a cada sussurro novo e o canal ao vivo (src/lib/userChannel.ts) o
+// repassa pelo barramento como 'whispers:new'; aqui o número é relido na hora.
+// O canal só fica ligado com o app na frente e fora do modo economia; sem
+// ele, vale a releitura ao voltar para o app, como antes.
 const FOREGROUND_REFETCH_MS = 60_000;
+// O canal ao vivo liga 5 s depois de a pessoa entrar: a abertura do app não
+// disputa a rede com o websocket.
+const LIVE_CHANNEL_DELAY_MS = 5_000;
 export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { session } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -103,6 +113,33 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
     document.addEventListener('visibilitychange', onForeground);
     return () => document.removeEventListener('visibilitychange', onForeground);
   }, [session?.user?.id, refetchUnreadCount]);
+
+  // 19/11/2026 (onda 3): sussurro novo avisado pelo banco → relê o número.
+  useBus('whispers:new', () => {
+    refetchUnreadCount();
+  });
+
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
+      import('../lib/userChannel')
+        .then((live) => {
+          if (cancelled) return;
+          live.startUserChannel(uid);
+          stop = live.stopUserChannel;
+        })
+        // sem o pedaço (rede ruim, deploy no meio): fica a releitura ao voltar
+        .catch(() => undefined);
+    }, LIVE_CHANNEL_DELAY_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      stop?.();
+    };
+  }, [session?.user?.id]);
 
   // 18/11/2026 (otimização): valor memorizado (era um objeto novo a cada render
   // do provedor, re-renderizando o sino e quem mais usa useWhispers).
