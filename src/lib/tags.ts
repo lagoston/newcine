@@ -1,4 +1,12 @@
 // Fonte única de verdade para as definições de tags/conquistas do site.
+//
+// ATENÇÃO (19/11/2026, Reborn): o banco calcula o progresso da própria pessoa
+// (get_tag_progress / sync_my_tags) com uma CÓPIA destas definições, a tabela
+// tag_rules. Criou uma tag, mudou meta, nome, emoji ou franquia aqui? O banco
+// precisa da mesma mudança por migração, senão a tela e o banco discordam.
+// `npm run check:tags` avisa (roda antes de todo build) e
+// `npm run check:tags -- --sql` escreve a migração. Passo a passo no topo de
+// scripts/check-tag-rules.mjs.
 // O progresso de cada uma é calculado em lib/tagProgress.ts (usado pelo
 // modal de Tags, pelo card de tags dos perfis e pelo Personalizar perfil).
 // Tags de humor (condition.type 'mood') contam os títulos avaliados (filmes e

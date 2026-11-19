@@ -1,6 +1,10 @@
 // Classificação de países por continente, no modelo "5 continentes" (América unificada, sem Antártida) —
 // o mesmo usado nos anéis olímpicos, mais intuitivo para o público brasileiro do que o modelo de 7 continentes.
 // Chaves: código ISO 3166-1 alpha-2 (o mesmo formato que o TMDB usa em origin_country).
+//
+// ATENÇÃO (19/11/2026, Reborn): o banco tem uma cópia desta tabela
+// (country_continents), usada para a tag World Tour em get_tag_progress. Mudou
+// um país aqui? `npm run check:tags` avisa e `-- --sql` escreve a migração.
 
 export type Continent = 'América' | 'Europa' | 'África' | 'Ásia' | 'Oceania';
 
