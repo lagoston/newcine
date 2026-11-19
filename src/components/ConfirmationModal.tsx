@@ -1,8 +1,9 @@
-import React, { useEffect, useId } from 'react';
+import React, { useId } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { NIGHT, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
+import { useLayerEntry } from '../overlays';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -36,22 +37,16 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const { t } = useTranslation();
   const messageId = useId();
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // Só a confirmação fecha — o modal de baixo continua aberto.
-      e.stopImmediatePropagation();
-      onClose();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [isOpen, onClose]);
+  // 18/11/2026 (Protocolo Reborn, onda 2a): a confirmação entra na pilha de
+  // camadas do app (src/overlays). O Esc e o voltar fecham só ela (o modal de
+  // baixo continua aberto) porque ela é a camada de cima — antes ela capturava
+  // o Esc por conta própria. O 10050 de sempre virou o piso do z-index.
+  const layer = useLayerEntry(isOpen, onClose, { z: 10050 });
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[10050] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-describedby={messageId}>
+        <div {...layer.rootProps} className="fixed inset-0 z-[10050] flex items-center justify-center p-4" style={layer.style} role="alertdialog" aria-modal="true" aria-describedby={messageId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

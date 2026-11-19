@@ -4,12 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { NIGHT, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { LayerScope, useLayerEntry, zFromClass } from '../overlays';
 
 // Casca única dos modais no padrão novo ("a mesa do oráculo"): fundo noite,
 // título em Pixelify, fechar no X / no fundo / no Esc, trava a rolagem da
 // página por trás. No celular abre como gaveta de baixo pra cima; no
 // desktop, centralizado. Usado por Ver Todos, Sussurros, Insights do mês e
 // pelos modais da home — qualquer modal novo deve partir daqui.
+//
+// 18/11/2026 (Protocolo Reborn, onda 2a): a gaveta entra na pilha de camadas
+// do app (src/overlays). O z-index, o Esc, a trava de rolagem e o voltar do
+// navegador saíram daqui e valem para as 35 gavetas de uma vez: quem abre
+// depois fica por cima, o Esc e o voltar fecham só a de cima e a rolagem
+// solta quando a última camada fecha.
 //
 // Altura suave: quando o conteúdo cresce ou encolhe (abas das Tags e do
 // Personalizar, filtros dos Sussurros, lista carregando, resenha aberta…),
@@ -69,12 +76,18 @@ interface OracleSheetProps {
   leading?: React.ReactNode;
   footer?: React.ReactNode;
   size?: SheetSize;
-  // Desliga o Esc enquanto um modal filho (ex.: detalhes do filme) está aberto.
+  // false = agora o Esc e o voltar não fecham a gaveta (salvando, edição em
+  // linha, um filho que não é diálogo aberto por cima). 18/11/2026: não é mais
+  // preciso para "tenho um modal filho aberto" — a pilha sabe quem está por
+  // cima; quem ainda passa a prop por isso continua funcionando igual.
   escapeEnabled?: boolean;
   bodyClassName?: string;
   // Camada da gaveta. O padrão (9990) fica abaixo dos detalhes do filme
   // (9999); quem abre POR CIMA dos detalhes (resenhas, indicar) passa um
-  // valor maior, ex.: 'z-[10000]'.
+  // valor maior, ex.: 'z-[10000]'. 18/11/2026: virou o PISO do z-index. A
+  // pilha nunca deixa a gaveta abaixo da camada que já estava aberta, então
+  // entre gavetas a prop não é mais necessária; ela ainda vale para ficar
+  // acima do que não entrou na pilha (o menu do título).
   zIndexClass?: string;
   // Muda quando o conteúdo troca de "página" (aba, filtro, item aberto):
   // o corpo volta para o topo.
@@ -263,36 +276,12 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
         ? 'overflow-hidden'
         : 'overflow-y-auto';
 
-  useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
-
-  // 18/11/2026 (otimização, modais F3): o Esc (e o voltar do Android, que o
-  // nativeShell transforma em Esc) fecha só a camada de cima. Antes, toda
-  // gaveta aberta fechava junto se o pai não desligasse escapeEnabled — e o
-  // pai nem sempre sabe que o neto abriu algo (Listas de outro perfil →
-  // pôster → menu do título: um voltar fechava as duas, medido 2 → 0). Os
-  // diálogos entram no <body> na ordem em que abrem (portais), então a de cima
-  // é a última [aria-modal="true"] do documento; esta gaveta só responde se
-  // for ela. escapeEnabled continua valendo como antes.
-  useEffect(() => {
-    if (!open || !escapeEnabled) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      const root = rootRef.current;
-      const modals = document.querySelectorAll('[aria-modal="true"]');
-      const top = modals[modals.length - 1];
-      if (root && top && top !== root) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, escapeEnabled, onClose]);
+  // 18/11/2026 (Protocolo Reborn, onda 2a): a gaveta entra na pilha de camadas
+  // enquanto está aberta. Saíram daqui a trava de rolagem (cada gaveta salvava
+  // e devolvia o body.style.overflow; com duas abertas e a página saindo, a
+  // seguinte nascia travada — auditoria F1) e o ouvinte de Esc (cada gaveta
+  // tinha o seu e dependia do pai desligar com escapeEnabled — F3).
+  const layer = useLayerEntry(open, onClose, { z: zFromClass(zIndexClass), escape: escapeEnabled });
 
   // A gaveta que está saindo (a animação leva ~0,3 s) deixa de contar como
   // diálogo aberto: sem isso, dois voltar seguidos e rápidos perdiam o
@@ -303,9 +292,10 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   }, [open]);
 
   return createPortal(
+    <LayerScope layer={layer}>
     <AnimatePresence>
       {open && (
-        <div ref={rootRef} className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div ref={rootRef} {...layer.rootProps} className={`fixed inset-0 ${zIndexClass}`} style={layer.style} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             className="absolute inset-0 bg-black/75"
             initial={{ opacity: 0 }}
@@ -373,7 +363,8 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
           </div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+    </LayerScope>,
     document.body
   );
 };

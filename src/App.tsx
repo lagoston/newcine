@@ -15,6 +15,7 @@ import GlassLoader from './components/GlassLoader';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PageBackground from './components/PageBackground';
 import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
+import { OverlayProvider } from './overlays';
 import { DirectorProvider } from './contexts/DirectorContext';
 import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
 import { IS_NATIVE_APP } from './lib/platform';
@@ -73,6 +74,8 @@ function OracleRedirect() {
 // seguinte nascia sem rolar (medido: 0 px contra 700 px). Depois de cada troca
 // de página, sem nenhum diálogo na tela, a trava sai. O Acervo (.ac-layer) e
 // as folhas do pôquer (.pp-layer) travam de propósito e ficam de fora.
+// Onda 2a: as gavetas já têm uma dona só para a trava (src/overlays); isto
+// continua até a 2b pelas camadas que ainda travam sozinhas (o menu do título).
 function ScrollLockJanitor() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -113,6 +116,11 @@ function App() {
           {/* Evento sazonal no ar (Halloween, Natal…): painel da home,
               decoração do site e dos perfis, comemoração das tags. */}
           <SeasonalEventProvider>
+          {/* 18/11/2026 (Protocolo Reborn, onda 2a): o anfitrião único de camadas
+              (src/overlays). Uma pilha só para o z-index, o Esc, a trava de
+              rolagem e o voltar das gavetas. Fica dentro do roteador e dos
+              provedores acima porque as camadas que ele desenha os usam. */}
+          <OverlayProvider>
           <div className="min-h-screen pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
             <SeasonalBackdrop />
@@ -174,6 +182,7 @@ function App() {
             {/* "Instalar o app" só faz sentido no navegador. */}
             {!IS_NATIVE_APP && <InstallPrompt />}
           </div>
+          </OverlayProvider>
           </SeasonalEventProvider>
           </WhispersProvider>
         </BrowserRouter>

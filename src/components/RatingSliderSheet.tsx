@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BookmarkPlus, Star, X, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { NIGHT, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { useLayerEntry } from '../overlays';
 
 interface RatingSliderSheetProps {
   movieTitle: string;
@@ -82,18 +83,12 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
   const [rating, setRating] = useState(initialRating);
   const [committedRating, setCommittedRating] = useState(initialRating);
 
-  // Esc fecha a gaveta (e só ela — quem está por baixo continua aberto),
-  // a não ser no meio de um salvamento.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || loading !== null) return;
-      e.stopImmediatePropagation();
-      onClose();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [isOpen, loading, onClose]);
+  // Esc (e o voltar) fecha a gaveta (e só ela — quem está por baixo continua
+  // aberto), a não ser no meio de um salvamento. 18/11/2026 (Protocolo Reborn,
+  // onda 2a): quem decide isso é a pilha de camadas do app (src/overlays);
+  // antes a gaveta capturava o Esc por conta própria. `z: null`: ela não vai
+  // em portal, então o z-[60] continua valendo dentro de quem a desenha.
+  const layer = useLayerEntry(isOpen, onClose, { z: null, escape: loading === null });
 
   if (!isOpen) return null;
 
@@ -157,6 +152,7 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
       />
 
       <div
+        {...layer.rootProps}
         role="dialog"
         aria-modal="true"
         aria-label={movieTitle}
