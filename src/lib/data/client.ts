@@ -49,7 +49,13 @@ export function optionsOf<T>(spec: QuerySpec, queryFn: () => Promise<T>) {
 // só marca como vencido (refaz na próxima vez que alguém usar, ou ao voltar
 // para o app) — para o que não está à vista, sem gastar um pedido na hora.
 // O prefixo pega tudo que começa com ele: ['jackpot'] cobre estado e catálogo.
-export function invalidate(prefix: QueryKey, when: 'now' | 'later' = 'now'): Promise<void> {
+// 'forget' (19/11/2026, onda 3): o que ninguém está mostrando é APAGADO (a
+// próxima abertura busca do zero, sem mostrar por um instante o valor velho);
+// o que está na tela só fica marcado como vencido — quem gravou a mudança já
+// corrigiu a cópia (patchCached). É o modo do "eu e este título": dar nota ou
+// marcar episódio não refaz a leitura, e reabrir nunca pisca o estado antigo.
+export function invalidate(prefix: QueryKey, when: 'now' | 'later' | 'forget' = 'now'): Promise<void> {
+  if (when === 'forget') queryClient.removeQueries({ queryKey: prefix, type: 'inactive' });
   return queryClient.invalidateQueries({ queryKey: prefix, refetchType: when === 'now' ? 'active' : 'none' });
 }
 
