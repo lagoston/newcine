@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { tmdbImage } from './tmdbImage';
 import { moodsOfCode } from './moods';
 
 // Personalidade cinematográfica (sistema novo): as 3 prateleiras que a
@@ -103,7 +104,7 @@ export const personaText = (p: PersonaEntry, language: string) => {
 };
 
 export const posterUrl = (path: string | null | undefined, size: 'w185' | 'w342' | 'w500' | 'w780' = 'w342'): string | null =>
-  path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+  path ? tmdbImage(path, size) : null;
 
 // A imagem do retrato: a foto do personagem (recortada no ponto `focus`) ou,
 // sem ela, o pôster do filme. `large` pede a versão grande (o recorte de uma
@@ -111,7 +112,7 @@ export const posterUrl = (path: string | null | undefined, size: 'w185' | 'w342'
 export const personaPortrait = (p: PersonaEntry, large = false): { src: string | null; focus: string; isCharacter: boolean } => {
   if (p.characterImagePath) {
     return {
-      src: `https://image.tmdb.org/t/p/${large ? 'w1280' : 'w780'}${p.characterImagePath}`,
+      src: tmdbImage(p.characterImagePath, large ? 'w1280' : 'w780'),
       focus: p.characterImageFocus || '50% 30%',
       isCharacter: true,
     };

@@ -354,6 +354,13 @@ export default defineConfig({
           // nome com hash dessas telas: fica na entrada, senão o app-core mudaria
           // junto com qualquer tela.
           if (!info || info.isEntry || info.dynamicallyImportedIds.some((d) => d.includes('/src/'))) return undefined;
+          // 19/11/2026 (Reborn, render 2b): o ajudante das imagens do TMDB é
+          // minúsculo (589 bytes), não importa nada e é usado por 42 arquivos de
+          // telas sob demanda. Solto, virava um pedaço próprio no topo da
+          // "cascata" do check:size (mexer nele trocava o nome de 42 arquivos e
+          // custava um pedido a mais em toda tela); no app-core, de nome
+          // estável, não troca o nome de ninguém.
+          if (id.endsWith('/src/lib/tmdbImage.ts')) return 'app-core';
           return inEntryGraph(id, getModuleInfo) ? 'app-core' : undefined;
         },
         // 18/11/2026 (Reborn, pacote): os eixos saem com nome fixo em /core (ver

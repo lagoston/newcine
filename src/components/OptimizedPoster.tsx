@@ -7,6 +7,12 @@ interface OptimizedPosterProps {
   className?: string;
   onLoad?: () => void;
   priority?: boolean;
+  // 19/11/2026 (Reborn, onda 2b): candidatos por densidade de tela e o tamanho
+  // próprio da imagem (a caixa 2:3 fica reservada mesmo sem CSS). Quem escolhe
+  // os tamanhos do TMDB é o PosterImage; aqui só passam adiante.
+  srcSet?: string;
+  width?: number;
+  height?: number;
 }
 
 // Pôster com carregamento preguiçoso. Enquanto a imagem não chega, um brilho
@@ -17,7 +23,10 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   alt,
   className = '',
   onLoad,
-  priority = false
+  priority = false,
+  srcSet,
+  width,
+  height,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -50,6 +59,9 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
       )}
       <img
         src={src}
+        srcSet={srcSet}
+        width={width}
+        height={height}
         alt={alt}
         draggable={false}
         className={`${className} poster-bloom`}

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { tmdbImage } from './tmdbImage';
 
 // Salas secretas (19/10/2026): páginas que abrem durante um evento para quem
 // conquistou uma tag e, depois dele, só para quem está USANDO a tag no
@@ -167,6 +168,6 @@ export const pick = (pt: boolean, ptValue?: string | null, enValue?: string | nu
 export const cardTitle = (card: RoomCard, pt: boolean) => pick(pt, card.t_pt, card.t_en);
 export const cardPoster = (card: RoomCard, pt: boolean, size = 'w342') => {
   const path = pt ? card.p_pt || card.p_en : card.p_en || card.p_pt;
-  return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+  return path ? tmdbImage(path, size) : null;
 };
 export const cardKey = (card: { id: number; type: string }) => `${card.type}:${card.id}`;
