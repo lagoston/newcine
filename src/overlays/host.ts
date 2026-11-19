@@ -6,6 +6,7 @@
 // carrega. Quem desenha é o <LayerOutlet /> do OverlayProvider.
 import type { ComponentType } from 'react';
 import * as stack from './stack';
+import { setAddress } from './history';
 import type { OverlayDef, OverlayKind, OverlaySpec } from './registry';
 
 // Quanto tempo a camada continua montada depois de fechar (a animação de
@@ -106,9 +107,20 @@ function openLayer(kind: string, params: unknown): string | null {
     def.z ?? stack.DEFAULT_Z,
   );
   mounts = [...mounts, { mark, kind, params, z, open: true, page: pageKey(), path: window.location.pathname }];
+  // a camada com endereço põe o dela na URL (na entrada do histórico que acabou de ganhar)
+  if (def.address) setAddress(`${kind}.${def.address(params)}`);
   emit();
   return mark;
 }
+
+// Lê um endereço de camada (`title.movie.27205`). null = não é de nenhuma.
+export function readAddress(address: string | null): { kind: string; params: unknown } | null {
+  if (!address) return null;
+  const [kind, ...parts] = address.split('.');
+  const params = defs.get(kind)?.fromAddress?.(parts) ?? null;
+  return params ? { kind, params } : null;
+}
+export const openAddress = (wanted: { kind: string; params: unknown }): string | null => openLayer(wanted.kind, wanted.params);
 
 // Troca parte dos parâmetros de uma camada aberta (os detalhes completos do
 // título chegando depois do cartão leve). Camada já fechada: não faz nada.

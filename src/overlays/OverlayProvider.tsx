@@ -10,10 +10,10 @@
 // Os componentes antigos entram na pilha sozinhos, pela useLayerEntry
 // (hooks.ts): não precisam deste provedor em volta.
 import React, { Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import * as history from './history';
 import GlassLoader from '../components/GlassLoader';
-import { getDef, getDefs, getMounts, outletMounted, overlays, registerOverlays, routerMovedHosted, subscribeMounts, type Mount } from './host';
+import { getDef, getDefs, getMounts, openAddress, outletMounted, overlays, readAddress, registerOverlays, routerMovedHosted, subscribeMounts, type Mount } from './host';
 import { ScopeContext, SlotContext } from './hooks';
 import type { OverlayRegistry } from './registry';
 import './covered.css';
@@ -22,7 +22,10 @@ import './covered.css';
 const HistoryBridge: React.FC = () => {
   const location = useLocation();
   const move = useNavigationType();
+  const navigate = useNavigate();
   const first = useRef(true);
+  // a camada pedida pelo endereço da página (?o=title.movie.27205), à espera
+  const wanted = useRef<{ kind: string; params: unknown } | null>(null);
   // Efeitos de layout: o ouvinte do voltar entra antes do ouvinte do roteador
   // (que é registrado pelo BrowserRouter, em volta deste componente).
   useLayoutEffect(() => {
@@ -35,7 +38,29 @@ const HistoryBridge: React.FC = () => {
     // as camadas do host fecham quando a página muda
     routerMovedHosted(location.key, location.pathname, first.current ? 'INIT' : move);
     first.current = false;
+    // o endereço já saiu da página (ver abaixo): agora a camada abre, com a
+    // entrada dela por cima — o voltar fecha a camada e fica no site
+    if (wanted.current && !new URLSearchParams(location.search).has('o')) {
+      const layer = wanted.current;
+      wanted.current = null;
+      openAddress(layer);
+    }
   }, [location, move]);
+  // Abriu por link ou recarregou com uma camada aberta (?o=…): a entrada da
+  // PÁGINA fica sem o endereço (um replace pelo roteador, para ele também não
+  // guardar o parâmetro) e a camada abre em seguida, no efeito acima.
+  useEffect(() => {
+    if (!history.HISTORY_ENABLED) return;
+    const params = new URLSearchParams(window.location.search);
+    const layer = readAddress(params.get('o'));
+    if (!params.has('o')) return;
+    params.delete('o');
+    wanted.current = layer;
+    const search = params.toString();
+    navigate({ pathname: window.location.pathname, search: search ? `?${search}` : '', hash: window.location.hash }, { replace: true, state: location.state });
+    // só na chegada
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 };
 

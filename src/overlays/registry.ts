@@ -55,12 +55,24 @@ export interface OverlayDef<P> {
   z?: number;
   // baixa o código da camada quando o app fica ocioso, antes do primeiro toque
   idle?: boolean;
+  // O endereço da camada: com ela aberta a URL ganha `?o=<tipo>.<address>`, e
+  // abrir esse link (ou recarregar) abre a camada de novo. `fromAddress` lê o
+  // que `address` escreveu (null = endereço inválido, ignora).
+  address?: (params: P) => string;
+  fromAddress?: (parts: string[]) => P | null;
 }
 
 export type OverlayRegistry = { [K in OverlayKind]: OverlayDef<OverlaySpec[K]> };
 
 export const OVERLAYS: OverlayRegistry = {
   // 9999: o z de sempre do menu do título (acima das gavetas, em 9990)
-  title: { load: () => import('./layers/TitleLayer'), z: 9999, idle: true },
+  // ?o=title.movie.27205 · ?o=title.tv.1399
+  title: {
+    load: () => import('./layers/TitleLayer'),
+    z: 9999,
+    idle: true,
+    address: (params) => `${params.mediaType}.${params.id}`,
+    fromAddress: ([mediaType, id]) => ((mediaType === 'movie' || mediaType === 'tv') && /^\d{1,9}$/.test(id ?? '') && Number(id) > 0 ? { mediaType, id: Number(id) } : null),
+  },
   jackpot: { load: () => import('./layers/JackpotLayer') },
 };

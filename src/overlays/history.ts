@@ -115,6 +115,25 @@ const settle = (next: Pending | null) => {
   pending = next;
 };
 
+// ------------------------------------------------------------------ endereço
+
+// O endereço da camada de cima (`?o=title.movie.27205`), gravado na entrada do
+// histórico DELA: quando a camada fecha a entrada sai e o endereço vai junto.
+// O roteador não fica sabendo (para ele a página é a mesma). null = sem endereço.
+const ADDRESS = 'o';
+export function setAddress(address: string | null): void {
+  if (!attached || pending) return;
+  const state = read();
+  const ovl = ovlOf(state);
+  // só numa entrada de camada; a entrada da página nunca leva endereço
+  if (!ovl || ovl.o < 1) return;
+  const url = new URL(window.location.href);
+  if ((url.searchParams.get(ADDRESS) ?? null) === address) return;
+  if (address) url.searchParams.set(ADDRESS, address);
+  else url.searchParams.delete(ADDRESS);
+  write('replace', state ?? {}, url.pathname + url.search + url.hash);
+}
+
 // ------------------------------------------------------------------ abrir
 
 // Uma camada entrou: o histórico ganha as entradas que faltam (uma por
@@ -132,6 +151,8 @@ function grow(): void {
     state = read();
   }
   if (ovl) {
+    // a entrada reaproveitada era de outra camada: o endereço dela não vale mais
+    if (ovl.o >= want && want > 0) setAddress(null);
     for (let o = ovl.o + 1; o <= want; o++) {
       if (!write('push', { ...(state ?? {}), [KEY]: { g: ovl.g, o } })) break;
     }
