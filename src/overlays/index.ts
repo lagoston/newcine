@@ -16,4 +16,4 @@ export { overlays, registerOverlay } from './host';
 export type { OverlayApi } from './host';
 export { openTitle, updateTitle, useOpenTitle } from './title';
 export type { TitleOptions } from './title';
-export type { OverlayKind, OverlaySpec, TitleParams } from './registry';
+export type { JackpotParams, OverlayKind, OverlaySpec, TitleParams } from './registry';

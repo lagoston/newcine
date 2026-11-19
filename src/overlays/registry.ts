@@ -14,6 +14,8 @@
 // fecharia um círculo entre a entrada e o app-core (tela branca).
 import type { ComponentType } from 'react';
 import type { Movie } from '../lib/tmdb';
+import type { DailyReward } from '../lib/posterJackpot';
+import type { JackpotTab } from '../components/posterJackpot/PosterJackpotSheet';
 
 export interface TitleParams {
   id: number;
@@ -30,9 +32,20 @@ export interface TitleParams {
   onClose?: () => void;
 }
 
+export interface JackpotParams {
+  // a aba em que a gaveta abre (o padrão é a roleta)
+  tab?: JackpotTab;
+  // a ficha do dia que acabou de ser pega (a gaveta abre em Missões e mostra)
+  dailyReward?: DailyReward | null;
+  // Chamado uma vez quando a gaveta fecha, por qualquer caminho.
+  onClose?: () => void;
+}
+
 export type OverlaySpec = {
   // o menu do título (MovieDetailsModal)
   title: TitleParams;
+  // a gaveta do Poster Jackpot, por cima de qualquer página
+  jackpot: JackpotParams;
 };
 export type OverlayKind = keyof OverlaySpec;
 
@@ -49,4 +62,5 @@ export type OverlayRegistry = { [K in OverlayKind]: OverlayDef<OverlaySpec[K]> }
 export const OVERLAYS: OverlayRegistry = {
   // 9999: o z de sempre do menu do título (acima das gavetas, em 9990)
   title: { load: () => import('./layers/TitleLayer'), z: 9999, idle: true },
+  jackpot: { load: () => import('./layers/JackpotLayer') },
 };

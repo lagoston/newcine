@@ -5,6 +5,7 @@
 import type { NavigateFunction } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { equipPoster, type PosterEffect } from '../../../lib/posterJackpot';
+import { overlays } from '../../../overlays';
 import type { PokerPrize } from '../../../lib/poker/client/apiTypes';
 import { pokerApi } from '../../../lib/poker/client/api';
 import { equipPokerMark } from '../jackpot/entryApi';
@@ -53,8 +54,9 @@ export function prizeAction(prize: PokerPrize | null | undefined, ctx: { userId:
     case 'tickets':
     case 'special_tickets':
       // Fichas não se "equipam": abre a gaveta do Jackpot para usar.
+      // 19/11/2026 (Reborn, onda 2b): por cima da mesa, sem sair do pôquer.
       return async () => {
-        ctx.navigate('/', { state: { openJackpot: 'machine' } });
+        overlays.open('jackpot', { tab: 'machine' });
       };
     default:
       return null;

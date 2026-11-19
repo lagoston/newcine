@@ -26,7 +26,7 @@ import {
 } from '../../lib/friendsFeed';
 import StoryRing from './StoryRing';
 import { AchievementBackdrop, AchievementCard } from './AchievementStory';
-import { LayerScope, useLayerEntry } from '../../overlays';
+import { LayerScope, overlays, useLayerEntry } from '../../overlays';
 import { JackpotBackdrop, JackpotCard } from './JackpotStory';
 
 // "Stories automáticos" do Feed dos Amigos: ocupa a tela, monta um cartão
@@ -361,9 +361,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
     navigate(path, { state, replace: location.pathname === path });
   };
   const openOwnerProfile = () => go(isOwn ? '/profile' : `/profile/${story.owner.username}`);
-  // O Poster Jackpot mora na home: a porta dela abre a roleta (ou, no story
-  // do próprio dono, a coleção) ao ler location.state.openJackpot.
-  const openJackpot = () => go('/', { openJackpot: isOwn ? 'collection' : 'machine' });
+  // 19/11/2026 (Reborn, onda 2b): o Poster Jackpot é uma camada do host. O
+  // story fecha e a gaveta abre na página em que a pessoa está (a roleta ou,
+  // no story do próprio dono, a coleção); antes ia para a home.
+  const openJackpot = () => {
+    onClose();
+    overlays.open('jackpot', { tab: isOwn ? 'collection' : 'machine' });
+  };
   const workOfPrize = prize ? jackpotWorkStory(story) : null;
   const hasMany = groups.length > 1 || group.stories.length > 1;
   const spoilerHidden = Boolean(story.review?.has_spoilers && !revealed[story.id]);

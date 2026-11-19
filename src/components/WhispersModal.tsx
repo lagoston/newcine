@@ -10,7 +10,7 @@ import { useWhispers } from '../contexts/WhispersContext';
 import { Movie, getMovieDetails, getMovieDetailsFromDB } from '../lib/tmdb';
 // 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
-import { openTitle } from '../overlays';
+import { openTitle, overlays } from '../overlays';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet, { SheetFade } from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
@@ -501,7 +501,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           ) : null
         );
       case 'jackpot_invite':
-        return <JackpotInviteCard onPlay={() => goTo('/', { openJackpot: 'machine' })} />;
+        return <JackpotInviteCard onPlay={() => overlays.open('jackpot', { tab: 'machine' })} />;
       case 'poster_trade':
       case 'poster_trade_result': {
         const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
@@ -606,7 +606,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         <>
           {trade && trade.status !== 'pending' && <StatusPill status={trade.status} />}
           <button
-            onClick={() => goTo('/', { openJackpot: accepted ? 'collection' : 'trades' })}
+            onClick={() => overlays.open('jackpot', { tab: accepted ? 'collection' : 'trades' })}
             className={ghostButton}
             style={{ color: PAPER }}
           >
