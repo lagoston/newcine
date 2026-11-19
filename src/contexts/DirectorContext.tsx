@@ -70,7 +70,7 @@ export const DirectorProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
     setLoading(true);
-    const next = await fetchDirectorState();
+    const next = await fetchDirectorState(userId);
     setState(next);
     setLoading(false);
     // userId e nível de autenticação: a resposta é sobre a sessão que pediu

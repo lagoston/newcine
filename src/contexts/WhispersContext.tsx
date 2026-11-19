@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { takeBootPart } from '../lib/data';
 
 // Sussurros: a contagem de não lidos e o modal, num lugar só.
 //
@@ -67,6 +68,14 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
     try {
+      // 19/11/2026 (Reborn, onda 2b): ao abrir o app o número vem na ida única
+      // da casca (get_app_bootstrap, parte "unread"); reler depois (voltar para
+      // o app, marcar como lidos) chama a RPC de sempre.
+      const boot = await takeBootPart<number | null>(session.user.id, 'unread');
+      if (boot) {
+        setUnreadCount(boot.value || 0);
+        return;
+      }
       const { data, error } = await supabase.rpc('count_unread_indications', {
         user_id_input: session.user.id,
       });

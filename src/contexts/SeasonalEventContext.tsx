@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { emit } from '../lib/bus';
-import { Q, applyRules, invalidate, refetchIfStale, useCached, useOwner } from '../lib/data';
+import { Q, applyRules, invalidate, onBootPart, refetchIfStale, seedCached, takeBootPart, useCached, useOwner } from '../lib/data';
 import { useDirector } from './DirectorContext';
 import {
   SEASONAL_THEMES,
@@ -81,6 +81,18 @@ const RATING_PAGES = ['/library', '/add-movies', '/lists'];
 const eventSignature = (event: SeasonalEventState | null) => (event ? JSON.stringify({ ...event, now: null }) : 'null');
 const sameEvent = (a: SeasonalEventState | null, b: SeasonalEventState | null) => eventSignature(a) === eventSignature(b);
 
+// A resposta de get_seasonal_event_state como o site a usa (evento que este
+// site não conhece vira "nenhum").
+const parseEvent = (data: unknown): SeasonalEventState | null => {
+  const raw = data as SeasonalEventState | null;
+  return raw && isSeasonalEventId(raw.id) ? raw : null;
+};
+
+// 19/11/2026 (Reborn, onda 2b): o evento que voltou do aparelho e ainda está
+// no prazo não refaz a busca; o estado mais novo, que veio na ida única da
+// casca (get_app_bootstrap, parte "seasonal"), entra direto no lugar dele.
+onBootPart('seasonal', (uid, value, at) => seedCached<SeasonalEventState | null>(Q.seasonal(uid, null), parseEvent(value), at, sameEvent));
+
 // Prévia de um evento fora da época. Desde 16/11/2026 (Conta Diretor) é só do
 // diretor: o banco ignora p_preview de qualquer outra conta. ?evento=natal liga
 // a prévia na tela do diretor (guardada no aparelho, como a escolha feita no
@@ -124,10 +136,13 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const query = useCached<SeasonalEventState | null>(
     Q.seasonal(owner, preview ?? null),
     async () => {
+      // 19/11/2026 (Reborn, onda 2b): ao abrir o app logado o evento vem na ida
+      // única da casca (sem prévia); recarregar depois chama a RPC de sempre.
+      const boot = preview ? null : await takeBootPart<unknown>(owner, 'seasonal');
+      if (boot) return parseEvent(boot.value);
       const { data, error } = await supabase.rpc('get_seasonal_event_state', { p_preview: preview });
       if (error) throw error;
-      const raw = data as SeasonalEventState | null;
-      return raw && isSeasonalEventId(raw.id) ? raw : null;
+      return parseEvent(data);
     },
     { keep: sameEvent },
   );
