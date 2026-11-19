@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { fetchMyProfile, ownerNow, patchMyProfile } from './data';
 import { ShelfEntry, TitleMediaType, titleKey } from './titleCards';
 import { PROGRESSION_TAGS } from './tags';
 
@@ -59,9 +60,23 @@ export async function saveRatedLayout(userId: string, layout: RatedLayout) {
   }
   const { error } = await supabase.from('profiles').update({ library_layout: layout }).eq('id', userId);
   if (error) throw error;
+  // a cópia do próprio perfil guardada na camada de dados já fica com o valor novo
+  if (ownerNow() === userId) patchMyProfile({ library_layout: layout });
 }
 
+// 18/11/2026 (Reborn, onda 2a): para a própria pessoa, a organização vem da
+// leitura única do perfil (camada de dados, ['me','profile']) em vez de uma
+// consulta só para esta coluna a cada visita à Biblioteca. Para o perfil de
+// OUTRA pessoa (página da comunidade) continua a leitura direta, sem guardar.
 export async function fetchRatedLayout(userId: string): Promise<RatedLayout | null> {
+  if (ownerNow() === userId) {
+    try {
+      const me = await fetchMyProfile(userId);
+      return me?.library_layout ? asRatedLayout(me.library_layout) : null;
+    } catch {
+      return null;
+    }
+  }
   const { data, error } = await supabase.from('profiles').select('library_layout').eq('id', userId).maybeSingle();
   if (error || !data) return null;
   return data.library_layout ? asRatedLayout(data.library_layout) : null;

@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from 'sonner';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './lib/auth';
+import { DataProvider } from './lib/data/DataProvider';
 import { WhispersProvider } from './contexts/WhispersContext';
 import WhispersNotificationPopup from './components/WhispersNotificationPopup';
 import { ThemeProvider } from './lib/theme';
@@ -109,6 +110,10 @@ function App() {
 
   return (
     <AuthProvider>
+      {/* 18/11/2026 (Reborn, onda 2a): a camada de dados (src/lib/data). Fica
+          dentro do AuthProvider porque precisa saber quem está logado: ao trocar
+          de conta, o que era da pessoa anterior sai da memória e do aparelho. */}
+      <DataProvider>
       {/* Conta Diretor (16/11/2026): o papel vem do banco; ver lib/director.ts. */}
       <DirectorProvider>
       <ThemeProvider>
@@ -212,6 +217,7 @@ function App() {
         />
       </ThemeProvider>
       </DirectorProvider>
+      </DataProvider>
     </AuthProvider>
   );
 }
