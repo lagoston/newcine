@@ -7,7 +7,9 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import OracleSheet from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
 
@@ -82,7 +84,6 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
 
-  const [detailsMovie, setDetailsMovie] = useState<any | null>(null);
   const [loadingDetailsFor, setLoadingDetailsFor] = useState<number | null>(null);
 
   useEffect(() => {
@@ -204,7 +205,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
     setLoadingDetailsFor(movie.id);
     try {
       const details = await getMovieDetailsFromDB(movie.id, 'movie');
-      setDetailsMovie(details);
+      openTitle(details);
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
@@ -258,7 +259,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
           </span>
         }
         size="lg"
-        escapeEnabled={!trailerMovie && !detailsMovie}
+        escapeEnabled={!trailerMovie}
         footer={isPremium && !checkingPremium && phase === 'setup' && friends.length > 0 ? (
           <button onClick={handleStartDuel} disabled={!selectedFriend || starting} className={primaryButton}>
             <Swords className="w-5 h-5" aria-hidden />
@@ -538,15 +539,6 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
           </div>
         )}
       </AnimatePresence>
-
-      {/* Detalhes do filme */}
-      {detailsMovie && (
-        <MovieDetailsModal
-          movie={detailsMovie}
-          isOpen={true}
-          onClose={() => setDetailsMovie(null)}
-        />
-      )}
     </>
   );
 }

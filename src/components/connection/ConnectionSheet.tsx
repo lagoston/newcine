@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Info, UserPlus, UserCheck, Clock, Loader2, Share2, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import OracleSheet from '../OracleSheet';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { useOpenTitle } from '../../overlays';
 import ConnectionShareSheet from './ConnectionShareSheet';
 import DuoAvatars from './DuoAvatars';
 import SharedLoves from './SharedLoves';
@@ -21,7 +23,6 @@ import { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../ProfileIdentity
 import { getFullTitle } from '../../lib/titleCards';
 import { posterUrl, type UserPersona } from '../../lib/persona';
 import { MOODS, moodsOfCode, type MoodKey } from '../../lib/moods';
-import type { Movie } from '../../lib/tmdb';
 import {
   connectionTone,
   connectionTitleName,
@@ -109,7 +110,6 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
   const [showHow, setShowHow] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
-  const [movie, setMovie] = useState<Movie | null>(null);
   // Títulos avaliados em "Afine" nesta abertura (o "+1 em comum").
   const [added, setAdded] = useState(0);
   const opening = useRef(false);
@@ -149,11 +149,12 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
   const meName = t('connection.you');
   const otherName = `@${other.username}`;
 
+  const showTitle = useOpenTitle({ onAddToLibrary: reload });
   const openTitle = async (ref: { movie_id: number; media_type: 'movie' | 'tv' }) => {
     if (opening.current) return;
     opening.current = true;
     try {
-      setMovie(await getFullTitle({ id: ref.movie_id, media_type: ref.media_type }));
+      showTitle(await getFullTitle({ id: ref.movie_id, media_type: ref.media_type }));
     } catch (error) {
       console.error('Connection open title error:', error);
       toast.error(t('common.error'));
@@ -329,7 +330,7 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
         title={t('connection.title')}
         subtitle={t('connection.subtitle', { username: other.username })}
         leading={<DuoAvatars me={meSide} other={otherSide} size={34} />}
-        escapeEnabled={!shareOpen && !ratingOpen && !movie}
+        escapeEnabled={!shareOpen && !ratingOpen}
         footer={footer}
         bodyClassName="px-5 sm:px-7 pt-0 pb-8 space-y-9"
       >
@@ -440,7 +441,6 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
       )}
 
       {/* Avaliar pelos detalhes também muda a conexão. */}
-      {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} onAddToLibrary={reload} />}
     </>
   );
 };

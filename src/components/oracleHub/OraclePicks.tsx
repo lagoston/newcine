@@ -11,7 +11,9 @@ import { PosterMarks } from '../PredictedBadge';
 import FloatingFriendBubbles from '../FloatingFriendBubbles';
 import { friendKey, useFriendActivity, type FriendActivity } from '../../hooks/useFriendActivity';
 import { useAuth } from '../../lib/auth';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../../overlays';
 import OracleProfileSheet from './OracleProfileSheet';
 
 // Escolhidos a dedo — o painel das três cartas do Oracle Hub. Cada oráculo
@@ -270,7 +272,6 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   const { session } = useAuth();
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<OracleHubPicks | null>(null);
-  const [selected, setSelected] = useState<Movie | null>(null);
   const [profileId, setProfileId] = useState<OracleId | null>(null);
   // A proporção de séries de cada oráculo, sorteada uma vez por abertura.
   const [shares] = useState(() => Object.fromEntries(ORACLES.map((o) => [o.id, drawSeriesShare()])) as Record<string, number>);
@@ -308,10 +309,10 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   const open = async (pick: OraclePick) => {
     const ref: TitleRef = { id: pick.id, media_type: pick.type };
     try {
-      setSelected(await getFullTitle(ref));
+      openTitle(await getFullTitle(ref));
     } catch {
       const card = cardOf(ref);
-      if (card) setSelected(card);
+      if (card) openTitle(card);
     }
   };
 
@@ -368,7 +369,6 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
       <BrowseAllSign totalTitles={data?.totalTitles ?? 0} shelves={data?.shelves ?? 27} />
 
       <OracleProfileSheet oracleId={profileId} cardStyle={cardStyle} onClose={() => setProfileId(null)} />
-      {selected && <MovieDetailsModal movie={selected} isOpen onClose={() => setSelected(null)} isOtherUserProfile={false} />}
     </div>
   );
 };

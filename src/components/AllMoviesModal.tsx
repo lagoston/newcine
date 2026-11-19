@@ -5,8 +5,9 @@ import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } f
 import { ShelfEntry, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
 import { useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import { useAuth } from '../lib/auth';
-// 18/11/2026 (otimização): o modal do filme só baixa quando um filme é aberto (ver LazyMovieDetailsModal).
-import MovieDetailsModal from './LazyMovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { useOpenTitle } from '../overlays';
 import OptimizedPoster from './OptimizedPoster';
 import PosterArt from './posterJackpot/PosterArt';
 import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
@@ -50,7 +51,6 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   const { session } = useAuth();
   // Pôsteres equipados (Poster Jackpot) de quem é a biblioteca.
   const equippedPosters = useEquippedPosters(isOpen ? (isOtherUserProfile ? profileUserId : session?.user?.id) : null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
 
@@ -112,16 +112,17 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
     return { percent, color };
   };
 
+  const showTitle = useOpenTitle({ isOtherUserProfile, profileUserId, onAddToLibrary, onEpisodeToggle: refetchTvProgress });
   const openEntry = async (entry: ShelfEntry) => {
     if (loadingKey !== null) return;
     const key = titleKey(entry);
     setLoadingKey(key);
     try {
       const details = await getFullTitle(entry);
-      setSelectedMovie({ ...details, userRating: entry.userRating ?? null });
+      showTitle({ ...details, userRating: entry.userRating ?? null });
     } catch {
       const fallback = tileFor(entry);
-      if (fallback) setSelectedMovie(fallback);
+      if (fallback) showTitle(fallback);
     } finally {
       setLoadingKey(null);
     }
@@ -156,7 +157,6 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
         subtitle={`${entries.length} ${entries.length === 1 ? t('community.film') : t('community.films')}`}
         leading={leading}
         size="full"
-        escapeEnabled={!selectedMovie}
         footer={
           entries.length > 0 ? (
             <div className="flex justify-center">
@@ -255,17 +255,6 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
         </ul>
       </OracleSheet>
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-          isOtherUserProfile={isOtherUserProfile}
-          profileUserId={profileUserId}
-          onAddToLibrary={onAddToLibrary}
-          onEpisodeToggle={refetchTvProgress}
-        />
-      )}
     </>
   );
 };

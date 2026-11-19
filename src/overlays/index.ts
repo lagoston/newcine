@@ -14,5 +14,6 @@ export { useCovered, useLayer, useLayerEntry, useOverlays, zFromClass } from './
 export type { LayerEntryOptions, LayerHandle, LayerInfo } from './hooks';
 export { overlays, registerOverlay } from './host';
 export type { OverlayApi } from './host';
-export { openTitle } from './title';
-export type { OverlayKind, OverlaySpec, TitleParams } from './registry';
+export { openTitle, updateTitle, useOpenTitle } from './title';
+export type { TitleOptions } from './title';
+export type { JackpotParams, OverlayKind, OverlaySpec, TitleParams } from './registry';

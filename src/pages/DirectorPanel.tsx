@@ -11,6 +11,7 @@ import { directorSelfRevoke } from '../lib/director';
 import { SEASONAL_THEMES, type SeasonalEventId } from '../lib/seasonalEvents';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, NIGHT_BACKGROUND } from '../lib/oracleTheme';
 import DirectorMfaCard from '../components/director/DirectorMfaCard';
+import { overlays } from '../overlays';
 
 // Sala do Diretor (/diretor, 16/11/2026).
 //
@@ -358,6 +359,15 @@ export default function DirectorPanel() {
                 <Link
                   to={menu.to}
                   state={'state' in menu ? menu.state : undefined}
+                  // 19/11/2026 (Reborn, onda 2b): o Jackpot abre aqui mesmo, por cima da Sala
+                  onClick={
+                    'state' in menu && menu.state?.openJackpot
+                      ? (event) => {
+                          event.preventDefault();
+                          overlays.open('jackpot', { tab: 'machine' });
+                        }
+                      : undefined
+                  }
                   className={`flex flex-col items-start justify-center gap-0.5 py-3 rounded-lg ${FOCUS_RING} group`}
                 >
                   <span className="text-sm font-medium group-hover:underline underline-offset-4" style={{ color: PAPER }}>

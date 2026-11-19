@@ -5,9 +5,11 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
-import { getMovieTrailer, getMovieDetails, type Movie } from '../lib/tmdb';
+import { getMovieTrailer, getMovieDetails } from '../lib/tmdb';
 import { toast } from 'sonner';
-import MovieDetailsModal from '../components/MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import OracleSheet from '../components/OracleSheet';
 import { MOODS } from '../lib/moods';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
@@ -96,7 +98,6 @@ export default function OracleDuel() {
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
 
-  const [detailsMovie, setDetailsMovie] = useState<Movie | null>(null);
   const [loadingDetailsFor, setLoadingDetailsFor] = useState<number | null>(null);
   const [showOracleInfo, setShowOracleInfo] = useState(false);
 
@@ -215,7 +216,7 @@ export default function OracleDuel() {
     setLoadingDetailsFor(movie.id);
     try {
       const fullDetails = await getMovieDetails(movie.id, 'movie');
-      setDetailsMovie(fullDetails);
+      openTitle(fullDetails);
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
@@ -556,7 +557,6 @@ export default function OracleDuel() {
         )}
       </AnimatePresence>
 
-      {detailsMovie && <MovieDetailsModal movie={detailsMovie} isOpen={true} onClose={() => setDetailsMovie(null)} />}
 
       {/* ---------- Conheça os oráculos ---------- */}
       <OracleSheet open={showOracleInfo} onClose={() => setShowOracleInfo(false)} title={t('oracle.cards.infoTitle')} size="lg">

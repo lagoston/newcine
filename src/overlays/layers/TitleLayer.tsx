@@ -15,7 +15,10 @@ import type { TitleParams } from '../registry';
 const TitleLayer: React.FC<{ params: TitleParams }> = ({ params }) => {
   const layer = useLayer();
   const { t } = useTranslation();
-  const [movie, setMovie] = useState<Movie | null>(params.movie ?? null);
+  // O título de quem abriu (que pode trocá-lo depois, com overlays.update,
+  // quando os detalhes completos chegam) ou, sem ele, o que a camada buscou.
+  const [loaded, setLoaded] = useState<Movie | null>(null);
+  const movie = params.movie ?? loaded;
   const { id, mediaType, onClose } = params;
   const close = layer.close;
 
@@ -28,7 +31,7 @@ const TitleLayer: React.FC<{ params: TitleParams }> = ({ params }) => {
     let alive = true;
     getMovieDetailsFromDB(id, mediaType)
       .then((details) => {
-        if (alive) setMovie({ ...details, media_type: mediaType });
+        if (alive) setLoaded({ ...details, media_type: mediaType });
       })
       .catch((error) => {
         console.error('Error loading title:', error);

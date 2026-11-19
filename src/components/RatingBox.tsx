@@ -9,7 +9,9 @@ import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal, useTitleCa
 import { useOpenedOnce } from '../hooks/useOpenedOnce';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { useOpenTitle } from '../overlays';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
 import RateMenuSheet from './RateMenuSheet';
@@ -145,7 +147,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const [deleteMovieId, setDeleteMovieId] = useState<{ id: number; mediaType: TitleMediaType } | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{ movieId: number; title: string } | null>(null);
@@ -241,9 +242,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   // Abre o menu do título. Quem passou o título inteiro abre na hora; com
   // cartões leves, os detalhes completos são buscados (normalmente já
   // adiantados quando o dedo/mouse encostou no pôster).
+  const showTitle = useOpenTitle({ isOtherUserProfile, profileUserId, onAddToLibrary, onEpisodeToggle: refetchTvProgress });
   const openTitle = async (entry: ShelfEntry, tile: LibraryTile) => {
     if (entry.movie) {
-      setSelectedMovie(entry.movie);
+      showTitle(entry.movie);
       return;
     }
     const key = titleKey(entry);
@@ -251,9 +253,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     setOpeningKey(key);
     try {
       const full = await getFullTitle(entry);
-      setSelectedMovie({ ...full, userRating: tile.userRating });
+      showTitle({ ...full, userRating: tile.userRating });
     } catch {
-      setSelectedMovie(tile);
+      showTitle(tile);
     } finally {
       setOpeningKey(null);
     }
@@ -659,18 +661,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             title={t('common.delete')}
             message={t('library.movieRemoved')}
           />
-          )}
-
-          {selectedMovie && (
-            <MovieDetailsModal
-              movie={selectedMovie}
-              isOpen={true}
-              onClose={() => setSelectedMovie(null)}
-              isOtherUserProfile={isOtherUserProfile}
-              profileUserId={profileUserId}
-              onAddToLibrary={onAddToLibrary}
-              onEpisodeToggle={refetchTvProgress}
-            />
           )}
 
           {allMoviesMounted && (

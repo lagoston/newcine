@@ -8,7 +8,9 @@ import { DECADE_ERA_COLORS, RANK_MEDALS, decadeBadge, decadeEra, type RatedTitle
 import { asMediaType } from '../../lib/titleCards';
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { DecadeBand } from '../../lib/tasteStats';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../../overlays';
 import DecadeOrganizer from '../DecadeOrganizer';
 import { ModuleTitle, formatOne } from './observatoryKit';
 
@@ -36,7 +38,6 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onS
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<number | null>(favorite?.decade ?? null);
-  const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const [organizing, setOrganizing] = useState<DecadeBand | null>(null);
   const reelRef = useRef<HTMLOListElement>(null);
@@ -65,7 +66,7 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onS
     const key = `${item.media_type}:${item.id}`;
     setOpening(key);
     try {
-      setMovie(await getMovieDetailsFromDB(item.id, item.media_type === 'tv' ? 'tv' : 'movie'));
+      openTitle(await getMovieDetailsFromDB(item.id, item.media_type === 'tv' ? 'tv' : 'movie'));
     } catch {
       toast.error(t('common.error'));
     } finally {
@@ -253,7 +254,6 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onS
         </AnimatePresence>
       </div>
 
-      {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
       {organizing && onSaveOrder && (
         <DecadeOrganizer
           decade={organizing.decade}

@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye, Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Movie } from '../lib/tmdb';
 import { getFullTitle, prefetchFullTitle, titleKey, type TitleRef } from '../lib/titleCards';
 import { useTitleCards } from '../hooks/useLazyList';
 import { personaText, type PersonaEntry } from '../lib/persona';
 import { MIST, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 
 // As obras das prateleiras em que o personagem da persona aparece (o filme
 // dele primeiro): Harry Potter nos oito filmes, o Batman em todos os
@@ -22,7 +23,6 @@ const PersonaWorks: React.FC<{
   size?: 'sm' | 'md';
 }> = ({ persona, seen = {}, className = '', size = 'md' }) => {
   const { t, i18n } = useTranslation();
-  const [selected, setSelected] = useState<Movie | null>(null);
   const refs: TitleRef[] = useMemo(() => persona.works.map((w) => ({ id: w.id, media_type: w.type })), [persona.works]);
   const cardOf = useTitleCards(refs, refs.length, { enabled: refs.length > 0, ahead: 0 });
 
@@ -58,10 +58,10 @@ const PersonaWorks: React.FC<{
 
   const open = async (ref: TitleRef) => {
     try {
-      setSelected(await getFullTitle(ref));
+      openTitle(await getFullTitle(ref));
     } catch {
       const card = cardOf(ref);
-      if (card) setSelected(card);
+      if (card) openTitle(card);
     }
   };
 
@@ -159,7 +159,6 @@ const PersonaWorks: React.FC<{
           );
         })}
       </ol>
-      {selected && <MovieDetailsModal movie={selected} isOpen onClose={() => setSelected(null)} isOtherUserProfile={false} />}
     </section>
   );
 };

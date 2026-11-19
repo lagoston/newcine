@@ -8,7 +8,6 @@ import {
   loadJackpotFont,
   markJackpotGiftSeen,
   patchJackpotState,
-  refreshJackpotState,
   useJackpotState,
   type DailyReward,
   type JackpotState,
@@ -16,7 +15,8 @@ import {
 import { primeJackpotAudio } from '../../lib/jackpotSound';
 import { ChipFace } from './Chips';
 import { JACKPOT_TOAST_STYLE } from './jackpotToast';
-import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
+import type { JackpotTab } from './PosterJackpotSheet';
+import { overlays } from '../../overlays';
 import '../../styles/posterJackpot.css';
 import '../../styles/flyingChip.css';
 
@@ -65,24 +65,25 @@ export function useJackpotDoor(): JackpotDoor {
   useEffect(() => {
     if (stateError) console.error('Poster Jackpot state:', stateError);
   }, [stateError]);
+  // 19/11/2026 (Reborn, onda 2b): a gaveta é a camada `jackpot` do host
+  // (src/overlays/layers/JackpotLayer.tsx): a mesma em qualquer página, e o
+  // código dela (a roleta, a coleção, as trocas) saiu do pedaço da Home. Aqui
+  // fica só o "está aberta" (o balão da ficha do dia some enquanto ela está).
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [initialTab, setInitialTab] = useState<JackpotTab>('machine');
+  const open = useCallback((tab: JackpotTab = 'machine', dailyReward: DailyReward | null = null) => {
+    const mark = overlays.open('jackpot', { tab, dailyReward, onClose: () => setSheetOpen(false) });
+    if (mark) setSheetOpen(true);
+  }, []);
   const location = useLocation();
   const navigate = useNavigate();
-  // Aberto de fora (sussurros: o convite do lançamento e as trocas; stories).
+  // Aberto de fora pelo jeito antigo, location.state { openJackpot } (links de
+  // sussurros antigos, o APK anterior): continua aceito, e o state é limpo.
   const requested = (location.state as { openJackpot?: JackpotTab } | null)?.openJackpot;
   useEffect(() => {
     if (!requested) return;
-    setInitialTab(requested);
-    setSheetOpen(true);
+    open(requested);
     navigate(location.pathname + location.search, { replace: true, state: null });
-  }, [requested, navigate, location.pathname, location.search]);
-
-  // Lê de novo agora (a gaveta pede ao abrir).
-  const reload = useCallback(() => {
-    if (!userId) return;
-    void refreshJackpotState();
-  }, [userId]);
+  }, [requested, open, navigate, location.pathname, location.search]);
 
   // O presente da sexta-feira 13: quem está usando a Scary Clown ganha 3 fichas
   // especiais; na primeira vez que a home abre depois disso, um aviso conta de
@@ -114,7 +115,6 @@ export function useJackpotDoor(): JackpotDoor {
 
   // A ficha do dia: o balão estoura (~0,4 s) enquanto o banco registra a
   // ficha; depois a gaveta abre em Missões com a recompensa.
-  const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
   const [claimingDaily, setClaimingDaily] = useState(false);
   const claimDaily = useCallback(async () => {
     if (claimingDaily) return;
@@ -126,9 +126,7 @@ export function useJackpotDoor(): JackpotDoor {
       await new Promise((resolve) => setTimeout(resolve, Math.max(0, 420 - (Date.now() - started))));
       if (res.ok && res.tickets !== null) {
         patch({ tickets: res.tickets, dailyChip: false });
-        setDailyReward({ tickets: res.tickets, at: Date.now() });
-        setInitialTab('missions');
-        setSheetOpen(true);
+        open('missions', { tickets: res.tickets, at: Date.now() });
       } else {
         // Já pega hoje (outro aparelho) ou o Jackpot fechou: o balão some.
         patch(res.tickets !== null ? { tickets: res.tickets, dailyChip: false } : { dailyChip: false });
@@ -142,33 +140,13 @@ export function useJackpotDoor(): JackpotDoor {
     } finally {
       setClaimingDaily(false);
     }
-  }, [claimingDaily, patch, t]);
-
-  const open = useCallback((tab: JackpotTab = 'machine') => {
-    setInitialTab(tab);
-    setSheetOpen(true);
-  }, []);
+  }, [claimingDaily, patch, t, open]);
 
   const claimable = state ? state.missions.filter((m) => !m.claimed && m.progress >= m.target).length : 0;
   // O Giro da Sorte guardado só conta como "esperando" quando há ficha para
   // usá-lo (desde 18/11/2026 ele é o bônus de um giro com ficha).
   const waiting = state && enabled ? claimable + (state.tickets > 0 || state.specialAvailable ? state.luckySpins : 0) : 0;
 
-  const sheet =
-    state && enabled ? (
-      <PosterJackpotSheet
-        open={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false);
-          setDailyReward(null);
-        }}
-        state={state}
-        onState={patch}
-        onReload={reload}
-        initialTab={initialTab}
-        dailyReward={dailyReward}
-      />
-    ) : null;
-
-  return { state, enabled, waiting, dailyChip: enabled && !!state?.dailyChip, claimingDaily, sheetOpen, open, claimDaily, sheet };
+  // (quem desenha a gaveta agora é o host; o campo `sheet` fica para quem ainda o põe na tela)
+  return { state, enabled, waiting, dailyChip: enabled && !!state?.dailyChip, claimingDaily, sheetOpen, open, claimDaily, sheet: null };
 }

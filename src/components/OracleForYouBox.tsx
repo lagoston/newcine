@@ -4,7 +4,9 @@ import { Clock, Star, Sparkles, Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { getMovieDetails, Movie } from '../lib/tmdb';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import OptimizedPoster from './OptimizedPoster';
 import FloatingFriendBubbles from './FloatingFriendBubbles';
 import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
@@ -62,7 +64,6 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -147,7 +148,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                 const year = (movie.release_date || '').slice(0, 4);
                 return (
                   <li key={movie.id} className="group relative shrink-0 w-[124px] sm:w-[148px]">
-                    <button onClick={() => setSelectedMovie(movie)} className={`block w-full text-left rounded-xl ${FOCUS_RING}`}>
+                    <button onClick={() => openTitle(movie)} className={`block w-full text-left rounded-xl ${FOCUS_RING}`}>
                       <span
                         className="relative isolate block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                         style={{ background: NIGHT }}
@@ -189,7 +190,6 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
         )}
       </div>
 
-      {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} />}
     </>
   );
 };

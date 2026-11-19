@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { PAPER, MIST, PIXEL, VELVET, NIGHT, FOCUS_RING, glassPanel, ratingTone, withAlpha } from '../../lib/oracleTheme';
 import { RANK_MEDALS } from '../../lib/libraryLayouts';
 import { PROFILE_IMAGE_BASE } from '../../lib/castPhotos';
-import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
+import { getMovieDetailsFromDB } from '../../lib/tmdb';
 import PersonPageSheet, { type PersonSeed } from '../PersonPageSheet';
-import MovieDetailsModal from '../MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../../overlays';
 import type { ObservatoryPerson } from '../../hooks/useTasteObservatory';
 import { ModuleTitle, formatOne } from './observatoryKit';
 
@@ -71,7 +73,6 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [sheet, setSheet] = useState<PersonSeed | null>(null);
-  const [nestedMovie, setNestedMovie] = useState<Movie | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
   const [role, setRole] = useState<'cast' | 'director'>(actors.length === 0 && directors.length > 0 ? 'director' : 'cast');
 
@@ -86,7 +87,7 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
   const openMovie = async (movieId: number) => {
     setLoadingMovieId(movieId);
     try {
-      setNestedMovie(await getMovieDetailsFromDB(movieId, 'movie'));
+      openTitle(await getMovieDetailsFromDB(movieId, 'movie'));
     } catch {
       toast.error(t('common.error'));
     } finally {
@@ -252,9 +253,7 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
         onClose={() => setSheet(null)}
         onOpenMovie={openMovie}
         loadingMovieId={loadingMovieId}
-        escapeEnabled={!nestedMovie}
       />
-      {nestedMovie && <MovieDetailsModal movie={nestedMovie} isOpen={true} onClose={() => setNestedMovie(null)} />}
     </section>
   );
 };

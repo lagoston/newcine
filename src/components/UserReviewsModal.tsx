@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2, MessageSquare, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { getMoviesFromCacheByType, getMovieDetails, Movie } from '../lib/tmdb';
+import { getMoviesFromCacheByType, getMovieDetails } from '../lib/tmdb';
 import ReviewCard, { Review, ReviewMovieInfo } from './ReviewCard';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
@@ -25,7 +27,6 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
   const [reviews, setReviews] = useState<ReviewWithMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingMovie, setLoadingMovie] = useState(false);
 
   const fetchUserReviews = async () => {
@@ -81,7 +82,7 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
     try {
       setLoadingMovie(true);
       const details = await getMovieDetails(review.movie_id, (review.media_type as 'movie' | 'tv') || 'movie');
-      setSelectedMovie(details);
+      openTitle(details);
     } catch (error) {
       console.error('Error loading movie:', error);
     } finally {
@@ -120,7 +121,6 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
         }
         size="lg"
         zIndexClass="z-[10000]"
-        escapeEnabled={!selectedMovie}
         bodyClassName="px-5 sm:px-7 py-5"
       >
         {loading ? (
@@ -168,14 +168,6 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
         )}
       </OracleSheet>
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-          zIndexClass="z-[10001]"
-        />
-      )}
     </>
   );
 };

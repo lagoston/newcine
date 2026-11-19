@@ -1,5 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Library as LibraryIcon, LogIn, LogOut, User, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -15,7 +14,9 @@ import { FOCUS_RING } from '../lib/oracleTheme';
 // import direto aqui colocava o modal inteiro (~100 KB com as frases do
 // Oráculo e os submodais de review/recomendação) no pacote inicial de
 // qualquer visita — mesmo que o usuário nunca abrisse um filme pela busca.
-const MovieDetailsModal = lazy(() => import('./MovieDetailsModal'));
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle } from '../overlays';
 import { Movie } from '../lib/tmdb';
 import { NavbarSeasonalAccent } from './seasonal/SeasonalDecor';
 
@@ -103,13 +104,20 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  // há um título aberto a partir da busca (a busca do celular fica suspensa por baixo)
+  const [movieOpen, setMovieOpen] = useState(false);
   const { t } = useTranslation();
   const scrolled = useScrolled();
   const onHome = location.pathname === '/';
 
   const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
+    setMovieOpen(true);
+    openTitle(movie, {
+      onClose: () => setMovieOpen(false),
+      onAddToLibrary: () => {
+        if (!session) navigate('/auth');
+      },
+    });
   };
 
   // Tocar na marca estando no Início: volta ao topo.
@@ -237,22 +245,9 @@ function Navbar() {
       </div>
     </nav>
 
-    {user && <MobileDock onMovieSelect={handleMovieSelect} movieOpen={selectedMovie !== null} />}
+    {user && <MobileDock onMovieSelect={handleMovieSelect} movieOpen={movieOpen} />}
     {user && <WhispersHost />}
 
-    {selectedMovie && createPortal(
-      <Suspense fallback={null}>
-      <MovieDetailsModal
-        movie={selectedMovie}
-        isOpen={true}
-        onClose={() => setSelectedMovie(null)}
-        onAddToLibrary={() => {
-          if (!session) navigate('/auth');
-        }}
-      />
-      </Suspense>,
-      document.body
-    )}
     </>
   );
 }

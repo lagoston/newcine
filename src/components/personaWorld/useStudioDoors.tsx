@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/auth';
 import type { PersonaWorld } from '../../lib/personaWorld';
@@ -12,6 +11,7 @@ import { hasTerrorBox, type SpotKind, type StudioExtras } from './studio';
 import { MOOD_ITEMS, type MoodItemId } from './moodItems';
 import { pokeItem } from './pixel';
 import MoodObjectCard from './MoodObjectCardLazy';
+import { overlays } from '../../overlays';
 
 // O que cada coisa do estúdio abre (14/11/2026).
 //
@@ -92,7 +92,6 @@ export function useStudioDoors(options: {
 }): StudioDoors {
   const { world, isOwn, ownerUsername, onOpenBook, onOpenPersona, jackpot, onLeave } = options;
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { session } = useAuth();
   const viewerId = session?.user?.id ?? null;
   const poker = usePokerDoor();
@@ -131,8 +130,9 @@ export function useStudioDoors(options: {
         openJackpot(tab);
         return;
       }
-      onLeave?.();
-      navigate('/', { state: { openJackpot: tab } });
+      // 19/11/2026 (Reborn, onda 2b): fora da home a gaveta abre aqui mesmo,
+      // por cima do estúdio (antes fechava tudo e ia para a home).
+      overlays.open('jackpot', { tab });
     };
     if (onOpenPersona) {
       hotspots.screen = { label: personaLabel, onClick: onOpenPersona };
@@ -172,7 +172,7 @@ export function useStudioDoors(options: {
       };
     });
     return { extras, hotspots };
-  }, [machine, alert, poker.open, t, onOpenBook, onOpenPersona, personaLabel, isOwn, waiting, above, openJackpot, onLeave, navigate, posterCount, hasTerror, viewerId, ownerUsername]);
+  }, [machine, alert, poker.open, t, onOpenBook, onOpenPersona, personaLabel, isOwn, waiting, above, openJackpot, onLeave, posterCount, hasTerror, viewerId, ownerUsername]);
 
   const overlay =
     moodCard && world ? (

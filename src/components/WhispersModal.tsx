@@ -8,7 +8,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useWhispers } from '../contexts/WhispersContext';
 import { Movie, getMovieDetails, getMovieDetailsFromDB } from '../lib/tmdb';
-import MovieDetailsModal from './MovieDetailsModal';
+// 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
+// (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
+import { openTitle, overlays } from '../overlays';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet, { SheetFade } from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
@@ -119,7 +121,6 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const [filter, setFilter] = useState<Filter>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   // story aberto a partir de uma curtida/comentário
   const [openStory, setOpenStory] = useState<FeedStory | null>(null);
   // Um pôster de troca aberto no menu expandido (o Esc fecha só ele).
@@ -277,7 +278,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
       const movie = mediaType
         ? await getMovieDetails(whisper.movie_id, mediaType)
         : await getMovieDetailsFromDB(whisper.movie_id);
-      setSelectedMovie(movie);
+      openTitle(movie);
     } catch (error) {
       console.error('Error loading movie:', error);
       toast.error(t('common.error'));
@@ -500,7 +501,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           ) : null
         );
       case 'jackpot_invite':
-        return <JackpotInviteCard onPlay={() => goTo('/', { openJackpot: 'machine' })} />;
+        return <JackpotInviteCard onPlay={() => overlays.open('jackpot', { tab: 'machine' })} />;
       case 'poster_trade':
       case 'poster_trade_result': {
         const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
@@ -605,7 +606,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         <>
           {trade && trade.status !== 'pending' && <StatusPill status={trade.status} />}
           <button
-            onClick={() => goTo('/', { openJackpot: accepted ? 'collection' : 'trades' })}
+            onClick={() => overlays.open('jackpot', { tab: accepted ? 'collection' : 'trades' })}
             className={ghostButton}
             style={{ color: PAPER }}
           >
@@ -703,7 +704,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         subtitle={!loading ? (freshCount > 0 ? t('indications.subtitleNew', { count: freshCount }) : t('indications.subtitleNone')) : undefined}
         size="lg"
         // 15/11/2026: o menu expandido de um pôster de troca aberto por cima
-        escapeEnabled={!selectedMovie && !openStory && !tradeLayer}
+        escapeEnabled={!openStory && !tradeLayer}
         contentKey={filter}
       >
         {loading ? (
@@ -761,10 +762,6 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         )}
       </OracleSheet>
 
-      {selectedMovie && (
-        <MovieDetailsModal movie={selectedMovie} isOpen onClose={() => setSelectedMovie(null)} />
-      )}
-
       {openStory && session?.user?.id && (
         <StoryViewer
           groups={[{ owner: openStory.owner, stories: [openStory], seen: openStory.seen, latestAt: openStory.activity_at }]}
@@ -780,8 +777,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
             setOpenStory(null);
             if (story.media_type === 'achievement') return;
             getMovieDetails(story.movie_id, story.media_type)
-              .then(setSelectedMovie)
-              .catch(() => setSelectedMovie({ id: story.movie_id, title: storyTitle(story, lang), poster_path: storyPoster(story, lang) ?? '', media_type: story.media_type } as Movie));
+              .then((movie) => openTitle(movie))
+              .catch(() => openTitle({ id: story.movie_id, title: storyTitle(story, lang), poster_path: storyPoster(story, lang) ?? '', media_type: story.media_type } as Movie));
           }}
         />
       )}

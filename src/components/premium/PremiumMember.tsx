@@ -7,6 +7,7 @@ import { frames } from '../../lib/frames';
 import { ChipFace } from '../posterJackpot/Chips';
 import { ChapterHeader, H3_CLASS } from './parts';
 import './premium.css';
+import { overlays } from '../../overlays';
 
 // Para quem já é Premium (04/11/2026): em vez de vender de novo, a página
 // mostra onde cada benefício mora no site, com o atalho direto para ele.
@@ -77,7 +78,22 @@ const PremiumMember: React.FC = () => {
       <ul className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-3">
         {shortcuts.map((s) => (
           <li key={s.key} className="flex">
-            <Link to={s.to} state={s.state} className={`${CARD} w-full`} style={glassPanel(s.accent)}>
+            <Link
+              to={s.to}
+              state={s.state}
+              // 19/11/2026 (Reborn, onda 2b): o Jackpot abre aqui mesmo, por cima
+              // desta página (o link para a home fica só como endereço)
+              onClick={
+                s.key === 'chip'
+                  ? (event) => {
+                      event.preventDefault();
+                      overlays.open('jackpot', { tab: 'machine' });
+                    }
+                  : undefined
+              }
+              className={`${CARD} w-full`}
+              style={glassPanel(s.accent)}
+            >
               <span aria-hidden className="h-11 flex items-center">
                 {s.art}
               </span>

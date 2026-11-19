@@ -14,6 +14,8 @@
 // fecharia um círculo entre a entrada e o app-core (tela branca).
 import type { ComponentType } from 'react';
 import type { Movie } from '../lib/tmdb';
+import type { DailyReward } from '../lib/posterJackpot';
+import type { JackpotTab } from '../components/posterJackpot/PosterJackpotSheet';
 
 export interface TitleParams {
   id: number;
@@ -30,9 +32,20 @@ export interface TitleParams {
   onClose?: () => void;
 }
 
+export interface JackpotParams {
+  // a aba em que a gaveta abre (o padrão é a roleta)
+  tab?: JackpotTab;
+  // a ficha do dia que acabou de ser pega (a gaveta abre em Missões e mostra)
+  dailyReward?: DailyReward | null;
+  // Chamado uma vez quando a gaveta fecha, por qualquer caminho.
+  onClose?: () => void;
+}
+
 export type OverlaySpec = {
   // o menu do título (MovieDetailsModal)
   title: TitleParams;
+  // a gaveta do Poster Jackpot, por cima de qualquer página
+  jackpot: JackpotParams;
 };
 export type OverlayKind = keyof OverlaySpec;
 
@@ -42,11 +55,24 @@ export interface OverlayDef<P> {
   z?: number;
   // baixa o código da camada quando o app fica ocioso, antes do primeiro toque
   idle?: boolean;
+  // O endereço da camada: com ela aberta a URL ganha `?o=<tipo>.<address>`, e
+  // abrir esse link (ou recarregar) abre a camada de novo. `fromAddress` lê o
+  // que `address` escreveu (null = endereço inválido, ignora).
+  address?: (params: P) => string;
+  fromAddress?: (parts: string[]) => P | null;
 }
 
 export type OverlayRegistry = { [K in OverlayKind]: OverlayDef<OverlaySpec[K]> };
 
 export const OVERLAYS: OverlayRegistry = {
   // 9999: o z de sempre do menu do título (acima das gavetas, em 9990)
-  title: { load: () => import('./layers/TitleLayer'), z: 9999, idle: true },
+  // ?o=title.movie.27205 · ?o=title.tv.1399
+  title: {
+    load: () => import('./layers/TitleLayer'),
+    z: 9999,
+    idle: true,
+    address: (params) => `${params.mediaType}.${params.id}`,
+    fromAddress: ([mediaType, id]) => ((mediaType === 'movie' || mediaType === 'tv') && /^\d{1,9}$/.test(id ?? '') && Number(id) > 0 ? { mediaType, id: Number(id) } : null),
+  },
+  jackpot: { load: () => import('./layers/JackpotLayer') },
 };
