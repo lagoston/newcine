@@ -22,6 +22,7 @@ import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/o
 import { MOOD_BY_KEY } from '../lib/moods';
 import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
 import { markFirstScreen } from '../lib/firstScreen';
+import { useHomeBoot } from '../lib/homeBoot';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (mouse em cima ou dedo encostando no pôster
@@ -299,6 +300,10 @@ const Home = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const userId = session?.user?.id;
+  // 19/11/2026 (Reborn, onda 2b): as pesadas da Home (Jackpot, estúdio, stories,
+  // pôquer) num pedido só — ver lib/homeBoot.ts. Ao abrir o app elas já saíram
+  // junto com o login; aqui é para quando se volta à Home vindo de outra página.
+  useHomeBoot(userId);
 
   const [shelves, setShelves] = useState<ShelfData>({});
   const [panelsReady, setPanelsReady] = useState(false);
