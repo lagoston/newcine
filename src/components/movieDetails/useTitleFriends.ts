@@ -251,9 +251,16 @@ async function fetchFriendRatings(userId: string, movieId: number, mediaType: 'm
   return combined;
 }
 
+// A função não existe neste banco: não se pergunta de novo nesta visita.
+let missing = false;
+
 async function loadTitleSocial(userId: string, movieId: number, mediaType: 'movie' | 'tv'): Promise<FriendRating[]> {
+  if (missing) return fetchFriendRatings(userId, movieId, mediaType);
   const { data, error } = await supabase.rpc('get_title_social', { p_id: movieId, p_media_type: mediaType });
-  if (isMissingFunction(error)) return fetchFriendRatings(userId, movieId, mediaType);
+  if (isMissingFunction(error)) {
+    missing = true;
+    return fetchFriendRatings(userId, movieId, mediaType);
+  }
   if (error) throw error;
   return (Array.isArray(data) ? data : []) as FriendRating[];
 }

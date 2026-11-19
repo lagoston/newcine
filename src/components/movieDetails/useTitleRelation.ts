@@ -6,6 +6,7 @@ import { ensureMovieCachedIfMissing } from '../../lib/tmdb';
 import { cache, CACHE_KEYS } from '../../lib/cache';
 import { emit } from '../../lib/bus';
 import { useEvent } from '../../hooks/useEvent';
+import { patchTitleMe, useTitleMe } from './useTitleMe';
 
 // O título na biblioteca de quem olha: está lá? com que nota? Mais as duas
 // ações do rodapé (adicionar e remover). Fica na casca do menu, porque o
@@ -31,8 +32,29 @@ export function useTitleRelation(
   // do anterior no novo)
   const request = useRef(0);
 
+  // 19/11/2026 (Reborn, onda 3): a biblioteca e a nota vêm da resposta única
+  // "eu e este título" (useTitleMe → get_title_me), a mesma que serve os
+  // episódios, as prateleiras, os comentários e a previsão. `me` undefined =
+  // ainda não chegou; null = plano B (a função não existe neste banco): aí
+  // roda a consulta de sempre, logo abaixo.
+  const me = useTitleMe(movieId, mediaType);
+  const relation = me ? me.relation : undefined;
+  const source = me === undefined ? 'wait' : me === null ? 'old' : 'me';
+
   useEffect(() => {
     if (!userId) return;
+    if (source === 'wait') {
+      request.current += 1;
+      setUserRatingLoaded(false);
+      return;
+    }
+    if (source === 'me') {
+      request.current += 1;
+      setIsInLibrary(relation != null);
+      setUserRating(relation?.rating ?? null);
+      setUserRatingLoaded(true);
+      return;
+    }
     const mine = ++request.current;
     setUserRatingLoaded(false);
     (async () => {
@@ -63,7 +85,7 @@ export function useTitleRelation(
         if (mine === request.current) setUserRatingLoaded(true);
       }
     })();
-  }, [userId, movieId, mediaType]);
+  }, [userId, movieId, mediaType, source, relation]);
 
   const add = useEvent(async (rating?: number) => {
     if (!userId) return;
@@ -88,6 +110,8 @@ export function useTitleRelation(
 
     setIsInLibrary(true);
     setUserRating(rating !== undefined ? rating : null);
+    // a cópia guardada de "eu e este título" já fica certa (o menu não relê)
+    patchTitleMe(userId, movieId, mediaType, { relation: { id: relation?.id ?? '', rating: rating !== undefined ? rating : null } });
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
     // 19/11/2026 (Reborn, onda 2b): aqui e no `remove` abaixo são os dois
@@ -124,6 +148,7 @@ export function useTitleRelation(
     const wasRated = userRating !== null;
     setIsInLibrary(false);
     setUserRating(null);
+    patchTitleMe(userId, movieId, mediaType, { relation: null });
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(userId));
     cache.invalidatePattern('stats:');
     if (wasRated) emit('title:rated', { id: movieId, mediaType, rating: null });

@@ -26,7 +26,7 @@ export interface TitlePrediction {
   scope: PredictionScope;
 }
 
-interface Answer {
+export interface Answer {
   status?: string;
   scope?: string;
   predictedRating?: unknown;
@@ -69,7 +69,18 @@ export function peekTitlePrediction(userId: string, id: number, mediaType: 'movi
 
 // null = sem previsão (já avaliado, sem questionário, série de fora, filme
 // com poucos votos…). Erro de rede sobe para quem chamou.
-export function fetchTitlePrediction(userId: string, id: number, mediaType: 'movie' | 'tv'): Promise<TitlePrediction | null> {
+//
+// 19/11/2026 (Reborn, onda 3): `first` é de onde a primeira resposta pode vir
+// sem um pedido só dela — o menu do título passa a resposta única "eu e este
+// título" (get_title_me, que traz a previsão quando ela não está guardada
+// aqui). Se `first` não trouxer nada (não foi pedida, falhou, plano B), vale a
+// pergunta de sempre ao banco.
+export function fetchTitlePrediction(
+  userId: string,
+  id: number,
+  mediaType: 'movie' | 'tv',
+  first?: () => Promise<Answer | null>,
+): Promise<TitlePrediction | null> {
   const key = `${userId}:${mediaType}:${id}`;
   const known = peekTitlePrediction(userId, id, mediaType);
   if (known !== undefined) return Promise.resolve(known);
@@ -77,7 +88,7 @@ export function fetchTitlePrediction(userId: string, id: number, mediaType: 'mov
   if (running) return running;
 
   const request = (async () => {
-    let answer = await ask(id, mediaType);
+    let answer = (first ? await first().catch(() => null) : null) ?? (await ask(id, mediaType));
     if (answer.status === 'not_cached') {
       // título que ainda não está no banco de filmes (aberto pela busca, por
       // exemplo): guarda e pergunta de novo, uma vez
