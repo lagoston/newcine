@@ -9,7 +9,9 @@ import {
   type DirectorPrefs,
   type DirectorState,
 } from '../lib/director';
-import { setStudioPreviewOwner } from '../lib/personaWorld';
+// 18/11/2026 (otimização): arquivo pequeno, para o catálogo do estúdio
+// (lib/personaWorld.ts) não entrar no código comum da abertura.
+import { setStudioPreviewOwner } from '../lib/studioPreviewOwner';
 
 // Conta Diretor (16/11/2026): o estado do papel para a tela (ver lib/director.ts).
 // Pergunta ao banco ao entrar e a cada troca de sessão; para quem não é diretor
