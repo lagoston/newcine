@@ -1463,7 +1463,22 @@
     "friendsOnlyDescription": "Seu perfil é visível apenas para seus amigos",
     "discoverable": "Aparecer em Cinéfilos com o seu gosto",
     "discoverableDescription": "Pessoas com gosto parecido podem ver você nas sugestões da Comunidade. Sua conexão com amigos continua aparecendo.",
-    "discoverableError": "Não foi possível salvar essa preferência"
+    "discoverableError": "Não foi possível salvar essa preferência",
+    "ecoTitle": "Modo economia",
+    "ecoDescription": "Pausa as animações de enfeite, deixa o estúdio da Persona mais calmo e não toca o trailer da porta. O app gasta menos bateria e fica mais leve.",
+    "ecoAuto": "Automático",
+    "ecoOn": "Ligado",
+    "ecoOff": "Desligado",
+    "ecoOnHint": "Sempre com menos animações neste aparelho.",
+    "ecoOffHint": "Sempre com todas as animações neste aparelho.",
+    "ecoAutoIdle": "Liga sozinho com a bateria em 20% ou menos, com a economia de dados do celular ligada ou em aparelhos com pouca memória. Agora está desligado.",
+    "ecoAutoActive": "Ligado agora: {{reason}}. Volta ao normal sozinho.",
+    "ecoReason": {
+      "manual": "você ligou",
+      "battery": "bateria fraca",
+      "save-data": "economia de dados ligada",
+      "weak-device": "aparelho com pouca memória"
+    }
   },
   "footer": {
     "madeWith": "Feito com ❤️ pela equipe CineOracle",

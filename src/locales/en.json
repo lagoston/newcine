@@ -1460,7 +1460,22 @@
     "friendsOnlyDescription": "Your profile is only visible to your friends",
     "discoverable": "Show me in Film lovers with your taste",
     "discoverableDescription": "People with similar taste can see you in the Community suggestions. Your connection with friends still shows.",
-    "discoverableError": "Couldn't save this preference"
+    "discoverableError": "Couldn't save this preference",
+    "ecoTitle": "Battery saver",
+    "ecoDescription": "Stops decorative animations, calms down the Persona studio and skips the door trailer. The app uses less battery and feels lighter.",
+    "ecoAuto": "Automatic",
+    "ecoOn": "On",
+    "ecoOff": "Off",
+    "ecoOnHint": "Always with fewer animations on this device.",
+    "ecoOffHint": "Always with every animation on this device.",
+    "ecoAutoIdle": "Turns on by itself when the battery is at 20% or less, when your phone's data saver is on, or on devices with little memory. It's off right now.",
+    "ecoAutoActive": "On right now: {{reason}}. It goes back to normal by itself.",
+    "ecoReason": {
+      "manual": "you turned it on",
+      "battery": "low battery",
+      "save-data": "data saver is on",
+      "weak-device": "device with little memory"
+    }
   },
   "footer": {
     "madeWith": "Made with ❤️ by CineOracle team",

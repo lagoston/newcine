@@ -6,6 +6,7 @@ import { FOCUS_RING, NIGHT, PAPER } from '../../lib/oracleTheme';
 import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, studioArrange, studioPick, studioSpots, NO_IMAGES, RH, RW, type EyeHit, type SceneImages } from './draw';
 import { loadSceneImages, sceneImagesKey } from './sceneImages';
 import { NO_EXTRAS, type ItemId, type SpotKind, type StudioExtras } from './studio';
+import { ambientInterval } from '../../lib/motion';
 
 // As duas telas da Persona viva (13/11/2026): a cabine inteira (PersonaScene) e
 // a mariposa de perto (MothCloseUp). As duas são um canvas pequeno ampliado em
@@ -32,26 +33,23 @@ function useSceneImages(world: PersonaWorld, stage: number): SceneImages {
   return images;
 }
 
-// Roda `paint` a 8 quadros por segundo enquanto o canvas está na tela e a aba
-// do navegador está aberta (fora disso, nada é desenhado).
+// Roda `paint` a 8 quadros por segundo enquanto o canvas está na tela e o app
+// está na frente (fora disso, nada é desenhado).
+// 18/11/2026 (Reborn, bateria): o temporizador agora é do orçamento de
+// movimento (lib/motion.ts). Ele só existe enquanto a cena pode ser vista
+// (antes acordava 8 vezes por segundo, mesmo fora da tela ou com o app no
+// fundo, só para desistir) e, no modo economia, desenha a metade dos quadros
+// no mesmo ritmo: o relógio da cena anda de 2 em 2 (sempre par, para os
+// brilhos que acendem num tique certo não se perderem todos).
 function runFrames(canvas: HTMLCanvasElement, tick: React.MutableRefObject<number>, paint: () => void): () => void {
-  let visible = true;
-  const observer =
-    typeof IntersectionObserver === 'undefined'
-      ? null
-      : new IntersectionObserver((entries) => {
-          visible = entries.some((entry) => entry.isIntersecting);
-        });
-  observer?.observe(canvas);
-  const timer = window.setInterval(() => {
-    if (document.hidden || !visible) return;
-    tick.current += 1;
-    paint();
-  }, FRAME_MS);
-  return () => {
-    window.clearInterval(timer);
-    observer?.disconnect();
-  };
+  return ambientInterval(
+    canvas,
+    (steps) => {
+      tick.current = steps === 1 ? tick.current + 1 : ((tick.current >> 1) + 1) << 1;
+      paint();
+    },
+    FRAME_MS
+  );
 }
 
 // o maior múltiplo inteiro do desenho que cabe na largura do elemento

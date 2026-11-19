@@ -19,6 +19,9 @@ import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
 import { registerSW } from 'virtual:pwa-register';
 import { IS_NATIVE_APP } from './lib/platform';
 import './i18n';
+// 18/11/2026 (Reborn, bateria): liga o orçamento de movimento e o modo economia
+// (marca o <html> antes do primeiro desenho; ver src/lib/motion.ts).
+import './lib/motion';
 
 const Home = lazy(() => import('./pages/Home'));
 const Library = lazy(() => import('./pages/Library'));

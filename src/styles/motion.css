@@ -1,0 +1,40 @@
+/* O orçamento de movimento (18/11/2026, Protocolo Reborn, onda 2a).
+   Quem liga estas marcas no <html> é src/lib/motion.ts.
+
+   1. MODO ECONOMIA e MOLDURA PARADA (.co-still)
+      Não há regra escrita aqui para isso, de propósito. No build, o plugin
+      scripts/postcss-still-motion.mjs copia TODO bloco
+          @media (prefers-reduced-motion: reduce) { … }
+      do site para uma versão que vale dentro de .co-still (no <html> = modo
+      economia; num avatar = moldura parada na lista). Assim o modo economia
+      mostra exatamente o que "reduzir movimento" já mostra, com os mesmos
+      repousos desenhados peça por peça (a segunda face das molduras some, as
+      joias ficam acesas, as estrelas no brilho de sempre), e uma animação nova
+      só precisa do bloco de "reduzir movimento" para entrar nas duas regras.
+
+   2. APP EM SEGUNDO PLANO (data-app-bg)
+      Ninguém está olhando: tudo pausa onde está e continua do mesmo ponto na
+      volta. No navegador as animações já param sozinhas com a aba escondida;
+      esta regra garante o mesmo dentro do app Android/iOS. */
+:root[data-app-bg] *,
+:root[data-app-bg] *::before,
+:root[data-app-bg] *::after {
+  animation-play-state: paused !important;
+}
+
+/* 3. O QUE AINDA NÃO PARAVA com "reduzir movimento" (achado do check:motion,
+      18/11/2026): as bolhas flutuantes dos amigos, o giro do Motoqueiro
+      Fantasma e os três efeitos de nome (cursor da máquina de escrever,
+      Technicolor, letreiro). Agora param — e, pela cópia do item 1, também no
+      modo economia e nas molduras paradas. Parados ficam no desenho de base:
+      a bolha no lugar, a foto de frente, o cursor aceso, o degradê fixo. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-ghost-rider-flip,
+  .animate-ghost-rider-fire,
+  .animate-typewriter-cursor-blink,
+  .animate-technicolor-shift,
+  .animate-marquee-glow {
+    animation: none !important;
+  }
+}

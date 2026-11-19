@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getMovieTrailer, getMoviesFromCacheByType, type Movie } from '../../lib/tmdb';
+import { isEco } from '../../lib/motion';
 
 // O trailer da porta "A Mesa dos Oráculos" (11/11/2026, pedido do Bruno).
 //
@@ -79,6 +80,9 @@ function shouldRun(): boolean {
   }
   if (typeof window === 'undefined') return false;
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
+  // 18/11/2026 (Reborn, bateria): no modo economia o trailer não toca (vídeo é
+  // o que mais gasta bateria e dados na home). A porta fica como sempre.
+  if (isEco()) return false;
   const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; type?: string } }).connection;
   if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return false;
   if (conn?.type && METERED.has(conn.type)) return false;
