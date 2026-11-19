@@ -1,9 +1,10 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useIsPresent } from 'framer-motion';
 import { X, Star, Loader2, Tv, ChevronDown, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
 import type { TitleSeason } from './shared';
+import { useLayerEntry } from '../../overlays';
 
 // A gaveta "Temporadas e episódios" (por cima do menu do título): progresso
 // da série, cada temporada recolhida com a sua contagem e, ao expandir, os
@@ -55,8 +56,15 @@ const SeasonsLayer: React.FC<SeasonsLayerProps> = ({
   const formatScore = (value: number) =>
     value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+  // 19/11/2026 (onda 2b): as temporadas são uma camada da pilha do app
+  // (src/overlays): o Esc e o voltar fecham só elas. `z: null`: ficam dentro
+  // do menu do título (sem portal), com o z-[70] de sempre ali dentro.
+  // (sai da pilha assim que começa a animação de saída)
+  const present = useIsPresent();
+  const layer = useLayerEntry(present, onClose, { z: null });
+
   return (
-    <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div {...layer.rootProps} className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <motion.div
         className="absolute inset-0 bg-black/75"
         initial={{ opacity: 0 }}

@@ -5,7 +5,8 @@
 //   hooks.ts            useLayerEntry, useLayer, useCovered, useOverlays
 //   LayerScope.tsx      em volta do conteúdo de cada camada
 //   host.ts             overlays.open / close / prefetch
-//   registry.ts         a lista das camadas do host (vazia até a onda 2b)
+//   registry.ts         a lista das camadas do host (só o App.tsx importa o valor)
+//   title.ts            openTitle(): o menu do título como camada
 //   OverlayProvider.tsx montado no App.tsx
 export { OverlayProvider } from './OverlayProvider';
 export { LayerScope } from './LayerScope';
@@ -13,4 +14,5 @@ export { useCovered, useLayer, useLayerEntry, useOverlays, zFromClass } from './
 export type { LayerEntryOptions, LayerHandle, LayerInfo } from './hooks';
 export { overlays, registerOverlay } from './host';
 export type { OverlayApi } from './host';
-export type { OverlayKind, OverlaySpec } from './registry';
+export { openTitle } from './title';
+export type { OverlayKind, OverlaySpec, TitleParams } from './registry';

@@ -9,11 +9,13 @@
 //     continua de pé.
 // Os componentes antigos entram na pilha sozinhos, pela useLayerEntry
 // (hooks.ts): não precisam deste provedor em volta.
-import React, { Suspense, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import * as history from './history';
-import { getDef, getMounts, outletMounted, overlays, subscribeMounts, type Mount } from './host';
+import GlassLoader from '../components/GlassLoader';
+import { getDef, getDefs, getMounts, outletMounted, overlays, registerOverlays, subscribeMounts, type Mount } from './host';
 import { ScopeContext, SlotContext } from './hooks';
+import type { OverlayRegistry } from './registry';
 
 // Separado do provedor para que só ele seja desenhado de novo a cada troca de página.
 const HistoryBridge: React.FC = () => {
@@ -73,7 +75,16 @@ const HostLayer = React.memo(({ mount }: { mount: Mount }) => {
     >
       <ScopeContext.Provider value={mount.mark}>
         <SlotContext.Provider value={mount}>
-          <Suspense fallback={null}>
+          {/* o código da camada ainda não chegou: um carregador por cima da tela */}
+          <Suspense
+            fallback={
+              mount.open ? (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/50" style={{ zIndex: mount.z }} role="status">
+                  <GlassLoader size="lg" />
+                </div>
+              ) : null
+            }
+          >
             <Component params={mount.params as never} />
           </Suspense>
         </SlotContext.Provider>
@@ -98,10 +109,43 @@ const LayerOutlet: React.FC = () => {
   );
 };
 
-export const OverlayProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <>
-    <HistoryBridge />
-    {children}
-    <LayerOutlet />
-  </>
-);
+// Baixa, com o app ocioso, o código das camadas marcadas `idle` (o menu do
+// título): o primeiro toque num pôster abre na hora. Quem pediu economia de
+// dados não baixa antes.
+const IdlePrefetch: React.FC = () => {
+  useEffect(() => {
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+    if (saveData) return;
+    let idle = 0;
+    const fetchAll = () =>
+      getDefs().forEach(([, def]) => {
+        if (def.idle) void def.load().catch(() => undefined);
+      });
+    const timer = window.setTimeout(() => {
+      if ('requestIdleCallback' in window) idle = window.requestIdleCallback(fetchAll, { timeout: 8000 });
+      else fetchAll();
+    }, 3000);
+    return () => {
+      window.clearTimeout(timer);
+      if (idle && 'cancelIdleCallback' in window) window.cancelIdleCallback(idle);
+    };
+  }, []);
+  return null;
+};
+
+export const OverlayProvider: React.FC<{ registry?: OverlayRegistry; children: React.ReactNode }> = ({ registry, children }) => {
+  // A lista de camadas entra já no primeiro desenho (antes de qualquer open()).
+  const registered = useRef<OverlayRegistry | null>(null);
+  if (registry && registered.current !== registry) {
+    registerOverlays(registry);
+    registered.current = registry;
+  }
+  return (
+    <>
+      <HistoryBridge />
+      {children}
+      <LayerOutlet />
+      <IdlePrefetch />
+    </>
+  );
+};
