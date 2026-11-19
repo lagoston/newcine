@@ -5,6 +5,21 @@ export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbG
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 19/11/2026 (Reborn, achado em produção): o tempo real passa a conhecer o
+// login da pessoa assim que ele existe ou é renovado. Nesta versão da
+// biblioteca o websocket só pega o token de quem está logado na primeira
+// batida (25 s depois de conectar); antes disso, a entrada num canal PRIVADO
+// vai com a chave pública do site e o servidor recusa ("Unauthorized"). Era o
+// que acontecia com o canal dos sussurros e, pelo mesmo motivo, com o da mesa
+// de pôquer com amigos (lá a releitura de segurança a cada 8 s escondia a
+// falha). Passar o token aqui não abre conexão nenhuma: só deixa o valor
+// pronto para quando um canal for aberto.
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session?.access_token) {
+    void supabase.realtime.setAuth(session.access_token).catch(() => undefined);
+  }
+});
+
 // Standardized function to fetch user profile
 export async function getProfile(userId: string) {
   try {

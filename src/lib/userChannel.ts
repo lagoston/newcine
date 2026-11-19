@@ -64,24 +64,37 @@ function open(uid: string) {
       if (ping.kind === 'whisper') {
         emit('whispers:new', { type: typeof ping.type === 'string' ? ping.type : undefined });
       }
-    })
-    .subscribe((status) => {
-      // um aviso atrasado de um canal que já foi trocado não conta
-      if (channel !== next) return;
-      if (status === 'SUBSCRIBED') {
-        failures = 0;
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        failures += 1;
-        resting = true;
-        close();
-        window.clearTimeout(restTimer);
-        restTimer = window.setTimeout(() => {
-          resting = false;
-          sync();
-        }, REST_MS[Math.min(failures, REST_MS.length) - 1]);
-      }
     });
   channel = next;
+  // 19/11/2026 (achado em produção, no mesmo dia em que o canal estreou): o
+  // pedido de entrada num canal privado leva o token que a biblioteca tem na
+  // mão NAQUELA hora, e até a primeira batida do websocket (25 s) esse token é
+  // a chave pública do site, não o login da pessoa. O servidor recusava todas
+  // as entradas ("Unauthorized", 17 nos registros). setAuth() antes de entrar
+  // busca o token de quem está logado; é o passo que a documentação pede.
+  supabase.realtime
+    .setAuth()
+    .catch(() => undefined)
+    .then(() => {
+      // fechado ou trocado enquanto o token era buscado
+      if (channel !== next) return;
+      next.subscribe((status) => {
+        // um aviso atrasado de um canal que já foi trocado não conta
+        if (channel !== next) return;
+        if (status === 'SUBSCRIBED') {
+          failures = 0;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          failures += 1;
+          resting = true;
+          close();
+          window.clearTimeout(restTimer);
+          restTimer = window.setTimeout(() => {
+            resting = false;
+            sync();
+          }, REST_MS[Math.min(failures, REST_MS.length) - 1]);
+        }
+      });
+    });
 }
 
 sync = () => {
