@@ -70,3 +70,24 @@ export function patchCached<T>(spec: QuerySpec, patch: (current: T) => T): void 
   if (queryClient.getQueryData(spec.key) === undefined) return;
   queryClient.setQueryData<T>(spec.key, (current) => (current === undefined ? current : patch(current)));
 }
+
+// Há resposta guardada e ainda dentro do prazo? (quem vai pedir várias coisas
+// juntas usa isto para não pedir o que não precisa)
+export function isFreshCached(spec: QuerySpec): boolean {
+  const state = queryClient.getQueryState(spec.key);
+  if (!state || state.data === undefined || state.isInvalidated) return false;
+  const stale = typeof spec.staleTime === 'function' ? spec.staleTime(state.data) : spec.staleTime;
+  return Date.now() - state.dataUpdatedAt < stale;
+}
+
+// Uma resposta mais nova (a do bootstrap, lib/data/boot.ts) entra numa consulta
+// que JÁ tem dado guardado — a que voltou do aparelho e está dentro do prazo,
+// e por isso não vai refazer a busca. Sem dado guardado não faz nada (a busca
+// normal roda e puxa a parte). `keep`: resposta "igual" à guardada fica o
+// mesmo objeto, ninguém redesenha. Devolve true se entrou.
+export function seedCached<T>(spec: QuerySpec, value: T, at: number, keep?: (previous: T, next: T) => boolean): boolean {
+  const state = queryClient.getQueryState(spec.key);
+  if (!state || state.data === undefined || state.fetchStatus === 'fetching' || state.dataUpdatedAt >= at) return false;
+  queryClient.setQueryData<T>(spec.key, (current) => (current !== undefined && keep?.(current, value) ? current : value), { updatedAt: at });
+  return true;
+}
