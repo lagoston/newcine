@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
-import { Q, fetchCached, invalidate, ownerNow, patchCached, peekCached, useCached, useOwner, type Cached } from './data';
+import { Q, fetchCached, invalidate, ownerNow, patchCached, peekCached, takeBootPart, useCached, useOwner, type Cached } from './data';
 
 // Poster Jackpot (30/10/2026): a roleta do Oracle Hub que sorteia pôsteres
 // alternativos (escolhidos à mão no TMDB) em 4 raridades e 3 efeitos
@@ -270,8 +270,16 @@ const parseGift = (value: unknown): JackpotGift | null => {
 };
 
 async function loadJackpotState(): Promise<JackpotState> {
-  const { data, error } = await supabase.rpc('get_jackpot_state');
-  if (error) throw error;
+  // 19/11/2026 (Reborn, onda 2b): na abertura da Home o estado vem no pedido
+  // único das pesadas (get_app_bootstrap, parte "jackpot"). Cada parte serve
+  // uma vez: recarregar (a gaveta ao abrir, a ficha voadora) chama a RPC.
+  const boot = await takeBootPart<unknown>(ownerNow(), 'jackpot');
+  let data: unknown = boot?.value;
+  if (!boot) {
+    const reply = await supabase.rpc('get_jackpot_state');
+    if (reply.error) throw reply.error;
+    data = reply.data;
+  }
   const raw = (data || {}) as Row;
   const catalog = (raw.catalog || {}) as Row;
   return {

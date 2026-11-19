@@ -10,7 +10,8 @@
 // a cópia guardada com patchMyProfile — senão as telas mostram o valor antigo
 // por até 10 minutos.
 import { supabase } from '../supabase';
-import { invalidate, patchCached } from './client';
+import { takeBootPart, onBootPart } from './boot';
+import { invalidate, patchCached, seedCached } from './client';
 import { fetchCached } from './fetch';
 import { Q } from './keys';
 import { ownerNow } from './scope';
@@ -34,10 +35,18 @@ export interface MyProfile {
 const MY_PROFILE_COLUMNS = 'id, username, avatar_url, bio, avatar_frame, banner, card_style, text_effect, active_tag, tv_order, library_layout';
 
 async function loadMyProfile(uid: string): Promise<MyProfile | null> {
+  // 19/11/2026 (Reborn, onda 2b): ao abrir o app a linha vem na ida única da
+  // casca (get_app_bootstrap, parte "profile", com estas mesmas colunas).
+  const boot = await takeBootPart<MyProfile | null>(uid, 'profile');
+  if (boot) return boot.value ?? null;
   const { data, error } = await supabase.from('profiles').select(MY_PROFILE_COLUMNS).eq('id', uid).maybeSingle();
   if (error) throw error;
   return (data as MyProfile | null) ?? null;
 }
+
+// O perfil que voltou do aparelho e ainda está no prazo não refaz a busca: a
+// linha mais nova que veio na casca entra direto no lugar dele.
+onBootPart('profile', (uid, value, at) => seedCached<MyProfile | null>(Q.myProfile(uid), (value as MyProfile | null) ?? null, at));
 
 // O perfil de quem está logado (undefined enquanto não chegou; null se a linha não existe).
 export function useMyProfile(): Cached<MyProfile | null> {
@@ -76,23 +85,4 @@ async function loadFriendIds(uid: string): Promise<string[]> {
 // Fica só na memória: é dado de outras pessoas, não vai para o aparelho.
 export function fetchMyFriendIds(uid: string): Promise<string[]> {
   return fetchCached(Q.myFriendIds(uid), () => loadFriendIds(uid));
-}
-
-// ---- premium (2b) -----------------------------------------------------------------
-// Hoje quem lê o premium é lib/auth.tsx (2 RPCs por login), e o WatchListDuelModal
-// e o OracleDuel leem de novo por conta própria. A linha e a busca já ficam
-// prontas; a troca dentro do auth.tsx é da 2b (ele importa de './data/fetch').
-export interface MyPremium {
-  premium: boolean;
-  lifetime: boolean;
-}
-
-export async function loadMyPremium(uid: string): Promise<MyPremium> {
-  const [premium, lifetime] = await Promise.all([
-    supabase.rpc('get_user_premium_status', { user_id_input: uid }),
-    supabase.rpc('is_lifetime_premium', { user_id_input: uid }),
-  ]);
-  if (premium.error) throw premium.error;
-  if (lifetime.error) throw lifetime.error;
-  return { premium: premium.data === true, lifetime: lifetime.data === true };
 }

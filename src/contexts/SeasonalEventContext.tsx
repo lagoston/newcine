@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { emit } from '../lib/bus';
-import { Q, applyRules, invalidate, refetchIfStale, useCached, useOwner } from '../lib/data';
+import { Q, invalidate, onBootPart, refetchIfStale, seedCached, takeBootPart, useCached, useOwner } from '../lib/data';
 import { useDirector } from './DirectorContext';
 import {
   SEASONAL_THEMES,
@@ -58,28 +58,28 @@ export const requestSeasonalRefresh = () => {
   emit('seasonal:stale', {});
 };
 
-// "O evento pode ter mudado" (a pessoa avaliou algo), sem pedir nada na hora:
-// a consulta fica marcada como vencida e é refeita na próxima troca de página
-// ou volta ao app. 18/11/2026 (Reborn, onda 2a): a marca saiu de uma variável
-// deste arquivo e foi para a camada de dados. É o mesmo efeito que o aviso
-// 'title:rated' do barramento tem no evento sazonal e no estado do Jackpot;
-// quando o menu do título e a Biblioteca passarem a emitir 'title:rated' (2b),
-// esta função some.
-export const markSeasonalStale = () => {
-  applyRules([
-    [['seasonal'], 'later'],
-    [['jackpot', 'state'], 'later'],
-  ]);
-};
-
 // Sair de uma destas páginas refaz a consulta: nelas se avalia por caminhos que
-// ainda não avisam ninguém (Adicionar filmes, listas, edição em lote). Sai
-// daqui quando todos emitirem 'title:rated' (2b).
+// ainda não avisam no barramento (Adicionar filmes, listas, edição em lote).
+// O menu do título e as notas da Biblioteca já avisam ('title:rated', desde
+// 19/11/2026): o evento fica marcado como vencido e é refeito na próxima troca
+// de página. Esta lista sai quando todos os caminhos avisarem.
 const RATING_PAGES = ['/library', '/add-movies', '/lists'];
 // A resposta sem o relógio do servidor (`now` muda a cada chamada): duas
 // respostas iguais aqui são o mesmo estado do evento.
 const eventSignature = (event: SeasonalEventState | null) => (event ? JSON.stringify({ ...event, now: null }) : 'null');
 const sameEvent = (a: SeasonalEventState | null, b: SeasonalEventState | null) => eventSignature(a) === eventSignature(b);
+
+// A resposta de get_seasonal_event_state como o site a usa (evento que este
+// site não conhece vira "nenhum").
+const parseEvent = (data: unknown): SeasonalEventState | null => {
+  const raw = data as SeasonalEventState | null;
+  return raw && isSeasonalEventId(raw.id) ? raw : null;
+};
+
+// 19/11/2026 (Reborn, onda 2b): o evento que voltou do aparelho e ainda está
+// no prazo não refaz a busca; o estado mais novo, que veio na ida única da
+// casca (get_app_bootstrap, parte "seasonal"), entra direto no lugar dele.
+onBootPart('seasonal', (uid, value, at) => seedCached<SeasonalEventState | null>(Q.seasonal(uid, null), parseEvent(value), at, sameEvent));
 
 // Prévia de um evento fora da época. Desde 16/11/2026 (Conta Diretor) é só do
 // diretor: o banco ignora p_preview de qualquer outra conta. ?evento=natal liga
@@ -124,10 +124,13 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
   const query = useCached<SeasonalEventState | null>(
     Q.seasonal(owner, preview ?? null),
     async () => {
+      // 19/11/2026 (Reborn, onda 2b): ao abrir o app logado o evento vem na ida
+      // única da casca (sem prévia); recarregar depois chama a RPC de sempre.
+      const boot = preview ? null : await takeBootPart<unknown>(owner, 'seasonal');
+      if (boot) return parseEvent(boot.value);
       const { data, error } = await supabase.rpc('get_seasonal_event_state', { p_preview: preview });
       if (error) throw error;
-      const raw = data as SeasonalEventState | null;
-      return raw && isSeasonalEventId(raw.id) ? raw : null;
+      return parseEvent(data);
     },
     { keep: sameEvent },
   );
@@ -139,7 +142,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Trocou de página: atualiza se a pessoa pode ter avaliado (saiu da
   // Biblioteca, de Adicionar filmes ou das listas) ou se a resposta venceu
-  // (5 min, ou marcada por markSeasonalStale / 'title:rated').
+  // (5 min, ou marcada pelo aviso 'title:rated' do barramento).
   const previousPath = useRef<string | null>(null);
   useEffect(() => {
     const from = previousPath.current;

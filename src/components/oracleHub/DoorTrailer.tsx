@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { ownerNow, takeBootPart } from '../../lib/data';
 import { getMovieTrailer, getMoviesFromCacheByType, type Movie } from '../../lib/tmdb';
-import { isEco } from '../../lib/motion';
+// 19/11/2026 (Reborn, onda 2b): a conta "roda agora?" foi para lib/doorTrailerGate.ts
+// (a partida da Home usa a mesma resposta para pedir, ou não, os candidatos).
+import { doorTrailerWanted, markDoorTrailerTried } from '../../lib/doorTrailerGate';
 
 // O trailer da porta "A Mesa dos Oráculos" (11/11/2026, pedido do Bruno).
 //
@@ -52,51 +55,12 @@ const GIVE_UP_MS = 9000; // sem começar a tocar nesse tempo, desiste
 const STUCK_MS = 14000; // começou a tocar, mas não chegou ao ponto de entrar nesse tempo: desiste
 const SLIDE_MS = 650;
 const SHOW_MAX_MS = 25000; // aparecendo no máximo isso (18/11/2026)
-const DAY_KEY = 'cineoracle:door-trailer-day';
-// Conexões que gastam o pacote de dados (quando o navegador conta qual é).
-const METERED = new Set(['cellular', 'wimax', 'bluetooth']);
-// Sem armazenamento local: vale ao menos para esta aba.
-let triedInThisTab = false;
 
 type Phase = 'off' | 'loading' | 'showing' | 'leaving';
 
 interface Pick {
   movie: Movie;
   key: string;
-}
-
-// O dia de hoje no fuso de quem está olhando ("2026-11-18").
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function shouldRun(): boolean {
-  if (triedInThisTab) return false;
-  try {
-    if (localStorage.getItem(DAY_KEY) === today()) return false;
-  } catch {
-    // sem localStorage: vale a marca desta aba (triedInThisTab)
-  }
-  if (typeof window === 'undefined') return false;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-  // 18/11/2026 (Reborn, bateria): no modo economia o trailer não toca (vídeo é
-  // o que mais gasta bateria e dados na home). A porta fica como sempre.
-  if (isEco()) return false;
-  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; type?: string } }).connection;
-  if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return false;
-  if (conn?.type && METERED.has(conn.type)) return false;
-  return true;
-}
-
-// Marca a tentativa de hoje (antes de buscar os candidatos), dê certo ou não.
-function markTried() {
-  triedInThisTab = true;
-  try {
-    localStorage.setItem(DAY_KEY, today());
-  } catch {
-    // ignora
-  }
 }
 
 interface Candidate {
@@ -115,8 +79,16 @@ function shuffle<T>(list: T[]): T[] {
 
 // Os mais recomendados: até 12 do servidor; sorteamos entre os 8 primeiros.
 async function recommendedCandidates(): Promise<Candidate[]> {
-  const { data, error } = await supabase.rpc('get_home_trailer_pick');
-  if (error) throw error;
+  // 19/11/2026 (Reborn, onda 2b): nos dias em que o trailer vai rodar, os
+  // candidatos já vêm no pedido único das pesadas da Home (get_app_bootstrap,
+  // parte "trailer" — lib/appBoot.ts). Sem ele, a RPC de sempre.
+  const boot = await takeBootPart<{ items?: Candidate[] } | null>(ownerNow(), 'trailer');
+  let data: unknown = boot?.value;
+  if (!boot) {
+    const reply = await supabase.rpc('get_home_trailer_pick');
+    if (reply.error) throw reply.error;
+    data = reply.data;
+  }
   return shuffle(((data as { items?: Candidate[] } | null)?.items ?? []).slice(0, 8));
 }
 
@@ -256,8 +228,8 @@ export function useDoorTrailer(enabled: boolean, watchRef: React.RefObject<HTMLE
   useEffect(() => {
     if (!enabled || ranRef.current) return;
     ranRef.current = true;
-    if (!shouldRun()) return;
-    markTried();
+    if (!doorTrailerWanted()) return;
+    markDoorTrailerTried();
     let alive = true;
     chooseTrailer()
       .then((chosen) => {

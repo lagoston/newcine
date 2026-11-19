@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { getPendingInvite, redeemPendingInvite } from './invite';
+// 19/11/2026 (Reborn, onda 2b): a casca numa ida só. Importa dos arquivos, não
+// de './data' (o index passa por use.ts, que importa este arquivo: círculo).
+import { startOpeningBoot } from './appBoot';
+import { takeBootPart } from './data/boot';
 
 interface AuthContextType {
   session: Session | null;
@@ -63,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.session) {
         console.log("✅ Auth: Session restored");
         adoptSession(data.session);
+        // 19/11/2026 (Reborn, onda 2b): o login foi reconhecido — sai a ida
+        // única da casca (e, se a tela é a Home, a das pesadas dela), antes de
+        // qualquer componente pedir a sua parte.
+        startOpeningBoot(data.session.user.id);
         checkPremiumStatus(data.session.user.id);
       } else {
         console.log("ℹ️ Auth: No session found");
@@ -102,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 18/11/2026 (otimização): a volta do app repete SIGNED_IN com a
             // mesma sessão; só um login de verdade (outro token) segue adiante.
             const changed = adoptSession(currentSession);
+            // (onda 2b) sessão nova, venha por onde vier: a ida da casca sai aqui
+            if (changed) startOpeningBoot(currentSession.user.id);
             if (event === 'SIGNED_IN' && changed) {
               checkPremiumStatus(currentSession.user.id);
               void redeemPendingInvite();
@@ -152,6 +162,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       console.log("🔍 Checking premium status...");
+
+      // 19/11/2026 (Reborn, onda 2b): ao abrir o app, premium e vitalício vêm
+      // na ida única da casca (get_app_bootstrap; cada parte é exatamente o que
+      // a RPC devolveria). Medido na prévia de rede: eram 2 pedidos só para
+      // isto. Se a ida falhar, ou em qualquer conferência depois (compra,
+      // login manual), valem as duas RPCs abaixo, como sempre.
+      const [bootPremium, bootLifetime] = await Promise.all([
+        takeBootPart<boolean | null>(id, 'premium'),
+        takeBootPart<boolean | null>(id, 'lifetime'),
+      ]);
+      if (bootPremium && bootLifetime) {
+        setIsPremium(bootPremium.value || false);
+        setIsLifetimePremium(bootLifetime.value || false);
+        return;
+      }
 
       const [premiumResult, lifetimeResult] = await Promise.all([
         supabase.rpc('get_user_premium_status', { user_id_input: id }),

@@ -7,7 +7,6 @@ import { useAuth } from '../lib/auth';
 import { Movie, getTrending, getComingSoon, getBestOfYear } from '../lib/tmdb';
 import { asMediaType, getFullTitle, prefetchFullTitle } from '../lib/titleCards';
 import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal } from '../hooks/useLazyList';
-import { supabase } from '../lib/supabase';
 // 18/11/2026 (otimização): o modal do filme só baixa quando um filme é aberto (ver LazyMovieDetailsModal).
 import MovieDetailsModal from '../components/LazyMovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
@@ -22,6 +21,8 @@ import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/o
 import { MOOD_BY_KEY } from '../lib/moods';
 import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
 import { markFirstScreen } from '../lib/firstScreen';
+import { useHomeBoot } from '../lib/homeBoot';
+import { useMyProfile } from '../lib/data';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (mouse em cima ou dedo encostando no pôster
@@ -299,6 +300,10 @@ const Home = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const userId = session?.user?.id;
+  // 19/11/2026 (Reborn, onda 2b): as pesadas da Home (Jackpot, estúdio, stories,
+  // pôquer) num pedido só — ver lib/homeBoot.ts. Ao abrir o app elas já saíram
+  // junto com o login; aqui é para quando se volta à Home vindo de outra página.
+  useHomeBoot(userId);
 
   const [shelves, setShelves] = useState<ShelfData>({});
   const [panelsReady, setPanelsReady] = useState(false);
@@ -306,7 +311,9 @@ const Home = () => {
   const [guestTrendingMovies, setGuestTrendingMovies] = useState<Movie[]>([]);
   const [guestLoadingTrending, setGuestLoadingTrending] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [username, setUsername] = useState('');
+  // 19/11/2026 (Reborn, onda 2b): o nome vem da leitura única do próprio perfil
+  // (src/lib/data); antes a Home lia public_profiles(username) a cada montagem.
+  const username = useMyProfile().data?.username || '';
   const [allMoviesModal, setAllMoviesModal] = useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
   // Filmes e Séries Para Você: buscadas quando chegam perto da tela (o banco
   // guarda o resultado; o primeiro cálculo do dia pode levar ~1s).
@@ -341,20 +348,6 @@ const Home = () => {
       console.error('Error fetching guest trending:', err);
     } finally {
       setGuestLoadingTrending(false);
-    }
-  };
-
-  const fetchUsername = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('public_profiles')
-        .select('username')
-        .eq('id', id)
-        .maybeSingle();
-      if (error) throw error;
-      setUsername(data?.username || '');
-    } catch (error) {
-      console.error('Error fetching username:', error);
     }
   };
 
@@ -396,7 +389,6 @@ const Home = () => {
     setForYouMovies(undefined);
     setForYouSeries(undefined);
     if (userId) {
-      fetchUsername(userId);
       // 18/11/2026 (otimização): as três listas são pedidas já na montagem, junto
       // com os painéis do topo. Antes as prateleiras ficavam escondidas até os
       // painéis responderem e só então pediam as listas (uma ida a mais na

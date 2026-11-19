@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { ownerNow, takeBootPart } from './data';
 import { MOODS, MOOD_BY_KEY, MOOD_BY_LETTER } from './moods';
 import { parseUserPersona, type UserPersona } from './persona';
 import { isStudioPreviewOwner } from './studioPreviewOwner';
@@ -365,8 +366,16 @@ function withStudioPreview(world: PersonaWorld): PersonaWorld {
 
 // A cena de alguém (a sua, ou a de um perfil que você pode ver).
 export async function fetchPersonaWorld(userId: string): Promise<PersonaWorld | null> {
-  const { data, error } = await supabase.rpc('get_persona_world', { p_user_id: userId });
-  if (error) throw error;
+  // 19/11/2026 (Reborn, onda 2b): na abertura da Home a cena da PRÓPRIA pessoa
+  // vem no pedido único das pesadas (get_app_bootstrap, parte "persona_world").
+  // A cena de outra pessoa, ou qualquer leitura depois, é a RPC de sempre.
+  const boot = userId === ownerNow() ? await takeBootPart<unknown>(userId, 'persona_world') : null;
+  let data: unknown = boot?.value;
+  if (!boot) {
+    const reply = await supabase.rpc('get_persona_world', { p_user_id: userId });
+    if (reply.error) throw reply.error;
+    data = reply.data;
+  }
   const world = parsePersonaWorld(data);
   return world && isStudioPreviewOwner(userId) ? withStudioPreview(world) : world;
 }

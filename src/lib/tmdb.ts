@@ -2,6 +2,7 @@ import { useDebounce } from 'use-debounce';
 import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from './cache';
 import { Q, fetchCached } from './data';
+import { on } from './bus';
 import i18n from '../i18n';
 
 // Secure proxy endpoint
@@ -884,20 +885,21 @@ export interface TvProgress {
 // pedia de novo a lista inteira a cada lote de 10 pôsteres que entrava (6
 // chamadas com ids repetidos numa visita, medido na prévia de rede); agora
 // só as séries que ainda não vieram vão ao banco, e pedidos simultâneos de
-// prateleiras diferentes esperam o mesmo. Marcar um episódio (evento
-// 'episodeToggled', disparado logo depois do onEpisodeToggle do menu do
-// título) apaga o guardado: a leitura espera um microtask e já vê o apagado.
+// prateleiras diferentes esperam o mesmo. Marcar um episódio (aviso
+// 'title:episodes' do barramento, emitido logo depois do onEpisodeToggle do
+// menu do título) apaga o guardado: a leitura espera um microtask e já vê o
+// apagado. 19/11/2026 (Reborn, onda 2b): o ouvinte era de window
+// ('episodeToggled'); pelo barramento ele recebe os dois (o aviso novo e o
+// antigo, que a ponte de lib/bus.ts repassa).
 const TV_PROGRESS_TTL_MS = 5 * 60 * 1000;
 const tvProgressMemo = new Map<string, { at: number; value: TvProgress | null }>();
 const tvProgressInFlight = new Map<string, Promise<TvProgress | null>>();
 let tvProgressGeneration = 0;
-if (typeof window !== 'undefined') {
-  window.addEventListener('episodeToggled', () => {
-    tvProgressGeneration += 1;
-    tvProgressMemo.clear();
-    tvProgressInFlight.clear();
-  });
-}
+on('title:episodes', () => {
+  tvProgressGeneration += 1;
+  tvProgressMemo.clear();
+  tvProgressInFlight.clear();
+});
 
 async function fetchTvProgress(userId: string, tmdbIds: number[]): Promise<Map<number, TvProgress> | null> {
   try {
@@ -926,7 +928,7 @@ export const getTvProgressBatch = async (
   const map = new Map<number, TvProgress>();
   if (tmdbIds.length === 0) return map;
 
-  // Espera o resto do toque atual: o 'episodeToggled' sai logo depois de quem
+  // Espera o resto do toque atual: o aviso 'title:episodes' sai logo depois de quem
   // pede o progresso de novo, e precisa apagar o guardado antes desta leitura.
   await Promise.resolve();
 

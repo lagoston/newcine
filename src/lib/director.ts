@@ -13,6 +13,7 @@
 //
 // Nada disto é segredo (o pacote do site é público); a segurança está no banco.
 import { supabase } from './supabase';
+import { takeBootPart } from './data/boot';
 import type { SeasonalEventId } from './seasonalEvents';
 
 export interface DirectorState {
@@ -26,9 +27,18 @@ export interface DirectorState {
 
 export const NO_DIRECTOR: DirectorState = { director: false, mfa: false, recent: false };
 
-export async function fetchDirectorState(): Promise<DirectorState> {
-  const { data, error } = await supabase.rpc('get_director_state');
-  if (error || !data || typeof data !== 'object') return NO_DIRECTOR;
+// 19/11/2026 (Reborn, onda 2b): com `userId`, a primeira leitura depois de
+// abrir o app usa a resposta que veio na ida única da casca (get_app_bootstrap,
+// parte "director"); as seguintes (o nível 3 venceu, o token mudou) chamam a RPC.
+export async function fetchDirectorState(userId?: string | null): Promise<DirectorState> {
+  const boot = await takeBootPart<unknown>(userId, 'director');
+  let data: unknown = boot?.value;
+  if (!boot) {
+    const reply = await supabase.rpc('get_director_state');
+    if (reply.error) return NO_DIRECTOR;
+    data = reply.data;
+  }
+  if (!data || typeof data !== 'object') return NO_DIRECTOR;
   const raw = data as Record<string, unknown>;
   return { director: raw.director === true, mfa: raw.mfa === true, recent: raw.recent === true };
 }

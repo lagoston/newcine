@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BarChart3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useMyProfile } from '../lib/data';
 import { Movie } from '../lib/tmdb';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
 import SeasonalEventPanel from './seasonal/SeasonalEventPanel';
@@ -47,9 +48,14 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const reduceMotion = useReducedMotion();
   const [insightsIsNew, setInsightsIsNew] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
-  // Estilo das cartas dos oráculos escolhido no Personalizar perfil.
-  const [cardStyle, setCardStyle] = useState('default');
-  const [profileName, setProfileName] = useState<string | null>(null);
+  // 19/11/2026 (Reborn, onda 2b): o nome e o estilo das cartas dos oráculos
+  // (escolhido no Personalizar perfil) vêm da leitura única do próprio perfil
+  // (src/lib/data), que ao abrir o app chega na ida da casca. Antes este painel
+  // lia profiles(username, card_style) a cada montagem da Home (medido: 1 pedido
+  // por visita, além da leitura só do nome que a Home fazia).
+  const { data: me, isPending: mePending, error: meError } = useMyProfile();
+  const cardStyle = me?.card_style || 'default';
+  const profileName = me?.username ?? null;
 
   const { event: seasonal, theme: seasonalTheme } = useSeasonalEvent();
 
@@ -57,28 +63,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   onReadyRef.current = onReady;
 
   // As portas carregam sozinhas (cada uma com o seu esqueleto): o topo só
-  // espera o perfil, que é rápido.
+  // espera o perfil, que é rápido (e, guardado no aparelho, já está na mão).
+  // Chegou, ou deu erro: avisa a Home, como antes.
+  const profileSettled = !mePending || !!meError;
   useEffect(() => {
-    let alive = true;
-    supabase
-      .from('profiles')
-      .select('username, card_style')
-      .eq('id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!alive) return;
-        const row = data as { username?: string | null; card_style?: string | null } | null;
-        setCardStyle(row?.card_style || 'default');
-        setProfileName(row?.username ?? null);
-      })
-      .then(
-        () => alive && onReadyRef.current?.(),
-        () => alive && onReadyRef.current?.()
-      );
-    return () => {
-      alive = false;
-    };
-  }, [userId]);
+    if (profileSettled) onReadyRef.current?.();
+  }, [profileSettled, userId]);
 
   // O relatório do mês passado sempre existe a partir do dia 1º; o ponto
   // "novo" some depois que o usuário abre esse relatório específico.

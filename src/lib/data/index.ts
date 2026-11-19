@@ -19,13 +19,15 @@
 //   scope.ts    de quem são os dados agora             session.ts  a troca de pessoa
 //   use.ts      useCached / useOwner (componentes)     fetch.ts    fetchCached (serviços)
 //   me.ts       o próprio perfil e os amigos           DataProvider.tsx  o provedor (App.tsx)
+//   boot.ts     a casca numa ida só (get_app_bootstrap): quem pede é lib/appBoot.ts
 //
-// Atenção (2b): lib/auth.tsx NÃO pode importar deste index (use.ts importa o
-// auth.tsx: seria um círculo). Ele importa de './data/fetch' e './data/keys'.
+// Atenção: lib/auth.tsx NÃO pode importar deste index (use.ts importa o
+// auth.tsx: seria um círculo). Ele importa de './data/boot' (e, se precisar, de
+// './data/fetch' e './data/keys'), que não passam pelo auth.tsx.
 export { Q, type Owner, type QuerySpec } from './keys';
-export { invalidate, refetchIfStale, peekCached, patchCached } from './client';
+export { invalidate, refetchIfStale, peekCached, patchCached, seedCached, isFreshCached } from './client';
 export { ownerNow } from './scope';
 export { fetchCached } from './fetch';
+export { takeBootPart, onBootPart, type BootPart, type BootValue } from './boot';
 export { useCached, useOwner, type Cached, type UseCachedOptions } from './use';
-export { applyRules } from './events';
-export { useMyProfile, fetchMyProfile, patchMyProfile, refreshMyProfile, fetchMyFriendIds, loadMyPremium, type MyProfile, type MyPremium } from './me';
+export { useMyProfile, fetchMyProfile, patchMyProfile, refreshMyProfile, fetchMyFriendIds, type MyProfile } from './me';

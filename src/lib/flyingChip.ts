@@ -1,4 +1,8 @@
 import { supabase } from './supabase';
+// (de './data/boot' e './data/scope', não do index: este arquivo entra na
+// abertura por lib/appBoot.ts, que o lib/auth.tsx chama)
+import { takeBootPart } from './data/boot';
+import { ownerNow } from './data/scope';
 
 // Fichas voadoras (02/11/2026): como os itens que atravessam a tela no
 // Howrse, de vez em quando uma ficha do Poster Jackpot passa voando pelo site
@@ -37,11 +41,26 @@ const numOrNull = (value: unknown) => (value == null || Number.isNaN(Number(valu
 const refusal = (value: unknown): UfoRefusal => (REFUSALS.includes(value as UfoRefusal) ? (value as UfoRefusal) : 'error');
 
 export async function fetchUfoStatus(): Promise<UfoStatus> {
-  const { data, error } = await supabase.rpc('jackpot_ufo_status');
-  if (error) throw error;
+  // 19/11/2026 (Reborn, onda 2b): ao abrir o app a resposta vem na ida única
+  // da casca (get_app_bootstrap, parte "ufo"). Os segundos são contados pelo
+  // relógio do banco NA HORA da resposta: o tempo que ela ficou esperando até
+  // esta leitura é descontado. Perguntas seguintes (voltar para a aba, depois
+  // de uma decolagem) vão sempre à RPC.
+  const boot = await takeBootPart<unknown>(ownerNow(), 'ufo');
+  let data: unknown = boot?.value;
+  const waited = boot ? Math.max(0, (Date.now() - boot.at) / 1000) : 0;
+  if (!boot) {
+    const reply = await supabase.rpc('jackpot_ufo_status');
+    if (reply.error) throw reply.error;
+    data = reply.data;
+  }
   const raw = (data || {}) as Row;
   const state = STATES.includes(raw.state as UfoState) ? (raw.state as UfoState) : 'none';
-  return { state, flyIn: numOrNull(raw.fly_in), expiresIn: numOrNull(raw.expires_in) };
+  const left = (value: unknown) => {
+    const seconds = numOrNull(value);
+    return seconds === null ? null : seconds - waited;
+  };
+  return { state, flyIn: left(raw.fly_in), expiresIn: left(raw.expires_in) };
 }
 
 export async function launchUfo(): Promise<UfoLaunch> {

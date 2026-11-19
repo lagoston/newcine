@@ -20,7 +20,7 @@ import {
   fetchRatedLayout, groupByDecade, hasCineElite, readLegacyLayout, saveDecadeOrder, saveRatedLayout,
 } from '../lib/libraryLayouts';
 import DecadeOrganizer from '../components/DecadeOrganizer';
-import { markSeasonalStale } from '../contexts/SeasonalEventContext';
+import { emit } from '../lib/bus';
 
 // Biblioteca — "a estante".
 //   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
@@ -224,8 +224,10 @@ export default function Library() {
 
       storeRows((prev) => prev.map((r) => (sameTitle(r, movieId, mediaType) ? { ...r, rating } : r)));
       cache.invalidatePattern('stats:');
-      // a nota pode ter avançado o evento sazonal: confere na próxima página
-      markSeasonalStale();
+      // 19/11/2026 (Reborn, onda 2b): avisa no barramento (antes: markSeasonalStale).
+      // A camada de dados marca o evento sazonal e o Jackpot como vencidos, sem
+      // pedir nada na hora (lib/data/events.ts).
+      emit('title:rated', { id: movieId, mediaType: mediaType === 'tv' ? 'tv' : 'movie', rating });
       toast.success(rating === null ? t('library.ratingRemoved') : t('library.ratingUpdated'));
     } catch (error) {
       console.error('Error updating rating:', error);
@@ -248,7 +250,7 @@ export default function Library() {
 
       storeRows((prev) => prev.filter((r) => !sameTitle(r, movieId, mediaType)));
       cache.invalidatePattern('stats:');
-      markSeasonalStale();
+      emit('title:rated', { id: movieId, mediaType: mediaType === 'tv' ? 'tv' : 'movie', rating: null });
       toast.success(t('library.movieDeleted'));
     } catch (error) {
       console.error('Error deleting movie:', error);
