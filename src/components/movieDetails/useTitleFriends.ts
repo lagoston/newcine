@@ -262,7 +262,10 @@ async function loadTitleSocial(userId: string, movieId: number, mediaType: 'movi
     return fetchFriendRatings(userId, movieId, mediaType);
   }
   if (error) throw error;
-  return (Array.isArray(data) ? data : []) as FriendRating[];
+  // a função sempre devolve uma lista ([] quando ninguém viu); qualquer outra
+  // coisa não é resposta dela: vale a cascata
+  if (!Array.isArray(data)) return fetchFriendRatings(userId, movieId, mediaType);
+  return data as FriendRating[];
 }
 
 const NO_FRIENDS: FriendRating[] = [];
