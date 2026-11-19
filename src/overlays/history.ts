@@ -41,9 +41,11 @@ export type RouterMove = 'INIT' | 'PUSH' | 'REPLACE' | 'POP';
 
 type Pending =
   // a faxina deu um history.back() e espera cair uma altura abaixo
-  | { kind: 'clean'; g: string; from: number; json: string; href: string; timer: number }
+  | { kind: 'clean'; g: string; from: number; json: string; href: string; moves: number; timer: number }
   // o host deu um history.forward() (desfazendo um passo) e espera cair de volta
-  | { kind: 'redo'; timer: number };
+  | { kind: 'redo'; timer: number }
+  // o host está avançando até a entrada em que o roteador está (ver seek)
+  | { kind: 'seek'; key: string; left: number; timer: number };
 
 let attached = false;
 // Onde achamos que estamos: o grupo e a altura da entrada atual.
@@ -52,8 +54,13 @@ let offset = 0;
 let pending: Pending | null = null;
 let cleanTimer = 0;
 let settleTimer = 0;
-// A localização que o roteador tem na memória (vem do OverlayProvider).
+// A localização que o roteador tem na memória (vem do OverlayProvider), o
+// tipo da última mudança dele e quantas já houve.
 let router: RouterLocation | null = null;
+let routerMove: RouterMove = 'INIT';
+let routerMoves = 0;
+// quando a faxina deu o último passo
+let cleanedAt = 0;
 
 const read = (): State => {
   try {
@@ -76,6 +83,8 @@ const write = (mode: 'push' | 'replace', state: Record<string, unknown>, url?: s
     return false;
   }
 };
+// a chave que o roteador dá a cada entrada ('default' na primeira da aba)
+const keyOf = (state: State): string => (typeof state?.key === 'string' ? state.key : 'default');
 const jsonOf = (state: State): string => {
   try {
     return JSON.stringify(state);
@@ -157,8 +166,18 @@ function clean(): void {
   const state = read();
   const ovl = ovlOf(state);
   if (!ovl || ovl.o <= stack.depth()) return;
-  pending = { kind: 'clean', g: ovl.g, from: ovl.o, json: jsonOf(state), href: window.location.href, timer: window.setTimeout(giveUp, 1000) };
+  pending = { kind: 'clean', g: ovl.g, from: ovl.o, json: jsonOf(state), href: window.location.href, moves: routerMoves, timer: window.setTimeout(giveUp, 1000) };
+  cleanedAt = Date.now();
   window.history.back();
+}
+
+// O app trocou de página (navigate) com um passo da faxina a caminho, e o
+// passo caiu numa entrada de trás: o roteador mostra a página nova e o
+// navegador ficou na antiga. A entrada nova está logo adiante (por cima da
+// que a faxina tirou): avança até a entrada com a chave do roteador.
+function seek(key: string): void {
+  settle({ kind: 'seek', key, left: 3, timer: window.setTimeout(giveUp, 1000) });
+  window.history.forward();
 }
 
 // Uma entrada do nosso grupo com a localização antiga do roteador (ele trocou
@@ -166,7 +185,7 @@ function clean(): void {
 // location.state de { openJackpot }, um filtro na URL). Ao cair nela, recebe a
 // localização atual; senão fechar a camada desfaria a troca.
 function repair(state: State): void {
-  if (!router || !state || state.key === router.key) return;
+  if (!router || !state || keyOf(state) === router.key) return;
   write('replace', { ...state, usr: router.state, key: router.key }, router.href);
 }
 
@@ -185,6 +204,23 @@ function onPop(event: PopStateEvent): void {
     settleSoon();
     return;
   }
+  if (pending?.kind === 'seek') {
+    const step = pending;
+    event.stopImmediatePropagation();
+    if (keyOf(state) === step.key) {
+      // chegou na entrada do roteador
+      settle(null);
+      adopt(ovl);
+      settleSoon();
+    } else if (step.left > 0) {
+      settle({ ...step, left: step.left - 1, timer: window.setTimeout(giveUp, 1000) });
+      window.history.forward();
+    } else {
+      settle(null);
+      adopt(ovl);
+    }
+    return;
+  }
   if (pending?.kind === 'clean') {
     const step = pending;
     if (ovl && ovl.g === step.g && ovl.o === step.from - 1) {
@@ -192,6 +228,12 @@ function onPop(event: PopStateEvent): void {
       event.stopImmediatePropagation();
       settle(null);
       adopt(ovl);
+      if (router && routerMoves !== step.moves && routerMove === 'PUSH' && keyOf(state) !== router.key) {
+        // …mas o app trocou de página com o passo a caminho (o Chrome resolve
+        // o voltar pela entrada de quando ele foi pedido): a página nova está adiante
+        seek(router.key);
+        return;
+      }
       repair(state);
       if (stack.depth() > offset) grow();
       else if (offset > stack.depth()) scheduleClean();
@@ -248,6 +290,8 @@ function onPop(event: PopStateEvent): void {
 // O OverlayProvider avisa a cada mudança de localização do roteador.
 export function routerMoved(location: RouterLocation, move: RouterMove): void {
   router = location;
+  routerMove = move;
+  routerMoves += 1;
   if (!attached) return;
   const state = read();
   const ovl = ovlOf(state);
@@ -256,7 +300,7 @@ export function routerMoved(location: RouterLocation, move: RouterMove): void {
     if (!ovl && group !== null && offset > 0) {
       // o roteador regravou a entrada de uma camada: a marca volta
       write('replace', { ...(state ?? {}), [KEY]: { g: group, o: offset } });
-    } else if (ovl && state && state.key !== location.key) {
+    } else if (ovl && keyOf(state) !== location.key) {
       // a troca chegou com um passo da faxina a caminho e caímos na entrada antiga
       repair(state);
     } else {
@@ -267,6 +311,12 @@ export function routerMoved(location: RouterLocation, move: RouterMove): void {
   if (move === 'PUSH') {
     // página nova: as entradas das camadas ficaram para trás
     window.clearTimeout(cleanTimer);
+    if (!pending && keyOf(state) !== location.key && Date.now() - cleanedAt < 1500) {
+      // o passo da faxina caiu antes de este aviso chegar: o navegador está
+      // numa entrada de trás, e a página nova, adiante
+      seek(location.key);
+      return;
+    }
     adopt(ovl);
     // uma camada global que continuou aberta (fora da página) ganha entrada aqui
     if (stack.depth() > 0) settleSoon();
