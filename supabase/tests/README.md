@@ -30,6 +30,8 @@ Qualquer linha com `ok = false` é um problema para olhar antes de publicar.
 - as funções de resumo do título e do perfil (`get_title_social`, `get_title_me`,
   `get_profile_stats_v2`) devolvem o formato combinado e não mostram nada a
   visitante;
+- as tags calculadas no servidor (`get_tag_progress`, `sync_my_tags`) devolvem o
+  formato da tela e são fechadas a visitante;
 - privacidade de `user_movies`: visitante e conta sem amizade não enxergam contas
   escondidas nem perfis fechados;
 - o convite (`get_my_invite`) informa o limite de 3;

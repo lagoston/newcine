@@ -129,6 +129,25 @@ select 'get_profile_stats_v2: contagem e distribuição batem com a biblioteca',
   from (select get_profile_stats_v2((select uid from _ctx)) j) s,
        (select count(*)::int n from user_movies um where um.user_id = (select uid from _ctx) and um.rating is not null) d;
 
+-- as tags calculadas no servidor (onda 3): o formato TagProgress e o registro
+insert into _r (conferencia, ok, detalhe)
+select 'get_tag_progress: o formato TagProgress, com a contagem da biblioteca',
+       s.j ? 'basic' and s.j ? 'theme' and s.j ? 'oracle' and s.j ? 'specialTags' and s.j ? 'gameTags' and s.j ? 'pokerUpcomingTags'
+         and (s.j ->> 'ratedCount')::int = d.n
+         and (select count(*) from jsonb_object_keys(s.j -> 'basic')) > 0
+         and (select count(*) from jsonb_object_keys(s.j -> 'theme')) > 0
+         and (select count(*) from jsonb_object_keys(s.j -> 'oracle')) > 0,
+       (s.j ->> 'ratedCount') || ' avaliados, ' || (s.j ->> 'followers') || ' amigos, '
+         || jsonb_array_length(s.j -> 'gameTags') || ' tags de Jogos, ' || pg_column_size(s.j) || ' bytes'
+  from (select get_tag_progress() j) s,
+       (select count(*)::int n from user_movies um where um.user_id = (select uid from _ctx) and um.rating is not null) d;
+
+-- (o rollback desfaz o registro e os avisos que esta chamada gerar)
+insert into _r (conferencia, ok, detalhe)
+select 'sync_my_tags: devolve um número (quantas tags novas viraram aviso)',
+       jsonb_typeof(s.j) = 'number', s.j::text
+  from (select pg_temp.safe('select to_jsonb(sync_my_tags())') j) s;
+
 reset role;
 
 -- =========================================================================
@@ -151,6 +170,10 @@ select 'get_title_me: visitante sem relação, sem episódios, sem previsão',
        (s.j -> 'relation') = 'null'::jsonb and (s.j -> 'episodes') = '[]'::jsonb and (s.j -> 'prediction') = 'null'::jsonb,
        left(s.j::text, 80)
   from (select get_title_me((select movie_id from _ctx), 'movie', true) j) s;
+insert into _r (conferencia, ok, detalhe)
+select 'get_tag_progress: visitante não tem permissão de chamar',
+       coalesce(s.j ->> '__erro', '') like 'permission denied%', left(s.j::text, 80)
+  from (select pg_temp.safe('select get_tag_progress()') j) s;
 insert into _r (conferencia, ok, detalhe)
 select 'get_profile_stats_v2: visitante recebe zeros de perfil que não pode ver',
        coalesce(bool_and((get_profile_stats_v2(h) ->> 'ratedMoviesCount')::int = 0), true),
