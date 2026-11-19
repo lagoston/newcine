@@ -13,7 +13,7 @@ import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal } from '../
 // no pedaço dela.
 import { openTitle, updateTitle } from '../overlays';
 import AllMoviesModal from '../components/AllMoviesModal';
-import OptimizedPoster from '../components/OptimizedPoster';
+import PosterImage from '../components/PosterImage';
 import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingFriendBubbles';
 import { useFriendActivity } from '../hooks/useFriendActivity';
 import HomeUserPanels from '../components/HomeUserPanels';
@@ -216,11 +216,8 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                       boxShadow: forYouOracle(movie) ? `0 18px 30px -18px ${forYouOracle(movie)!.color}` : undefined,
                     }}
                   >
-                    <OptimizedPoster
-                      src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                      alt={movie.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                    {/* 19/11/2026 (Reborn, onda 2b): o tamanho do TMDB sai da largura do ladrilho (até 148 px) × a densidade da tela */}
+                    <PosterImage path={movie.poster_path} width={148} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
                     {meta === 'rank' && (
                       <span
                         style={{ ...PIXEL, background: 'rgba(18,13,34,0.82)', color: PAPER }}

@@ -1,12 +1,16 @@
 import React from 'react';
 import { NIGHT } from '../../lib/oracleTheme';
+import { backdropSize, tmdbImage } from '../../lib/tmdbImage';
 
 // O fundo (backdrop) do filme se dissolvendo na noite, no topo do menu.
 const TitleBackdrop: React.FC<{ backdropPath: string | null }> = ({ backdropPath }) => (
   <div className="absolute inset-x-0 top-0 h-64 sm:h-80 overflow-hidden pointer-events-none" aria-hidden>
     {backdropPath ? (
       <img
-        src={`https://image.tmdb.org/t/p/w1280${backdropPath}`}
+        // 19/11/2026 (Reborn, onda 2b): no celular o fundo vem em w780 (≈53 kB
+        // e 1,4 MB decodificado) em vez de w1280 (≈140 kB e 3,7 MB): ele fica
+        // a 45% de opacidade sob o degradê
+        src={tmdbImage(backdropPath, backdropSize())}
         alt=""
         decoding="async"
         className="w-full h-full object-cover opacity-45"

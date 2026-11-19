@@ -18,7 +18,7 @@ import RateMenuSheet from './RateMenuSheet';
 import OracleSheet from './OracleSheet';
 import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
-import OptimizedPoster from './OptimizedPoster';
+import PosterImage from './PosterImage';
 import FateThread from './FateThread';
 import PosterArt from './posterJackpot/PosterArt';
 import { equipPoster, posterKey, unequipPoster, useEquippedPosters, useMyPosters, type OwnedPoster } from '../lib/posterJackpot';
@@ -536,11 +536,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                             mark={{ rarity: equipped.rarity, serial: equipped.serial, size: 'xs', bottom: tv ? 'calc(6px + 0.6em)' : undefined }}
                           />
                         ) : movie.poster_path ? (
-                          <OptimizedPoster
-                            src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                            alt={movie.title}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
+                          // 19/11/2026 (Reborn, onda 2b): o tamanho do TMDB sai da largura do ladrilho (até 148 px) × a densidade da tela
+                          <PosterImage path={movie.poster_path} width={148} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
                           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
                             <Film className="w-7 h-7" aria-hidden />

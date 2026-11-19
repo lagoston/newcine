@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 // 19/11/2026 (Reborn, onda 2b): o menu do título é uma camada do host
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
 import { useOpenTitle } from '../overlays';
-import OptimizedPoster from './OptimizedPoster';
+import PosterImage from './PosterImage';
 import PosterArt from './posterJackpot/PosterArt';
 import { posterKey, useEquippedPosters, type EquippedPoster } from '../lib/posterJackpot';
 import { useEvent } from '../hooks/useEvent';
@@ -100,11 +100,8 @@ const GridTile = React.memo(function GridTile({
           {equipped ? (
             <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={title} className="absolute inset-0 w-full h-full" mark={{ rarity: equipped.rarity, serial: equipped.serial, size: 'xs' }} />
           ) : (
-            <OptimizedPoster
-              src={`https://image.tmdb.org/t/p/w342${posterPath}`}
-              alt={title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            // a coluna da grade vai de ~100 px (celular) a ~190 px
+            <PosterImage path={posterPath} width={190} alt={title} className="absolute inset-0 w-full h-full object-cover" />
           )}
           {progressPercent !== null && (
             <span className="absolute inset-x-0 top-0 h-1 bg-black/40">
