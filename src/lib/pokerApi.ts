@@ -24,6 +24,7 @@
  */
 import { FunctionRegion, FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { ownerNow, takeBootPart } from './data';
 import type { Card } from './poker/cards.ts';
 import type { PlayerAction } from './poker/engine.ts';
 import type { HandKind } from './poker/evaluator.ts';
@@ -518,7 +519,10 @@ function closedError(): PokerApiError {
 }
 
 async function getHome(): Promise<PokerHome> {
-  const raw = asRow(await rpc('get_poker_home'));
+  // 19/11/2026 (Reborn, onda 2b): na abertura da Home o lobby vem no pedido
+  // único das pesadas (get_app_bootstrap, parte "poker"); fora disso, a RPC.
+  const boot = await takeBootPart<unknown>(ownerNow(), 'poker');
+  const raw = asRow(boot ? boot.value : await rpc('get_poker_home'));
   if (!raw || raw.enabled !== true) return { enabled: false, open: false };
   const home = raw as unknown as PokerHomeOpen;
   return {

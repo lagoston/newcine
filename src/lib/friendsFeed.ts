@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { ownerNow, takeBootPart } from './data';
+import { EXTRA_STORY_KINDS, FEED_LIMIT } from './friendsFeedArgs';
 import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJackpot';
 
 // Feed dos Amigos (home): stories feitos das interações dos amigos com as
@@ -23,10 +25,9 @@ import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJa
 export type StoryKind = 'rate' | 'watchlist' | 'review' | 'tag' | 'event' | 'jackpot';
 export type StoryMediaType = 'movie' | 'tv' | 'achievement';
 
-// O que este site sabe desenhar além dos stories de sempre (p_kinds de
-// get_friends_feed): o story do lendário ('jackpot') e os stories de tag da
-// categoria Jogos ('games', que no banco continuam kind 'tag').
-export const EXTRA_STORY_KINDS: string[] = ['jackpot', 'games'];
+// EXTRA_STORY_KINDS e FEED_LIMIT (os argumentos de get_friends_feed) moram em
+// friendsFeedArgs.ts desde 19/11/2026: a partida da Home pede os mesmos.
+export { EXTRA_STORY_KINDS, FEED_LIMIT };
 
 export interface FeedTagAchievement {
   category: 'basic' | 'theme' | 'community' | 'oracle' | 'games';
@@ -139,7 +140,6 @@ export interface FeedGroup {
   latestAt: string;
 }
 
-export const FEED_LIMIT = 50;
 
 export const groupStories = (stories: FeedStory[]): FeedGroup[] => {
   const byOwner = new Map<string, FeedStory[]>();
@@ -222,9 +222,17 @@ const isMissingFunction = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message ?? ''));
 
 export async function fetchFriendsFeed(): Promise<FriendsFeedData> {
-  let { data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT, p_kinds: EXTRA_STORY_KINDS });
-  if (isMissingFunction(error)) ({ data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT }));
-  if (error) throw error;
+  // 19/11/2026 (Reborn, onda 2b): na abertura da Home os stories vêm no pedido
+  // único das pesadas (get_app_bootstrap, parte "feed", com estes mesmos
+  // argumentos — lib/appBoot.ts). Atualizar depois (foco, tag nova) pede aqui.
+  const boot = await takeBootPart<unknown>(ownerNow(), 'feed');
+  let data: unknown = boot?.value;
+  if (!boot) {
+    let reply = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT, p_kinds: EXTRA_STORY_KINDS });
+    if (isMissingFunction(reply.error)) reply = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT });
+    if (reply.error) throw reply.error;
+    data = reply.data;
+  }
   const payload = (data ?? {}) as Partial<FriendsFeedData> & { me?: FeedStory | null };
   return {
     stories: payload.stories ?? [],

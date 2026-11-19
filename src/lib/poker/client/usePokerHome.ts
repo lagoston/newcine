@@ -45,6 +45,9 @@ export function sharedHome(force = false): Promise<PokerHome> {
   return inflight;
 }
 
+/** A resposta em memória ainda vale? (a partida da Home usa para não pedir o lobby de novo) */
+export const isPokerHomeFresh = (): boolean => !!memo && Date.now() - memoAt < FRESH_MS;
+
 /** O último lobby conhecido, sem pedir nada (memória, senão a cópia local). */
 export function peekPokerHome(): PokerHome | null {
   return memo ?? loadHomeCache();
