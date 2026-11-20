@@ -17,7 +17,8 @@
     "brand": "python3 scripts/brand/build-brand.py",
     "check:motion": "node scripts/check-motion.mjs",
     "check:tags": "node scripts/check-tag-rules.mjs",
-    "prebuild": "node scripts/check-motion.mjs && node scripts/check-tag-rules.mjs"
+    "check:rpc": "node scripts/check-rpc.mjs",
+    "prebuild": "node scripts/check-motion.mjs && node scripts/check-tag-rules.mjs && node scripts/check-rpc.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
