@@ -19,6 +19,31 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- 20/11/2026 (Protocolo Reborn, fecho): links do site abrindo no app.
+                 Só a página inicial (onde mora o endereço de um título,
+                 ?o=title.movie.27205) e os perfis. /auth e /reset-password ficam de
+                 FORA de propósito: convite, confirmação de e-mail e troca de senha
+                 continuam no navegador. A mesma lista está em src/lib/appLinks.ts
+                 (acceptsPath): mudou aqui, muda lá.
+                 autoVerify: o Android confere em
+                 https://cineoracle.com/.well-known/assetlinks.json se a
+                 assinatura deste APK está na lista. Enquanto o APK não tiver uma
+                 assinatura fixa (ver .github/workflows/android-apk.yml) a
+                 conferência falha e nada muda sozinho: no Android 12 ou mais novo a
+                 pessoa liga à mão (Configurações > Apps > CineOracle > Abrir por
+                 padrão > Adicionar link); nos mais antigos o Android pergunta
+                 "abrir com". Só o cineoracle.com (sem www): é o endereço em que o
+                 site fica (o www redireciona para ele), e um domínio que
+                 redireciona reprova a conferência. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="cineoracle.com" />
+                <data android:path="/" />
+                <data android:pathPrefix="/profile/" />
+            </intent-filter>
         </activity>
 
         <provider

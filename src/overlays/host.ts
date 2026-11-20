@@ -56,6 +56,10 @@ export const getDef = (kind: string): AnyDef | undefined => defs.get(kind);
 export const outletMounted = (on: boolean): void => {
   outlets += on ? 1 : -1;
 };
+// 20/11/2026: já dá para abrir camada? (a lista chegou e o <LayerOutlet /> está
+// na tela). Quem pergunta é lib/appLinks.ts: um link que abre o app na partida
+// chega antes do anfitrião.
+export const hostReady = (): boolean => outlets > 0 && defs.size > 0;
 
 // A lista de camadas do app (registry.ts), entregue pelo OverlayProvider.
 export function registerOverlays(registry: object): void {

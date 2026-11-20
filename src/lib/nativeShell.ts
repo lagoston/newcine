@@ -5,6 +5,7 @@ import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { setAppActive } from './motion';
 import { pauseRealtime, resumeRealtime } from './realtimePause';
 import { supabase } from './supabase';
+import { openAppLink } from './appLinks';
 
 // Ajustes que só valem dentro do app nativo (Android/iOS). Carregado sob
 // demanda pelo main.tsx quando IS_NATIVE_APP — o site não baixa nada disto.
@@ -17,6 +18,9 @@ import { supabase } from './supabase';
 // • App em segundo plano (18/11/2026, Reborn, bateria A10): o enfeite pausa
 //   (animações e o estúdio) e, depois de 30 s no fundo, o websocket do tempo
 //   real é fechado; na volta tudo religa sozinho.
+// • Links do site (20/11/2026, Reborn, fecho): um link de cineoracle.com
+//   tocado fora do app (WhatsApp, e-mail) abre a página e o título certos aqui
+//   dentro. Quem decide o que fazer com o link é lib/appLinks.ts.
 
 const anyOverlayOpen = () => document.querySelector('[role="dialog"], [aria-modal="true"]') !== null;
 
@@ -46,6 +50,17 @@ export async function setupNativeShell() {
   SystemBars.setStyle({ style: SystemBarsStyle.Dark }).catch(() => {});
 
   App.addListener('appStateChange', ({ isActive }) => onAppState(isActive));
+
+  // O Android entrega o link (o filtro está no AndroidManifest.xml) com o app
+  // aberto ou fechado: na partida o Capacitor guarda o aviso até este ouvinte
+  // existir. Link que não é nosso: o app só vem para a frente.
+  App.addListener('appUrlOpen', ({ url }) => {
+    try {
+      openAppLink(url);
+    } catch {
+      // um link estranho nunca derruba o app
+    }
+  });
 
   App.addListener('backButton', ({ canGoBack }) => {
     if (anyOverlayOpen()) {
