@@ -180,19 +180,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [isOpen]);
 
-  // 19/11/2026 (onda 2b): a rolagem da página é travada pela pilha de camadas
-  // (uma dona só). Daqui continua só o touch-action do <body>, que este menu
-  // sempre ligou (sem ele o iPhone ainda arrasta a página por trás do fundo
-  // escuro); a pilha limpa o que sobrar quando a última camada fecha.
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalTouchAction = document.body.style.touchAction;
-    document.body.style.touchAction = 'none';
-    return () => {
-      document.body.style.touchAction = originalTouchAction;
-    };
-  }, [isOpen]);
-
+  // 19–20/11/2026 (Reborn): a rolagem da página e o touch-action do <body>
+  // (que este menu sempre ligou: sem ele o iPhone arrasta a página por trás do
+  // fundo escuro) são da pilha de camadas, a única que escreve essas travas.
   // Esc e voltar: a pilha chama isto quando este menu é a camada de cima. O
   // trailer e as temporadas são camadas próprias (fecham antes); a ordem fica
   // aqui também, por garantia. Com um modal filho aberto (resenhas, nota,
@@ -206,7 +196,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       if (childModalOpen) return;
       onClose();
     },
-    { z: zFromClass(zIndexClass) },
+    { z: zFromClass(zIndexClass), touchNone: true },
   );
 
   // Abre outro filme por cima deste (saga, página da pessoa, Oracle DNA). Da

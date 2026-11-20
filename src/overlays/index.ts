@@ -10,7 +10,7 @@
 //   OverlayProvider.tsx montado no App.tsx
 export { OverlayProvider } from './OverlayProvider';
 export { LayerScope } from './LayerScope';
-export { useCovered, useLayer, useLayerEntry, useOverlays, zFromClass } from './hooks';
+export { useCovered, useLayer, useLayerEntry, useOverlays, useScrollLock, zFromClass } from './hooks';
 export type { LayerEntryOptions, LayerHandle, LayerInfo } from './hooks';
 export { overlays, registerOverlay } from './host';
 export type { OverlayApi } from './host';

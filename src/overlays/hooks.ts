@@ -28,6 +28,9 @@ export interface LayerEntryOptions {
   z?: number | null;
   // false = agora o Esc e o voltar não fecham esta camada.
   escape?: boolean;
+  // true = com a camada aberta o <body> fica com touch-action: none (só o
+  // menu do título pede; ver stack.ts).
+  touchNone?: boolean;
 }
 
 export interface LayerHandle {
@@ -61,6 +64,7 @@ export function useLayerEntry(open: boolean, close: () => void, options: LayerEn
   closeRef.current = close;
   const escapeRef = useRef(true);
   escapeRef.current = options.escape !== false;
+  const touchNone = options.touchNone === true;
   const floor = options.z === undefined ? stack.DEFAULT_Z : options.z;
   const floorRef = useRef(floor);
   floorRef.current = floor;
@@ -80,6 +84,7 @@ export function useLayerEntry(open: boolean, close: () => void, options: LayerEn
       // (dois voltar seguidos e rápidos fecham duas camadas, não a mesma duas vezes)
       dismiss: () => flushSync(() => closeRef.current()),
       canEscape: () => escapeRef.current,
+      touchNone: () => touchNone,
     };
     if (slotMark && claimLayer(slotMark, { by, ...handlers })) {
       setEntry({ mark: slotMark, z: slotZ });
@@ -94,7 +99,7 @@ export function useLayerEntry(open: boolean, close: () => void, options: LayerEn
       stack.leave(by);
       setEntry(null);
     };
-  }, [open, slotMark, slotZ]);
+  }, [open, slotMark, slotZ, touchNone]);
 
   // Na animação de saída a raiz continua com o z e o nome que tinha.
   const last = useRef<{ mark: string; z: number } | null>(null);
@@ -147,4 +152,20 @@ export function useCovered(): boolean {
 // Abrir e fechar as camadas do host (lista em registry.ts).
 export function useOverlays(): OverlayApi {
   return overlays;
+}
+
+// Para uma PÁGINA em tela cheia (o Acervo): trava a rolagem do site por trás
+// enquanto está montada, sem virar camada (o Esc e o voltar dela são sair da
+// página). `root`: trava também o <html>. 20/11/2026: é a única outra porta
+// para a trava além de useLayerEntry — ninguém escreve body.style.overflow.
+export function useScrollLock(active = true, options: { root?: boolean } = {}): void {
+  const id = useRef('');
+  if (!id.current) id.current = newMark();
+  const root = options.root === true;
+  useLayoutEffect(() => {
+    if (!active) return;
+    const holder = id.current;
+    stack.hold(holder, root);
+    return () => stack.unhold(holder);
+  }, [active, root]);
 }

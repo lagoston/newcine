@@ -31,6 +31,7 @@ interface Claim {
   by: string;
   dismiss: () => void;
   canEscape: () => boolean;
+  touchNone?: () => boolean;
 }
 
 type AnyDef = OverlayDef<unknown>;
@@ -103,6 +104,7 @@ function openLayer(kind: string, params: unknown): string | null {
       mark,
       dismiss: () => (claims.get(mark)?.dismiss ?? (() => closeLayer(mark)))(),
       canEscape: () => claims.get(mark)?.canEscape() ?? true,
+      touchNone: () => claims.get(mark)?.touchNone?.() ?? false,
     },
     def.z ?? stack.DEFAULT_Z,
   );
@@ -154,10 +156,14 @@ export function claimLayer(mark: string, claim: Claim): boolean {
   if (current && current.by !== claim.by) return false;
   if (!mounts.some((m) => m.mark === mark && m.open)) return false;
   claims.set(mark, claim);
+  // quem assumiu pode pedir o touch-action (o menu do título)
+  stack.applyLock();
   return true;
 }
 export function releaseLayer(mark: string, by: string): void {
-  if (claims.get(mark)?.by === by) claims.delete(mark);
+  if (claims.get(mark)?.by !== by) return;
+  claims.delete(mark);
+  stack.applyLock();
 }
 
 export interface OverlayApi {

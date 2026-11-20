@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useLayerEntry } from '../overlays';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { X, Loader2, GripVertical, ArrowUpDown } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
@@ -104,7 +105,6 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
   // um alvo que também está se movendo por causa da própria reordenação.
   const orderAtDragStartRef = useRef<Movie[]>([]);
   const lastSwapTargetRef = useRef<number | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -112,30 +112,11 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = originalOverflow; };
-    }
-  }, [isOpen]);
-
-  // 18/11/2026 (otimização, modais F6): sem role="dialog" o voltar do Android
-  // (nativeShell) não via esta janela e trocava de página com a nova ordem por
-  // salvar. Agora é diálogo e fecha no Esc (= voltar), só se for a camada de
-  // cima e fora do salvamento.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || saving) return;
-      const modals = document.querySelectorAll('[aria-modal="true"]');
-      const top = modals[modals.length - 1];
-      if (rootRef.current && top && top !== rootRef.current) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, saving, onClose]);
+  // 20/11/2026 (Protocolo Reborn, fecho): a janela entra na pilha de camadas do
+  // app (src/overlays). A trava de rolagem e o Esc próprios saíram: a pilha
+  // trava enquanto ela está aberta, e o Esc e o voltar fecham só a camada de
+  // cima (esta não fecha no meio do salvamento). O z-[100] virou o piso.
+  const layer = useLayerEntry(isOpen, onClose, { z: 100, escape: !saving });
 
   const registerRef = useCallback((id: number, el: HTMLDivElement | null) => {
     if (el) itemRefs.current.set(id, el);
@@ -201,7 +182,7 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={rootRef} className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div {...layer.rootProps} className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={layer.style} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
@@ -9,12 +9,16 @@ import { setPokerSettings, SPEEDS, type PokerSettingsLocal } from '../../../lib/
 import { FALLBACK_QUIPS, loadQuips } from '../../../lib/poker/client/useDirector';
 import { langOf } from '../../../lib/poker/client/format';
 import HandRanking from '../cards/HandRanking';
+import { PpLayerRoot } from '../game/PpLayerRoot';
 
 const RIVALS: RivalId[] = ['bogart', 'fincher', 'cypher'];
 
 // Folha de baixo genérica da mesa (max-h com rolagem, como no resto do app).
 export const Sheet: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; reduced: boolean }> = ({ title, onClose, children, reduced }) => {
   const ref = useRef<HTMLDivElement>(null);
+  // 20/11/2026 (Reborn, fecho): fora da mesa a folha é uma camada da pilha do
+  // app (PpLayer): o diálogo leva o nome da camada. Na mesa, nada muda.
+  const layerRoot = useContext(PpLayerRoot);
   useEffect(() => {
     ref.current?.focus();
   }, []);
@@ -23,6 +27,7 @@ export const Sheet: React.FC<{ title: string; onClose: () => void; children: Rea
       <div className="pk-scrim" onClick={onClose} aria-hidden />
       <motion.div
         ref={ref}
+        {...layerRoot}
         tabIndex={-1}
         className="pk-sheet"
         role="dialog"

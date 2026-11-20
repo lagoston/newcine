@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLayerEntry } from '../../overlays';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
@@ -54,29 +55,22 @@ const CurationDetail: React.FC<Props> = ({ poster, sectionKey, index, total, eff
   const titleId = useId();
   const open = !!poster && !!sectionKey;
 
-  // Trava a rolagem da página por trás.
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
+  // 20/11/2026 (Protocolo Reborn, fecho): a folha entra na pilha de camadas do
+  // app (src/overlays). A trava de rolagem e o Esc próprios saíram: a pilha
+  // trava enquanto ela está aberta, e o Esc e o voltar fecham só a camada de
+  // cima. O 9990 virou o piso do z-index.
+  const layer = useLayerEntry(open, onClose, { z: 9990 });
 
   // Ao abrir, o foco vai para a folha (as setas do teclado já funcionam).
   useEffect(() => {
     if (open) panelRef.current?.focus({ preventScroll: true });
   }, [open]);
 
-  // Esc fecha; ← e → passam; o Tab fica preso dentro da folha.
+  // ← e → passam; o Tab fica preso dentro da folha (o Esc é da pilha).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowLeft' && onPrev && !e.altKey && !e.metaKey) {
+      if (e.key === 'ArrowLeft' && onPrev && !e.altKey && !e.metaKey) {
         e.preventDefault();
         onPrev();
       } else if (e.key === 'ArrowRight' && onNext && !e.altKey && !e.metaKey) {
@@ -150,7 +144,7 @@ const CurationDetail: React.FC<Props> = ({ poster, sectionKey, index, total, eff
   return createPortal(
     <AnimatePresence>
       {open && poster && sectionKey && (
-        <div className="fixed inset-0 z-[9990] pc-vars" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div {...layer.rootProps} className="fixed inset-0 z-[9990] pc-vars" style={layer.style} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             className="absolute inset-0 bg-black/75"
             initial={{ opacity: 0 }}

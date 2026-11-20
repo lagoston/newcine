@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { PAPER } from '../../lib/oracleTheme';
 import '../../styles/acervo.css';
 import { LayerStackContext, type LayerEntry, type LayerStackApi } from './layerStack';
+import { useScrollLock } from '../../overlays';
 
 // A camada de tela cheia do Acervo (a Mesa dos Oráculos), 09/11/2026. Veio de
 // oracleTable/MesaLayer.tsx (05/11), que servia a Mesa e o Acervo; a Mesa de
@@ -88,17 +89,12 @@ const AcervoLayer: React.FC<AcervoLayerProps> = ({ children, onExit, label }) =>
     [push]
   );
 
-  // Trava a rolagem da página por trás (salva e restaura, como o OracleSheet).
-  useEffect(() => {
-    const prevBody = document.body.style.overflow;
-    const prevHtml = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevBody;
-      document.documentElement.style.overflow = prevHtml;
-    };
-  }, []);
+  // Trava a rolagem da página por trás. 20/11/2026 (Protocolo Reborn, fecho):
+  // quem escreve a trava é a pilha de camadas do app (src/overlays), a única
+  // dona; o Acervo só pede (o <body> e o <html>, como sempre). Ele é uma
+  // página em tela cheia, não uma camada: o Esc e o voltar continuam sendo os
+  // dele (sair do Acervo), logo abaixo.
+  useScrollLock(true, { root: true });
 
   // O site por baixo fica `inert`: sem isso o Tab e o Shift+Tab ainda chegavam
   // à barra de navegação escondida atrás da camada, e o leitor de tela lia a
