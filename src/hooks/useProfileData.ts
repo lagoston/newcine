@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { getMovieDetailsFromDB, Movie } from '../lib/tmdb';
-import { Q, invalidate, isMissingFunction, useCached, useOwner } from '../lib/data';
+import { Q, fetchManyCached, invalidate, isMissingFunction, ownerNow, useCached, useOwner, type ThinMark } from '../lib/data';
 import { fetchUserPersona, type UserPersona } from '../lib/persona';
 import { fetchAllPages } from '../lib/fetchAllPages';
 
 // --- Tipos ---
 
-export interface MovieWithRating extends Movie {
+// `thin: true` (20/11/2026): o título veio da lista magra do próprio Perfil,
+// sem sinopse nem "onde assistir" (ver CACHE_COLUMNS_THIN, abaixo).
+export interface MovieWithRating extends Movie, ThinMark {
   userRating: number | null;
 }
 
@@ -98,13 +100,23 @@ function decadeLabel(decadeNum: number): string {
 }
 
 /**
- * Busca em lote os detalhes de vários filmes do movie_cache numa única query,
- * já respeitando media_type (evita a colisão filme/série que getMoviesFromCache tem).
- * Retorna um Map chaveado por `${tmdb_id}_${media_type}`.
+ * A lista de um perfil busca os detalhes dos títulos no movie_cache em lote,
+ * já respeitando media_type (evita a colisão filme/série que getMoviesFromCache tem):
+ * batchFetchFromCache, mais abaixo, devolve um Map chaveado por `${tmdb_id}_${media_type}`.
  * Filmes ausentes do cache precisam ser buscados individualmente por quem chama.
  */
-const CACHE_COLUMNS =
-  'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, origin_country, watch_providers, keywords';
+// 20/11/2026 (peça final do Reborn): a lista MAGRA, a do próprio Perfil
+// (`list: 'rated'`). Nenhum bloco dele lê a sinopse nem "onde assistir"
+// (conferido por busca em Profile.tsx, ProfileTaste.tsx, components/profile/*,
+// useTasteObservatory.ts e lib/tasteStats.ts): sem as três colunas saem 390 kB
+// dos 952 kB medidos em produção na maior biblioteca (sinopses 161, onde
+// assistir 229). Os objetos saem marcados com `thin: true`; se um deles chegar
+// ao menu do título, a camada busca o resto (overlays/layers/TitleLayer.tsx).
+const CACHE_COLUMNS_THIN =
+  'tmdb_id, media_type, title_en, title_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, origin_country, keywords';
+// A lista CHEIA (o perfil de outra pessoa: a grade da Coleção entrega estes
+// objetos a outras telas): as colunas de sempre.
+const CACHE_COLUMNS = `${CACHE_COLUMNS_THIN}, overview_en, overview_pt, watch_providers`;
 
 // Uma linha do movie_cache com as colunas acima (e, quando pedida, seasons_data).
 interface CacheRow {
@@ -112,8 +124,9 @@ interface CacheRow {
   media_type: string;
   title_en: string;
   title_pt: string | null;
-  overview_en: string | null;
-  overview_pt: string | null;
+  // (a sinopse e "onde assistir" não vêm na lista magra)
+  overview_en?: string | null;
+  overview_pt?: string | null;
   poster_path: string | null;
   poster_path_pt: string | null;
   release_date: string;
@@ -132,24 +145,33 @@ interface CacheRow {
   cast_members: unknown;
   seasons_data?: unknown;
   origin_country: string[] | null;
-  watch_providers: unknown;
+  watch_providers?: unknown;
   keywords: unknown;
 }
 
-async function batchFetchFromCache(
-  entries: { movie_id: number; media_type: string }[],
-  isPortuguese: boolean,
+interface CacheEntry {
+  movie_id: number;
+  media_type: string;
+}
+
+// Quais colunas a lista pede.
+interface CacheShape {
+  // sem sinopse nem "onde assistir" (o próprio Perfil)
+  thin: boolean;
   // 19/11/2026 (Reborn, onda 3): as temporadas com todos os episódios de toda
   // a biblioteca só serviam para somar o tempo assistido das séries. Quando o
   // tempo vem pronto do banco (get_profile_stats_v2), a coluna não é pedida —
   // era a maior parte do peso desta leitura (rede.md A4). O menu de uma série
   // aberta daqui busca as temporadas dela ao abrir a gaveta, como em qualquer
   // outra tela.
-  withSeasons: boolean
-): Promise<Map<string, Movie>> {
-  const map = new Map<string, Movie>();
-  if (entries.length === 0) return map;
+  withSeasons: boolean;
+}
 
+const entryKey = (entry: CacheEntry) => `${entry.movie_id}_${entry.media_type}`;
+
+// Vai ao movie_cache buscar as linhas pedidas (um pedido para até 450 títulos)
+// e devolve os títulos na ordem de `entries` (undefined = não está no cache).
+async function loadCacheRows(entries: CacheEntry[], isPortuguese: boolean, shape: CacheShape): Promise<(Movie | undefined)[]> {
   const ids = [...new Set(entries.map((e) => e.movie_id))];
 
   // 18/11/2026 (correção): em lotes de 450 ids. Cada id pode trazer até 2 linhas
@@ -159,6 +181,7 @@ async function batchFetchFromCache(
   const CHUNK = 450;
   const chunks: number[][] = [];
   for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+  const columns = shape.thin ? CACHE_COLUMNS_THIN : CACHE_COLUMNS;
   const results = await Promise.all(
     chunks.map((chunk) =>
       supabase
@@ -166,7 +189,7 @@ async function batchFetchFromCache(
         .select(
           // (a lista de colunas como texto comum: com o pedaço opcional, o
           // verificador de tipos do supabase-js não consegue ler um texto montado)
-          (withSeasons ? `${CACHE_COLUMNS}, seasons_data` : CACHE_COLUMNS) as string
+          (shape.withSeasons ? `${columns}, seasons_data` : columns) as string
         )
         .in('tmdb_id', chunk)
     )
@@ -176,16 +199,17 @@ async function batchFetchFromCache(
 
   if (failed || data.length === 0) {
     if (failed) console.error('Error batch-fetching movie_cache:', failed.error);
-    return map;
+    return entries.map(() => undefined);
   }
 
+  const byKey = new Map<string, Movie>();
   for (const row of data) {
     const genres = isPortuguese && row.genres_pt ? row.genres_pt : row.genres_en;
     const movie = {
       id: row.tmdb_id,
       title: isPortuguese && row.title_pt ? row.title_pt : row.title_en,
       poster_path: isPortuguese && row.poster_path_pt ? row.poster_path_pt : row.poster_path,
-      overview: isPortuguese && row.overview_pt ? row.overview_pt : row.overview_en,
+      overview: shape.thin ? '' : isPortuguese && row.overview_pt ? row.overview_pt : row.overview_en,
       release_date: row.release_date,
       vote_average: row.vote_average,
       vote_count: row.vote_count,
@@ -203,12 +227,41 @@ async function batchFetchFromCache(
       },
       seasons: row.seasons_data,
       origin_country: row.origin_country || [],
-      watchProviders: row.watch_providers,
-      keywords: row.keywords || []
+      watchProviders: shape.thin ? undefined : row.watch_providers,
+      keywords: row.keywords || [],
+      ...(shape.thin ? { thin: true } : {})
     } as unknown as Movie;
-    map.set(`${row.tmdb_id}_${row.media_type}`, movie);
+    byKey.set(`${row.tmdb_id}_${row.media_type}`, movie);
   }
 
+  return entries.map((entry) => byKey.get(entryKey(entry)));
+}
+
+// 20/11/2026 (peça final do Reborn): as linhas ficam na memória da camada de
+// dados, UMA CHAVE POR TÍTULO (Q.catalogRow: título + idioma + modo, do dono,
+// apagadas na troca de conta). Antes cada visita ao Perfil baixava a lista
+// inteira de novo: 952 kB na maior biblioteca (270 títulos). Agora:
+//   • voltar ao Perfil dentro do prazo (30 min) não baixa nenhuma linha;
+//   • dar nota a um título novo baixa só a linha dele;
+//   • a nota em si não vence nada aqui: o catálogo não muda quando alguém avalia
+//     (a nota vem de user_movies, que continua sendo lida a cada visita).
+async function batchFetchFromCache(entries: CacheEntry[], isPortuguese: boolean, shape: CacheShape): Promise<Map<string, Movie>> {
+  const map = new Map<string, Movie>();
+  if (entries.length === 0) return map;
+
+  const unique = [...new Map(entries.map((entry) => [entryKey(entry), entry])).values()];
+  const uid = ownerNow();
+  const mode = `${shape.thin ? 'magra' : 'cheia'}${shape.withSeasons ? '+temporadas' : ''}`;
+  const lang = isPortuguese ? 'pt' : 'en';
+  const found = await fetchManyCached<CacheEntry, Movie>(
+    unique,
+    (entry) => Q.catalogRow(uid, mode, lang, entry.media_type, entry.movie_id),
+    (missing) => loadCacheRows(missing, isPortuguese, shape)
+  );
+  unique.forEach((entry, index) => {
+    const movie = found[index];
+    if (movie) map.set(entryKey(entry), movie);
+  });
   return map;
 }
 
@@ -250,6 +303,8 @@ export interface ProfileDataOptions {
   //   true (padrão) → sempre (a grade do perfil de outra pessoa);
   //   'rated'       → só se a pessoa tem algum título avaliado (o próprio
   //                   Perfil: o retrato de gosto e o mapa só existem com notas).
+  //                   É a lista MAGRA (20/11/2026): sem sinopse nem "onde
+  //                   assistir", com `thin: true` em cada título.
   list?: boolean | 'rated';
 }
 
@@ -265,6 +320,8 @@ export interface ProfileDataOptions {
 // função no banco, o hook roda inteiro como antes.
 export function useProfileData(userId: string | undefined, language: string, options: ProfileDataOptions = {}): ProfileData {
   const listMode = options.list ?? true;
+  // a lista do próprio Perfil é a magra (sem sinopse nem "onde assistir")
+  const thin = listMode === 'rated';
   const [loading, setLoading] = useState(true);
   const [personaLoading, setPersonaLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -386,7 +443,7 @@ export function useProfileData(userId: string | undefined, language: string, opt
 
         // --- Busca em lote no movie_cache (1 query pra todos) ---
         const isPortuguese = language.startsWith('pt');
-        const cacheMap = await batchFetchFromCache(rawUserMovies, isPortuguese, !fromRpc);
+        const cacheMap = await batchFetchFromCache(rawUserMovies, isPortuguese, { thin, withSeasons: !fromRpc });
 
         const missing = rawUserMovies.filter((m) => !cacheMap.has(`${m.movie_id}_${m.media_type}`));
 
@@ -394,7 +451,10 @@ export function useProfileData(userId: string | undefined, language: string, opt
         const fallbackDetails = await Promise.all(
           missing.map(async (m) => {
             try {
-              const details = await getMovieDetailsFromDB(m.movie_id);
+              // (20/11/2026) o tipo vai explícito: sem ele a busca perguntava à
+              // tabela movies (um pedido a mais por título) e errava quando um
+              // filme e uma série têm o mesmo número
+              const details = await getMovieDetailsFromDB(m.movie_id, m.media_type === 'tv' ? 'tv' : 'movie');
               return { key: `${m.movie_id}_${m.media_type}`, movie: details };
             } catch {
               return null;
@@ -621,7 +681,7 @@ export function useProfileData(userId: string | undefined, language: string, opt
     return () => {
       cancelled = true;
     };
-  }, [userId, language, reloadFlag, statsMode, wantList]);
+  }, [userId, language, reloadFlag, statsMode, wantList, thin]);
 
   // Os números do banco, no formato que as telas já usam.
   const fromBank = useMemo(() => {
