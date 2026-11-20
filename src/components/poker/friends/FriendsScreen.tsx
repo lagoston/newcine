@@ -163,7 +163,7 @@ const StakeModeSheet: React.FC<{
   const [stake, setStake] = useState<boolean>(initial !== null);
   const [rarity, setRarity] = useState<Rarity>(initial ?? 'common');
   return (
-    <Layer>
+    <Layer onClose={onClose}>
       <Sheet title={title} onClose={onClose} reduced={reduced}>
         <div className="pf-mode" role="radiogroup" aria-label={t('poker.friends.create.modeAria')}>
           <button type="button" role="radio" aria-checked={!stake} className="pf-mode-opt" onClick={() => setStake(false)}>
@@ -209,7 +209,7 @@ const InviteSheet: React.FC<{
   const free = 4 - inRoom.size;
   const list = home.friends.filter((f) => !inRoom.has(f.userId));
   return (
-    <Layer>
+    <Layer onClose={onClose}>
       <Sheet title={t('poker.friends.invite.title')} onClose={onClose} reduced={reduced}>
         {list.length === 0 ? (
           <p className="text-[14px] py-2" style={{ color: '#e9d9c4' }}>{home.friends.length ? t('poker.friends.invite.allIn') : t('poker.friends.invite.none')}</p>
@@ -680,7 +680,7 @@ const FriendsScreen: React.FC<{ home: PokerHome }> = () => {
         />
       )}
       {sheet === 'leave' && room && (
-        <Layer>
+        <Layer onClose={() => setSheet(null)}>
           <Sheet title={t('poker.friends.room.leaveTitle')} onClose={() => setSheet(null)} reduced={reduce}>
             <p className="text-[14.5px] mb-4" style={{ color: '#ECDCCF' }}>{isHost ? t('poker.friends.room.leaveHost') : t('poker.friends.room.leaveGuest')}</p>
             <div className="grid grid-cols-2 gap-2">

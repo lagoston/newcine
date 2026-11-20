@@ -62,7 +62,7 @@ export const SettingsSheet: React.FC<{ home: PokerHome; reduced: boolean; onClos
   );
 
   return (
-    <Layer>
+    <Layer onClose={onClose}>
       <Sheet title={t('poker.game.settings')} onClose={onClose} reduced={reduced}>
         <div className="pk-row pk-row-stack">
           <span className="text-[14.5px]">{t('poker.settings.speed')}</span>
@@ -128,7 +128,7 @@ export const HowToSheet: React.FC<{ reduced: boolean; onClose: () => void }> = (
   const { t } = useTranslation();
   const navigate = useNavigate();
   return (
-    <Layer>
+    <Layer onClose={onClose}>
       <Sheet title={t('poker.lobby.howTo')} onClose={onClose} reduced={reduced}>
         <p className="text-[14px] mb-2" style={{ color: '#D9D2EA' }}>{t('poker.game.howToBody')}</p>
         <p className="text-[14px] mb-3" style={{ color: '#D9D2EA' }}>{t('poker.game.howToModes')}</p>

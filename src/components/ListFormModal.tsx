@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useId, useRef } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
+import { useLayerEntry } from '../overlays';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Loader2, Star, Film, ListPlus, Check } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
@@ -43,7 +44,6 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allLibraryMovies, setAllLibraryMovies] = useState<Movie[]>([]);
-  const rootRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -56,30 +56,11 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = originalOverflow; };
-    }
-  }, [isOpen]);
-
-  // 18/11/2026 (otimização, modais F6): o formulário não era diálogo para o
-  // app — sem role="dialog" o voltar do Android (nativeShell) não o via e
-  // trocava de página, perdendo a lista sendo criada/editada. Agora é diálogo
-  // e fecha no Esc (= voltar), só se for a camada de cima e fora do salvamento.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || saving) return;
-      const modals = document.querySelectorAll('[aria-modal="true"]');
-      const top = modals[modals.length - 1];
-      if (rootRef.current && top && top !== rootRef.current) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, saving, onClose]);
+  // 20/11/2026 (Protocolo Reborn, fecho): a janela entra na pilha de camadas do
+  // app (src/overlays). A trava de rolagem e o Esc próprios saíram: a pilha
+  // trava enquanto ela está aberta, e o Esc e o voltar fecham só a camada de
+  // cima (esta não fecha no meio do salvamento). O z-[100] virou o piso.
+  const layer = useLayerEntry(isOpen, onClose, { z: 100, escape: !saving });
 
   const fetchUserMovies = async () => {
     try {
@@ -229,7 +210,7 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={rootRef} className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div {...layer.rootProps} className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={layer.style} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -110,7 +110,7 @@ const CollectionScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
       </section>
 
       {open && (
-        <Layer>
+        <Layer onClose={() => setOpen(null)}>
           <Sheet title={open.owned || thisWeek(open) ? posterTitle(open, lang) : t('poker.collection.unknown')} onClose={() => setOpen(null)} reduced={reduce}>
             <div className="grid grid-cols-[96px_1fr] gap-4 items-start">
               {open.owned ? (

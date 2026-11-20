@@ -9,7 +9,8 @@
 // (F3). Aqui fica UMA pilha, dona de quatro coisas:
 //   • z-index: quem abre depois fica por cima (nunca abaixo da camada de baixo);
 //   • Esc: um ouvinte só, que fecha a camada de cima;
-//   • trava de rolagem: trava com a pilha cheia e solta quando ela esvazia;
+//   • trava de rolagem: trava com a pilha cheia e solta quando ela esvazia
+//     (desde 20/11/2026 ninguém mais escreve essa trava fora daqui);
 //   • tela coberta: `data-covered` no #root enquanto houver camada aberta.
 // O histórico (cada camada é uma entrada, o voltar fecha a de cima) fica em
 // history.ts e se liga aqui pelos `hooks`.
@@ -32,6 +33,9 @@ export interface LayerEntry {
   // false = agora não fecha no Esc/voltar (salvando, edição em linha, um
   // filho que não é diálogo por cima): quem escuta o Esc do jeito antigo recebe
   canEscape: () => boolean;
+  // true = com esta camada aberta o <body> fica com touch-action: none (o menu
+  // do título: sem isso o iPhone arrasta a página por trás do fundo escuro)
+  touchNone?: () => boolean;
 }
 
 const entries: LayerEntry[] = [];
@@ -79,66 +83,48 @@ export function isCovered(element: Element | null): boolean {
 
 // ------------------------------------------------------------------ trava de rolagem
 
-// Quem ainda trava a rolagem por conta própria (salvando e devolvendo o valor
-// anterior): o menu do título e os outros diálogos antigos, o Acervo e as
-// folhas do pôquer. Enquanto um deles está na tela, a trava é dele.
-const FOREIGN_LOCK = '[aria-modal="true"]:not([data-layer]), .ac-layer, .pp-layer';
-let watcher: MutationObserver | null = null;
-let recheck = 0;
+// 20/11/2026 (Protocolo Reborn, fecho): a pilha é a ÚNICA que escreve a trava
+// de rolagem da página (body.style.overflow, o overflow do <html> e o
+// touch-action do <body>). Até aqui cinco camadas ainda travavam por conta
+// própria, salvando e devolvendo o valor anterior (o formulário e a ordem das
+// listas, a folha da curadoria, as folhas do pôquer e o Acervo), e por isso
+// existiam um "faxineiro" no App.tsx (ScrollLockJanitor) e, aqui, uma espera
+// pelos diálogos antigos. Com todas no host, a regra é uma linha: há camada
+// (ou página em tela cheia) aberta → travado; não há → solto. Nada é salvo
+// nem devolvido, então nada fica preso (auditoria F1).
+//
+// Além das camadas da pilha, há as PÁGINAS EM TELA CHEIA (o Acervo): travam a
+// rolagem enquanto estão montadas, mas não são camadas — o Esc e o voltar
+// delas são sair da página, e isso continua com elas (useScrollLock).
+const holders = new Map<string, boolean>();
 
-function stopWatching(): void {
-  watcher?.disconnect();
-  watcher = null;
-  window.clearTimeout(recheck);
+const put = (style: CSSStyleDeclaration, property: 'overflow' | 'touchAction', value: string): void => {
+  if (style[property] !== value) style[property] = value;
+};
+
+export function applyLock(): void {
+  if (typeof document === 'undefined') return;
+  put(document.body.style, 'overflow', entries.length > 0 || holders.size > 0 ? 'hidden' : '');
+  // o Acervo sempre travou também o <html>
+  put(document.documentElement.style, 'overflow', Array.from(holders.values()).some(Boolean) ? 'hidden' : '');
+  put(document.body.style, 'touchAction', entries.some((e) => e.touchNone?.()) ? 'none' : '');
 }
 
-function lock(): void {
-  stopWatching();
-  if (document.body.style.overflow !== 'hidden') document.body.style.overflow = 'hidden';
+// Uma página em tela cheia segura a trava enquanto está montada. `root`: trava
+// também o <html>.
+export function hold(id: string, root = false): void {
+  holders.set(id, root);
+  applyLock();
 }
-
-// Solta a rolagem se a pilha está vazia e não sobrou diálogo antigo na tela.
-// Devolve false quando ainda há um diálogo antigo segurando a trava.
-function release(): boolean {
-  if (entries.length > 0) return true;
-  if (document.querySelector(FOREIGN_LOCK)) return false;
-  document.body.style.overflow = '';
-  document.body.style.touchAction = '';
-  return true;
-}
-
-// Com um diálogo antigo ainda na tela, espera ele sair (os portais são filhos
-// diretos do <body>) e então solta. Só fica ligado nesse intervalo.
-function watch(): void {
-  if (watcher || typeof MutationObserver === 'undefined') return;
-  watcher = new MutationObserver(() => {
-    window.clearTimeout(recheck);
-    recheck = window.setTimeout(() => {
-      if (release()) stopWatching();
-    }, 500);
-  });
-  watcher.observe(document.body, { childList: true });
-}
-
-// A pilha esvaziou. Solta na hora (quem abre em seguida, como o menu do
-// título depois de um story, precisa guardar o valor certo) e confere de novo
-// daqui a pouco: um modal antigo que abriu por cima de uma camada do host
-// guardou 'hidden' e devolve esse valor atrasado quando fecha — era assim que
-// a página ficava presa (F1).
-function unlock(): void {
-  if (!release()) watch();
-  window.clearTimeout(recheck);
-  recheck = window.setTimeout(() => {
-    if (!release()) watch();
-  }, 500);
+export function unhold(id: string): void {
+  if (holders.delete(id)) applyLock();
 }
 
 // ------------------------------------------------------------------ entrar e sair
 
 function changed(): void {
   markCovered();
-  if (entries.length > 0) lock();
-  else unlock();
+  applyLock();
   listeners.forEach((listener) => listener());
 }
 
