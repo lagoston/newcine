@@ -121,10 +121,10 @@ export const Q = {
   // Prazo: 30 min na lista magra (a própria biblioteca, uma só); 10 min nas
   // linhas cheias dos perfis de OUTRAS pessoas, para a memória não crescer com
   // cada perfil visitado (cada linha cheia pesa ~3,4 kB de JSON).
+  // Visitante (ou login ainda carregando): sem dono, nada é guardado — a lista é
+  // baixada como sempre foi, e nenhuma linha sobra de uma sessão para a outra.
   catalogRow: (uid: Owner, mode: string, lang: string, type: string, id: number) =>
-    typeof uid === 'string'
-      ? spec(uid, ['catalog', 'row', mode, lang, type, id, uid], mode.startsWith('magra') ? 30 * MIN : 10 * MIN)
-      : spec(uid === null ? 'pub' : undefined, ['catalog', 'row', mode, lang, type, id, 'visitante'], 10 * MIN),
+    spec(typeof uid === 'string' ? uid : undefined, ['catalog', 'row', mode, lang, type, id, uid ?? 'visitante'], mode.startsWith('magra') ? 30 * MIN : 10 * MIN),
   personaWorld: (uid: Owner, of: string) => spec(uid, ['persona', 'world', of, uid], 10 * MIN, of === uid),
   feed: (uid: Owner) => spec(uid, ['feed', uid], 1 * MIN),
 };
