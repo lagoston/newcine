@@ -110,6 +110,21 @@ export const Q = {
     typeof uid === 'string'
       ? spec(uid, ['profile', 'stats', of, uid], (data) => (data ? 5 * MIN : 0), of === uid)
       : spec(uid === null ? 'pub' : undefined, ['profile', 'stats', of, 'visitante'], (data) => (data ? 5 * MIN : 0)),
+  // 20/11/2026 (peça final do Reborn): UMA linha do catálogo (movie_cache) como
+  // a lista de um perfil a usa, por título + idioma + modo (as colunas pedidas:
+  // 'magra' = a do próprio Perfil, sem sinopse nem "onde assistir"). Só na
+  // memória, e do dono: some na troca de conta como o resto. Antes a lista
+  // inteira era baixada a cada visita (952 kB medidos na maior biblioteca, 270
+  // títulos); com uma chave por título, voltar ao Perfil não baixa nada e um
+  // título novo baixa uma linha. O catálogo não muda quando a pessoa dá nota:
+  // nenhum aviso do barramento vence estas chaves (events.ts).
+  // Prazo: 30 min na lista magra (a própria biblioteca, uma só); 10 min nas
+  // linhas cheias dos perfis de OUTRAS pessoas, para a memória não crescer com
+  // cada perfil visitado (cada linha cheia pesa ~3,4 kB de JSON).
+  catalogRow: (uid: Owner, mode: string, lang: string, type: string, id: number) =>
+    typeof uid === 'string'
+      ? spec(uid, ['catalog', 'row', mode, lang, type, id, uid], mode.startsWith('magra') ? 30 * MIN : 10 * MIN)
+      : spec(uid === null ? 'pub' : undefined, ['catalog', 'row', mode, lang, type, id, 'visitante'], 10 * MIN),
   personaWorld: (uid: Owner, of: string) => spec(uid, ['persona', 'world', of, uid], 10 * MIN, of === uid),
   feed: (uid: Owner) => spec(uid, ['feed', uid], 1 * MIN),
 };

@@ -8,6 +8,7 @@
 //   1. A consulta tem uma linha em keys.ts (chave, prazo, se vai ao aparelho).
 //   2. Num componente:      const { data } = useCached(Q.x(uid), buscar);
 //      Num serviço (lib):   const valor = await fetchCached(Q.x(uid), buscar);
+//      Muitas de uma vez:   fetchManyCached(itens, (item) => Q.x(uid, item), buscarOsQueFaltam);
 //      `uid` vem de useOwner() (componente) ou ownerNow() (serviço).
 //   3. Quem muda um dado avisa no barramento (src/lib/bus.ts → emit); o mapa em
 //      events.ts diz o que cada aviso faz vencer. Para corrigir a cópia guardada
@@ -20,6 +21,7 @@
 //   use.ts      useCached / useOwner (componentes)     fetch.ts    fetchCached (serviços)
 //   me.ts       o próprio perfil e os amigos           DataProvider.tsx  o provedor (App.tsx)
 //   boot.ts     a casca numa ida só (get_app_bootstrap): quem pede é lib/appBoot.ts
+//   thin.ts     a marca dos títulos sem sinopse/onde assistir (listas magras)
 //
 // Atenção: lib/auth.tsx NÃO pode importar deste index (use.ts importa o
 // auth.tsx: seria um círculo). Ele importa de './data/boot' (e, se precisar, de
@@ -27,7 +29,8 @@
 export { Q, type Owner, type QuerySpec } from './keys';
 export { invalidate, refetchIfStale, peekCached, patchCached, seedCached, isFreshCached } from './client';
 export { ownerNow } from './scope';
-export { fetchCached } from './fetch';
+export { fetchCached, fetchManyCached } from './fetch';
+export { isThinTitle, type ThinMark } from './thin';
 export { isMissingFunction } from './missing';
 export { takeBootPart, onBootPart, type BootPart, type BootValue } from './boot';
 export { useCached, useOwner, type Cached, type UseCachedOptions } from './use';

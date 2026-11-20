@@ -86,6 +86,18 @@ export function isFreshCached(spec: QuerySpec): boolean {
   return Date.now() - state.dataUpdatedAt < stale;
 }
 
+// 20/11/2026 (peça final): guarda um valor que chegou por OUTRO caminho (uma
+// busca em lote que traz centenas de linhas de uma vez, fetch.ts →
+// fetchManyCached) como a resposta da consulta, com o dono e o tempo de memória
+// da linha em keys.ts. Diferente do seedCached, cria a consulta se não existir.
+// Quem chama confere antes se o dono da linha é quem está logado.
+export function putCached<T>(spec: QuerySpec, value: T, at: number): void {
+  queryClient
+    .getQueryCache()
+    .build(queryClient, queryClient.defaultQueryOptions({ queryKey: spec.key, gcTime: spec.gcTime, meta: metaOf(spec) }))
+    .setData(value, { updatedAt: at, manual: true });
+}
+
 // Uma resposta mais nova (a do bootstrap, lib/data/boot.ts) entra numa consulta
 // que JÁ tem dado guardado — a que voltou do aparelho e está dentro do prazo,
 // e por isso não vai refazer a busca. Sem dado guardado não faz nada (a busca
