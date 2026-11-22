@@ -41,6 +41,7 @@ interface ReviewRow {
   title: string | null;
   content: string | null;
   has_spoilers: boolean | null;
+  is_ai_generated: boolean | null;
 }
 
 // A resenha da própria pessoa. Falhou = sem resenha (registrado): o story da
@@ -48,7 +49,7 @@ interface ReviewRow {
 async function loadMyReview(userId: string, movieId: number, mediaType: 'movie' | 'tv'): Promise<ReviewRow | null> {
   const { data, error } = await supabase
     .from('reviews')
-    .select('title, content, has_spoilers')
+    .select('title, content, has_spoilers, is_ai_generated')
     .eq('user_id', userId)
     .eq('movie_id', movieId)
     .eq('media_type', mediaType)
@@ -57,7 +58,11 @@ async function loadMyReview(userId: string, movieId: number, mediaType: 'movie' 
     console.error('share story: review', error);
     return null;
   }
-  return (data as ReviewRow | null) ?? null;
+  const row = (data as ReviewRow | null) ?? null;
+  // 22/11/2026: a mesma regra dos stories do site (feed_story_json no banco):
+  // resenha gerada por IA não aparece como palavra da pessoa. O story sai só
+  // com a nota.
+  return row && !row.is_ai_generated ? row : null;
 }
 
 // O nome que a nota tem na biblioteca ("Obra-Prima", "Bom"…): o mesmo do
@@ -126,7 +131,8 @@ export async function shareTitleStory(opts: {
   const text = (review?.content || '').trim();
   const reviewTitle = (review?.title || '').trim();
   const spoiler = Boolean(review?.has_spoilers);
-  const hasReview = Boolean(review && (text || reviewTitle));
+  // como no site: resenha sem texto não é resenha (só o título não vira balão)
+  const hasReview = Boolean(review && text);
 
   const input: TitleStoryInput = {
     title: title.title,
