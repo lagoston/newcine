@@ -12,15 +12,19 @@ interface TitleQuickActionsProps {
   movieId: number;
   title: string;
   posterPath: string | null | undefined;
+  // 22/11/2026: o story novo diz "Filme de 2019" / "Série de 2011" e busca a
+  // nota, a resenha e o pôster equipado pelo tipo certo (filme ou série).
+  mediaType: 'movie' | 'tv';
+  releaseDate?: string | null;
   userId: string | null;
   loggedIn: boolean;
   onOpenTrailer: () => void;
   onRecommend: () => void;
 }
 
-const TitleQuickActions: React.FC<TitleQuickActionsProps> = ({ movieId, title, posterPath, userId, loggedIn, onOpenTrailer, onRecommend }) => {
+const TitleQuickActions: React.FC<TitleQuickActionsProps> = ({ movieId, title, posterPath, mediaType, releaseDate, userId, loggedIn, onOpenTrailer, onRecommend }) => {
   const { t } = useTranslation();
-  const { isSharing, share } = useShareStory(movieId, title, posterPath, userId);
+  const { isSharing, share } = useShareStory({ id: movieId, title, posterPath, mediaType, releaseDate }, userId);
 
   return (
     <div className="mt-5 flex justify-center md:justify-start gap-1 md:-ml-4">
