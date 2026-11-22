@@ -14,6 +14,7 @@ import OracleSheet from '../components/OracleSheet';
 import { MOODS } from '../lib/moods';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 
+import EquippedCover from '../components/EquippedCover';
 // Duelo do Oráculo (Premium).
 //   1. Escolha os oráculos e os humores (as 9 prateleiras + Surpresa).
 //   2. 8 filmes entram num chaveamento; a cada confronto você escolhe um.
@@ -43,12 +44,14 @@ const DuelPoster: React.FC<{ movie: DuelMovie; className?: string }> = ({ movie,
   return (
     <span className={`relative block aspect-[2/3] w-full overflow-hidden rounded-xl ring-1 ring-white/10 ${className}`} style={{ background: VELVET }}>
       {movie.poster_path && !failed ? (
-        <img
-          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          onError={() => setFailed(true)}
-        />
+        <EquippedCover id={movie.id} type={movie.media_type} size="w500">
+          <img
+            src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            onError={() => setFailed(true)}
+          />
+        </EquippedCover>
       ) : (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
           <Film className="w-8 h-8" aria-hidden />

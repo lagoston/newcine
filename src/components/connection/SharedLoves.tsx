@@ -63,7 +63,7 @@ const SharedLoves: React.FC<SharedLovesProps> = ({ items, me, other, variant = '
               title={title}
               className={`block w-full min-h-0 min-w-0 text-left rounded-lg hover:brightness-110 transition ${FOCUS_RING}`}
             >
-              <PosterArt path={connectionPoster(item, lang)} className={loves ? '' : 'opacity-90'} />
+              <PosterArt path={connectionPoster(item, lang)} className={loves ? '' : 'opacity-90'} titleId={item.movie_id} mediaType={item.media_type} />
             </button>
             <div className="mt-2 flex items-center gap-1">
               <ScoreBubble user={me ?? {}} value={mine} language={lang} size="sm" label={t('connection.rated.you', { rating: mine })} />

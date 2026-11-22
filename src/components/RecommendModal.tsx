@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
 
+import EquippedCover from './EquippedCover';
 interface Follower {
   id: string;
   username: string;
@@ -259,7 +260,9 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
           <div className="flex items-center gap-3.5 p-3 rounded-xl ring-1 ring-white/10" style={{ background: VELVET }}>
             <span className="relative shrink-0 w-12 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: NIGHT }}>
               {moviePoster ? (
-                <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <EquippedCover id={movieId} type={mediaType} size="w185" animated={false}>
+                  <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                </EquippedCover>
               ) : (
                 <Film className="absolute inset-0 m-auto w-5 h-5" style={{ color: MIST }} aria-hidden />
               )}

@@ -6,6 +6,7 @@ import { X, Loader2, GripVertical, ArrowUpDown } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useTranslation } from 'react-i18next';
 
+import EquippedCover from './EquippedCover';
 interface ReorderListModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,13 +70,15 @@ const ReorderItem: React.FC<ReorderItemProps> = ({ movie, index, registerRef, on
       style={{ zIndex: isDragging ? 50 : 1 }}
     >
       <div className="relative aspect-[2/3] pointer-events-none">
-        <img
-          src={movie.poster_path ? `https://image.tmdb.org/t/p/w185${movie.poster_path}` : 'https://via.placeholder.com/185x278?text=No+Image'}
-          alt={movie.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          draggable={false}
-        />
+        <EquippedCover id={movie.id} type={movie.media_type} size="w185">
+          <img
+            src={movie.poster_path ? `https://image.tmdb.org/t/p/w185${movie.poster_path}` : 'https://via.placeholder.com/185x278?text=No+Image'}
+            alt={movie.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        </EquippedCover>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent">
           <div className="absolute bottom-2 left-2 right-2">
             <p className="text-white text-xs font-semibold line-clamp-2 drop-shadow">{movie.title}</p>

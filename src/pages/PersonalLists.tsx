@@ -18,6 +18,7 @@ import { openTitle } from '../overlays';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { useTranslation } from 'react-i18next';
 
+import EquippedCover from '../components/EquippedCover';
 interface List {
   id: string;
   name: string;
@@ -318,11 +319,13 @@ export default function PersonalLists() {
                             className="relative block w-[100px] sm:w-[120px] rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
                           >
                             {movie.poster_path ? (
-                              <OptimizedPoster
-                                src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                                alt={movie.title}
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
+                              <EquippedCover id={movie.id} type={asMediaType(movie.media_type)}>
+                                <OptimizedPoster
+                                  src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                                  alt={movie.title}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              </EquippedCover>
                             ) : (
                               <span className="absolute inset-0 grid place-items-center px-2 text-center text-xs text-gray-400">
                                 {movie.title}

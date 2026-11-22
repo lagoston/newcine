@@ -23,6 +23,7 @@ import { MOOD_BY_KEY } from '../../lib/moods';
 import { RANK_MEDALS } from '../../lib/libraryLayouts';
 import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ORACLE_BY_ID, oracleCardImage, ratingTone, withAlpha, type OracleId } from '../../lib/oracleTheme';
 
+import EquippedCover from '../EquippedCover';
 // Perfil do oráculo (21/10/2026): tocar na carta de um oráculo no Oracle Hub
 // abre esta gaveta, no estilo da página do ator/diretor — a carta no lugar
 // da foto, a ficha (curadoria, acervo, época, nota média do público), a
@@ -337,7 +338,9 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                           </span>
                           <span className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1" style={{ background: VELVET }}>
                             {poster ? (
-                              <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                              <EquippedCover id={title.id} type={title.type}>
+                                <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                              </EquippedCover>
                             ) : (
                               <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                                 <Film className="w-6 h-6" aria-hidden />
@@ -417,7 +420,9 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                             </span>
                             <span className="relative w-11 shrink-0 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
                               {poster ? (
-                                <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                                <EquippedCover id={title.id} type={title.type} size="w185" animated={false}>
+                                  <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                                </EquippedCover>
                               ) : (
                                 <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                                   <Film className="w-4 h-4" aria-hidden />

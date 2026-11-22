@@ -5,6 +5,7 @@ import type { WorldTitle } from '../../lib/personaWorld';
 import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ratingTone } from '../../lib/oracleTheme';
 import { GOLD, fmtRating } from './draw';
 
+import EquippedCover from '../EquippedCover';
 // As peças pequenas do modal "Sua Persona", usadas por todas as seções dele
 // (15/11/2026: o corpo do modal foi dividido em seções, uma por arquivo).
 
@@ -61,7 +62,9 @@ export const TitleThumb: React.FC<{ title: WorldTitle; name: string; onOpen: (ti
       title={name}
     >
       {title.poster ? (
-        <img src={`https://image.tmdb.org/t/p/w185${title.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+        <EquippedCover id={title.id} type={title.type} size="w185">
+          <img src={`https://image.tmdb.org/t/p/w185${title.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+        </EquippedCover>
       ) : (
         <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
           <Film className="w-5 h-5" aria-hidden />

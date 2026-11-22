@@ -5,6 +5,7 @@ import { formatRating } from './connectionFormat';
 import { posterUrl } from '../../lib/persona';
 import { VELVET, MIST, PIXEL, ratingTone, withAlpha } from '../../lib/oracleTheme';
 
+import EquippedCover from '../EquippedCover';
 // Peças pequenas da gaveta Conexão (13/10/2026).
 
 // Bolha "avatar + nota": o avatar é a legenda (de quem é a nota), como nas
@@ -42,11 +43,15 @@ export const ScoreBubble: React.FC<{
 };
 
 // Pôster de um título (sem o botão em volta: quem usa decide).
-export const PosterArt: React.FC<{ path: string | null; size?: 'w185' | 'w342'; className?: string; rounded?: string }> = ({
+// 22/11/2026: com `titleId` (e `mediaType`), aparece o pôster que quem está
+// olhando equipou naquele título.
+export const PosterArt: React.FC<{ path: string | null; size?: 'w185' | 'w342'; className?: string; rounded?: string; titleId?: number | null; mediaType?: string | null }> = ({
   path,
   size = 'w185',
   className = '',
   rounded = 'rounded-lg',
+  titleId = null,
+  mediaType = null,
 }) => {
   const src = posterUrl(path, size);
   return (
@@ -55,7 +60,9 @@ export const PosterArt: React.FC<{ path: string | null; size?: 'w185' | 'w342'; 
       style={{ background: VELVET, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' }}
     >
       {src ? (
-        <img src={src} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+        <EquippedCover id={titleId} type={mediaType} size={size}>
+          <img src={src} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+        </EquippedCover>
       ) : (
         <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
           <Film className="w-1/3 h-1/3" aria-hidden />

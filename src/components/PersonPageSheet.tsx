@@ -20,6 +20,7 @@ import {
 import { RANK_MEDALS } from '../lib/libraryLayouts';
 import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ratingTone, withAlpha } from '../lib/oracleTheme';
 
+import EquippedCover from './EquippedCover';
 // Página da pessoa (12/10/2026): tocar num nome do elenco, no menu do filme,
 // abre esta gaveta POR CIMA do menu — foto, nascimento, biografia, "você e
 // ela" (os títulos da sua biblioteca com essa pessoa) e o Top 10 de filmes
@@ -242,7 +243,9 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
                   </span>
                   <span className="relative w-11 shrink-0 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
                     {m.posterPath ? (
-                      <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${m.posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <EquippedCover id={m.id} size="w185" animated={false}>
+                        <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${m.posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      </EquippedCover>
                     ) : (
                       <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                         <Film className="w-4 h-4" aria-hidden />

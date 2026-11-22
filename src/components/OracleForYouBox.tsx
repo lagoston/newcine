@@ -11,6 +11,7 @@ import OptimizedPoster from './OptimizedPoster';
 import FloatingFriendBubbles from './FloatingFriendBubbles';
 import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
 
+import EquippedCover from './EquippedCover';
 interface Props {
   userId: string;
   hasEssence: boolean;
@@ -154,7 +155,9 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                         style={{ background: NIGHT }}
                       >
                         {movie.poster_path ? (
-                          <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                          <EquippedCover id={movie.id} type={movie.media_type}>
+                            <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                          </EquippedCover>
                         ) : (
                           <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                             <Film className="w-7 h-7" aria-hidden />

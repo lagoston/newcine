@@ -27,6 +27,7 @@ import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
 } from '../lib/oracleTheme';
 
+import EquippedCover from './EquippedCover';
 // Uma prateleira da estante — usada na Biblioteca (uma por nota, mais a
 // Watchlist), no perfil de outra pessoa e nas listas. Cabeçalho com o selo
 // da nota, o nome e a contagem; faixa de pôsteres que rola de lado.
@@ -710,7 +711,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         leading={menuMovie ? (
           <span className="relative shrink-0 w-10 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: NIGHT }}>
             {menuMovie.poster_path ? (
-              <img src={`https://image.tmdb.org/t/p/w92${menuMovie.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <EquippedCover id={menuMovie.id} type={menuMovie.media_type} owner={libraryOwnerId} size="w185" animated={false}>
+                <img src={`https://image.tmdb.org/t/p/w92${menuMovie.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              </EquippedCover>
             ) : (
               <Film className="absolute inset-0 m-auto w-4 h-4" style={{ color: MIST }} aria-hidden />
             )}

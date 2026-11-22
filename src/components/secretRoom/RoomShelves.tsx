@@ -10,6 +10,7 @@ import { PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone } from '../../lib/oracleThe
 import { cardKey, cardPoster, cardTitle, pick, type RealPerson, type RoomCard, type SecretRoomPerson } from '../../lib/secretRooms';
 import { ASH, BLOOD_TEXT, BONE, CANDLE, CRYPT, CRYPT_RAISED, OXBLOOD } from './terrorTheme';
 
+import EquippedCover from '../EquippedCover';
 // As prateleiras do Clube do Terror. Cada tipo de prateleira mostra o que
 // a torna diferente: a posição no estudo de batimentos, o carimbo de
 // proibido com o país, a ficha da pessoa real, a virada escondida, o REC
@@ -141,7 +142,9 @@ export const PosterTile: React.FC<{
           style={{ background: CRYPT_RAISED, boxShadow: `0 18px 30px -18px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(243,234,211,0.08)` }}
         >
           {poster ? (
-            <OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            <EquippedCover id={card.id} type={card.type}>
+              <OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            </EquippedCover>
           ) : (
             <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: ASH }}>
               <Film className="w-7 h-7" aria-hidden />
@@ -228,7 +231,9 @@ export const BannedCard: React.FC<{ card: RoomCard; ctx: TileContext; wasDrag: (
       >
         <span className="relative block w-[96px] shrink-0 aspect-[2/3] rounded-lg overflow-hidden" style={{ background: CRYPT }}>
           {poster ? (
-            <OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            <EquippedCover id={card.id} type={card.type} size="w185">
+              <OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            </EquippedCover>
           ) : (
             <Film className="absolute inset-0 m-auto w-6 h-6" style={{ color: ASH }} aria-hidden />
           )}
@@ -309,7 +314,7 @@ export const RealPersonCard: React.FC<{ person: RealPerson; titles: RoomCard[]; 
               <li key={cardKey(card)} className="w-[76px] shrink-0">
                 <button type="button" onClick={() => !wasDrag() && ctx.onOpen(card)} className={`block w-full text-left rounded-md ${FOCUS_RING}`} title={title}>
                   <span className="relative block aspect-[2/3] rounded-md overflow-hidden" style={{ background: CRYPT }}>
-                    {poster ? <OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" /> : <Film className="absolute inset-0 m-auto w-5 h-5" style={{ color: ASH }} aria-hidden />}
+                    {poster ? <EquippedCover id={card.id} type={card.type} size="w185" animated={false}><OptimizedPoster src={poster} alt={title} className="absolute inset-0 w-full h-full object-cover" /></EquippedCover> : <Film className="absolute inset-0 m-auto w-5 h-5" style={{ color: ASH }} aria-hidden />}
                   </span>
                   <span className="mt-1.5 text-[12px] font-medium leading-tight line-clamp-2 break-words" style={{ color: BONE }}>
                     {title}

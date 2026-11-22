@@ -11,6 +11,7 @@ import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/o
 import { useSearchHistory, type SearchHistoryItem } from '../lib/searchHistory';
 import OptimizedPoster from './OptimizedPoster';
 
+import EquippedCover from './EquippedCover';
 // Busca do celular e do tablet, aberta pelo botão redondo da barra de baixo
 // (MobileDock). Como no Instagram e no IMDb, o campo fica EMBAIXO, numa
 // pílula de vidro, e sobe junto com o teclado; os resultados ficam em cima.
@@ -287,7 +288,9 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     <>
       <span className="relative w-12 h-[72px] shrink-0 rounded-lg overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
         {item.posterPath ? (
-          <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${item.posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <EquippedCover id={item.key.split(':')[1]} type={item.isTV ? 'tv' : 'movie'} size="w185" animated={false}>
+            <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${item.posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          </EquippedCover>
         ) : (
           <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
             <Film className="w-4 h-4" aria-hidden />

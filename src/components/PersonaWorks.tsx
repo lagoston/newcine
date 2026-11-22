@@ -9,6 +9,7 @@ import { MIST, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone } from '../lib/oracl
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
 import { openTitle } from '../overlays';
 
+import EquippedCover from './EquippedCover';
 // As obras das prateleiras em que o personagem da persona aparece (o filme
 // dele primeiro): Harry Potter nos oito filmes, o Batman em todos os
 // Batmans, o Drácula do Bela Lugosi ao Hotel Transilvânia. Pôsteres
@@ -129,7 +130,9 @@ const PersonaWorks: React.FC<{
               >
                 <span className="relative block aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10 transition-transform duration-200 group-hover:-translate-y-0.5" style={{ background: VELVET }}>
                   {poster ? (
-                    <img src={poster} alt={title} loading="lazy" decoding="async" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+                    <EquippedCover id={ref.id} type={ref.media_type} size="w185">
+                      <img src={poster} alt={title} loading="lazy" decoding="async" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+                    </EquippedCover>
                   ) : (
                     <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                       {card ? <Film className="w-5 h-5" aria-hidden /> : <span className="absolute inset-0 poster-skeleton" />}

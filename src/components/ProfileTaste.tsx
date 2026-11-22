@@ -145,7 +145,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="min-w-0">
-          <GemCard gems={observatory.gems} ownerRatingLabel={ratingLabel} />
+          <GemCard gems={observatory.gems} ownerRatingLabel={ratingLabel} ownerId={userId} />
         </div>
         <div className="lg:col-span-2 min-w-0">
           <Suspense fallback={<div className="h-[420px] rounded-3xl animate-pulse" style={glassPanel('#2DD4BF')} />}>

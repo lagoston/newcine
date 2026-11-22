@@ -12,6 +12,7 @@ import type { MovieWithRating } from '../../hooks/useProfileData';
 import { openTitle } from '../../overlays';
 import { ModuleTitle, Ring } from './observatoryKit';
 
+import EquippedCover from '../EquippedCover';
 // A joia menos conhecida: entre os títulos que a pessoa deu 7 ou mais, o que
 // menos gente conhece (o de menos votos no TMDB — o número em si não
 // aparece). Com a capa, ano, duração, gêneros, quem dirigiu, a nota dela no
@@ -20,11 +21,14 @@ import { ModuleTitle, Ring } from './observatoryKit';
 interface GemCardProps {
   gems: MovieWithRating[];
   ownerRatingLabel: string;
+  // 22/11/2026: o dono do perfil. As joias são títulos DELE: a capa é o pôster
+  // que ele equipou (sem dono informado, o de quem está olhando).
+  ownerId?: string;
 }
 
 const GEM = '#34D399';
 
-const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
+const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel, ownerId }) => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [opening, setOpening] = useState<number | null>(null);
@@ -81,7 +85,9 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
               transition={{ type: 'spring', stiffness: 160, damping: 16 }}
             >
               {main.poster_path ? (
-                <img src={`https://image.tmdb.org/t/p/w342${main.poster_path}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300" />
+                <EquippedCover id={main.id} type={main.media_type} owner={ownerId}>
+                  <img src={`https://image.tmdb.org/t/p/w342${main.poster_path}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300" />
+                </EquippedCover>
               ) : (
                 <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                   <Film className="w-6 h-6" aria-hidden />
@@ -140,7 +146,7 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
                   <li key={`${item.media_type}:${item.id}`} className="min-w-0">
                     <button type="button" onClick={() => open(item)} className={`group w-full flex items-center justify-start gap-2.5 text-left rounded-lg ${FOCUS_RING}`}>
                       <span className="relative shrink-0 w-11 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
-                        {item.poster_path && <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />}
+                        {item.poster_path && <EquippedCover id={item.id} type={item.media_type} owner={ownerId} size="w185" animated={false}><img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" /></EquippedCover>}
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-[12px] font-medium group-hover:underline" style={{ color: PAPER }}>

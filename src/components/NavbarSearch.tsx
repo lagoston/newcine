@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth';
 import { useSearchHistory, type SearchHistoryItem } from '../lib/searchHistory';
 import OptimizedPoster from './OptimizedPoster';
 
+import EquippedCover from './EquippedCover';
 // Busca do topo (computador). Desde 11/10/2026: as linhas entram subindo e
 // acendendo, em sequência, e, com o campo vazio, a lista mostra as buscas
 // recentes — os 10 últimos títulos abertos por aqui ou pela busca do celular
@@ -122,11 +123,13 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
   const showHistory = !query.trim() && history.items.length > 0;
 
   // Uma linha de título (resultado ou busca recente).
-  const rowBody = (title: string, posterPath: string | null | undefined, year: string, isTV: boolean, vote: number) => (
+  const rowBody = (title: string, posterPath: string | null | undefined, year: string, isTV: boolean, vote: number, id?: number) => (
     <>
       <div className="relative w-9 h-[52px] flex-shrink-0 rounded-md overflow-hidden bg-slate-700">
         {posterPath ? (
-          <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <EquippedCover id={id} type={isTV ? 'tv' : 'movie'} size="w185" animated={false}>
+            <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          </EquippedCover>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-600">
             <Film className="w-4 h-4" />
@@ -211,7 +214,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
                 onClick={() => openHistoryItem(item)}
                 className="flex-1 min-w-0 flex items-center gap-3 pl-3 py-2 hover:bg-white/10 transition-colors text-left group"
               >
-                {rowBody(item.title, item.poster_path, item.year, item.media_type === 'tv', item.vote_average)}
+                {rowBody(item.title, item.poster_path, item.year, item.media_type === 'tv', item.vote_average, item.id)}
               </button>
               <button
                 type="button"
@@ -242,7 +245,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
               className="search-row w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/10 transition-colors text-left group"
               style={{ '--row-i': index } as React.CSSProperties}
             >
-              {rowBody(movie.title || movie.name || '', movie.poster_path, (movie.release_date || movie.first_air_date || '').slice(0, 4), movie.media_type === 'tv', movie.vote_average || 0)}
+              {rowBody(movie.title || movie.name || '', movie.poster_path, (movie.release_date || movie.first_air_date || '').slice(0, 4), movie.media_type === 'tv', movie.vote_average || 0, movie.id)}
             </button>
           ))}
           <button

@@ -16,6 +16,7 @@ import { cardArt, ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
 import { langOf } from '../../../lib/poker/client/format';
 import RateMenuSheet from '../../RateMenuSheet';
 
+import EquippedCover from '../../EquippedCover';
 // Intervalo (SPEC §7.8, só na livre): depois de 5 partidas seguidas ou 45 min de
 // mesa, a próxima partida abre com este cartão. O título vem da watchlist
 // (poker_interval_pick) e é apresentado pelo oráculo dele. A nota grava pelo
@@ -97,7 +98,9 @@ const IntervalCard: React.FC<{
         )}
         <div className="mt-4 flex items-center gap-3 text-left rounded-[14px] p-3" style={{ background: 'rgba(0,0,0,0.3)' }}>
           {pick.poster_path ? (
-            <img src={`https://image.tmdb.org/t/p/w185${pick.poster_path}`} alt="" className="w-[56px] h-[84px] rounded-[6px] object-cover flex-none" />
+            <EquippedCover id={pick.movie_id} type={pick.media_type} size="w185" animated={false}>
+              <img src={`https://image.tmdb.org/t/p/w185${pick.poster_path}`} alt="" className="w-[56px] h-[84px] rounded-[6px] object-cover flex-none" />
+            </EquippedCover>
           ) : (
             <img src={cardArt(oracle, cardStyle)} alt="" className="w-[56px] rounded-[6px] flex-none" />
           )}

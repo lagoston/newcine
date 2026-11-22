@@ -18,6 +18,7 @@ import type { StudioExtras } from './studio';
 // (src/overlays); aqui não se guarda mais o filme aberto nem se monta o menu.
 import { openTitle } from '../../overlays';
 
+import EquippedCover from '../EquippedCover';
 // O cartão de um móvel de humor (17/11/2026).
 //
 // Ideia do Bruno, ao escolher os móveis: "o estúdio do usuário é pra ser uma
@@ -223,7 +224,9 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
               >
                 <span className="relative block w-14 shrink-0 aspect-[2/3] overflow-hidden rounded-md" style={{ background: VELVET }}>
                   {favorite.poster ? (
-                    <img src={`https://image.tmdb.org/t/p/w185${favorite.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                    <EquippedCover id={favorite.id} type={favorite.type} size="w185" animated={false}>
+                      <img src={`https://image.tmdb.org/t/p/w185${favorite.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                    </EquippedCover>
                   ) : (
                     <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                       <Film className="w-5 h-5" aria-hidden />
@@ -283,7 +286,9 @@ const MoodObjectCard: React.FC<Props> = ({ id, world, isOwn, ownerUsername, extr
                               style={{ background: VELVET, boxShadow: current ? `0 0 0 2px ${mood.color}` : 'inset 0 0 0 1px rgba(255,255,255,0.1)' }}
                             >
                               {title.poster ? (
-                                <img src={`https://image.tmdb.org/t/p/w185${title.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                                <EquippedCover id={title.id} type={title.type} size="w185">
+                                  <img src={`https://image.tmdb.org/t/p/w185${title.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+                                </EquippedCover>
                               ) : (
                                 <span className="absolute inset-0 grid place-items-center px-1 text-center text-[10px] leading-tight" style={{ color: MIST }}>
                                   {nameOf(title)}

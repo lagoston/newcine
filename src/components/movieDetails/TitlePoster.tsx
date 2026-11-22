@@ -47,7 +47,13 @@ const TitlePoster: React.FC<TitlePosterProps> = ({ movie, posterOwnerId, userId,
         type="button"
         onClick={onOpenTrailer}
         aria-label={t('movieModal.playTrailer')}
-        className={`group/poster relative block w-full aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.9)] ${FOCUS_RING}`}
+        // 22/11/2026 (pedido do Bruno, junto com o conserto dos cantos dos
+        // efeitos: "no meu expandido dos filmes onde aparecem com o padrão
+        // retangular devem se manter pontiagudos"): o pôster da coleção
+        // aparece aqui como a peça que é, de canto vivo. A moldura fica reta e
+        // as lâminas do efeito herdam o raio dela (zero). A capa comum segue
+        // arredondada como sempre.
+        className={`group/poster relative block w-full aspect-[2/3] ${equippedPoster ? 'rounded-none' : 'rounded-xl'} overflow-hidden ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.9)] ${FOCUS_RING}`}
         style={{ background: VELVET }}
       >
         {equippedPoster ? (

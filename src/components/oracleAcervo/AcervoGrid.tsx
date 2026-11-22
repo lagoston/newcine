@@ -15,6 +15,7 @@ import { posterOf, titleOf } from './titles';
 import { pickReason } from './reasonText';
 import ReasonTag from './ReasonTag';
 
+import EquippedCover from '../EquippedCover';
 // A grade do Acervo (05/11/2026; v2 em 09/11/2026): a prateleira inteira,
 // ordenada pela nota prevista, com o selo da nota, a Watchlist e as bolhas
 // dos amigos no pôster. Na v2, embaixo de cada pôster, o título e UMA linha do
@@ -137,7 +138,9 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, userId, moodShelf, openi
                   style={{ background: VELVET }}
                 >
                   {poster ? (
-                    <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${poster}`} alt={name} className="absolute inset-0 w-full h-full object-cover" />
+                    <EquippedCover id={item.tmdb_id} type={item.media_type}>
+                      <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${poster}`} alt={name} className="absolute inset-0 w-full h-full object-cover" />
+                    </EquippedCover>
                   ) : (
                     <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center" style={{ color: MIST }}>
                       <Film className="w-6 h-6" aria-hidden />

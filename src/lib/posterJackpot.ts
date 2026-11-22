@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { tmdbImage } from './tmdbImage';
+import { POSTERS_CHANGED_EVENT, clearEquippedCache, loadEquippedPosters, posterKey, useEquippedPoster, useEquippedPosters, type EquippedMap, type EquippedPoster } from './equippedPosters';
 import { Q, fetchCached, invalidate, ownerNow, patchCached, peekCached, takeBootPart, useCached, useOwner, type Cached } from './data';
 
 // Poster Jackpot (30/10/2026): a roleta do Oracle Hub que sorteia pôsteres
@@ -401,17 +402,18 @@ export function peekJackpotCatalog(): CatalogPoster[] | null {
 // o lint (no-use-before-define) ficar limpo.
 // ---------------------------------------------------------------------------
 
-export type EquippedPoster = { item_id: number; effect: PosterEffect; rarity: PosterRarity; serial: number | null; file_path: string };
-export type EquippedMap = Map<string, EquippedPoster>;
+// 22/11/2026: a leitura dos equipados mudou para lib/equippedPosters.ts (um
+// arquivo pequeno, que a casca do app pode carregar sem trazer a roleta). Os
+// nomes continuam saindo daqui para quem já importava.
+export { posterKey, loadEquippedPosters, useEquippedPosters, useEquippedPoster };
+export type { EquippedPoster, EquippedMap };
 
-const CHANGED_EVENT = 'cineoracle:posters-changed';
+const CHANGED_EVENT = POSTERS_CHANGED_EVENT;
 let myPostersPromise: Promise<OwnedPoster[]> | null = null;
-const equippedCache = new Map<string, Promise<EquippedMap>>();
-export const posterKey = (mediaType: string | null | undefined, id: number) => `${mediaType === 'tv' ? 'tv' : 'movie'}:${id}`;
 
 export function notifyPostersChanged() {
   myPostersPromise = null;
-  equippedCache.clear();
+  clearEquippedCache();
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED_EVENT));
 }
 
@@ -460,61 +462,6 @@ export function loadMyPosters(): Promise<OwnedPoster[]> {
     });
   }
   return myPostersPromise;
-}
-
-function loadEquipped(ownerId: string): Promise<EquippedMap> {
-  let cached = equippedCache.get(ownerId);
-  if (!cached) {
-    cached = (async () => {
-      const { data, error } = await supabase.rpc('get_equipped_posters', { p_user_id: ownerId });
-      if (error) throw error;
-      const map: EquippedMap = new Map();
-      (Array.isArray(data) ? (data as Row[]) : []).forEach((row) => {
-        map.set(posterKey(row.media_type as string, num(row.tmdb_id)), {
-          item_id: num(row.item_id),
-          effect: row.effect as PosterEffect,
-          rarity: row.rarity as PosterRarity,
-          serial: row.serial == null ? null : num(row.serial),
-          file_path: row.file_path as string,
-        });
-      });
-      return map;
-    })().catch((error) => {
-      equippedCache.delete(ownerId);
-      throw error;
-    });
-    equippedCache.set(ownerId, cached);
-  }
-  return cached;
-}
-
-// 22/11/2026: a mesma leitura para quem não é componente (o story
-// compartilhado monta a imagem dentro de um clique). Falhou = mapa vazio: o
-// pôster equipado é enfeite, nunca derruba quem pediu.
-export const loadEquippedPosters = (ownerId: string | null | undefined): Promise<EquippedMap> =>
-  ownerId ? loadEquipped(ownerId).catch(() => new Map() as EquippedMap) : Promise.resolve(new Map() as EquippedMap);
-
-// Os pôsteres equipados de uma pessoa (a dona da biblioteca na tela).
-export function useEquippedPosters(ownerId: string | null | undefined): EquippedMap {
-  const [map, setMap] = useState<EquippedMap>(() => new Map());
-  useEffect(() => {
-    if (!ownerId) {
-      setMap(new Map());
-      return;
-    }
-    let alive = true;
-    const load = () =>
-      loadEquipped(ownerId)
-        .then((result) => alive && setMap(result))
-        .catch(() => undefined);
-    load();
-    window.addEventListener(CHANGED_EVENT, load);
-    return () => {
-      alive = false;
-      window.removeEventListener(CHANGED_EVENT, load);
-    };
-  }, [ownerId]);
-  return map;
 }
 
 // A coleção de quem está logado (para o menu de equipar na biblioteca).

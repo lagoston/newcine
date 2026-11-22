@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
+import EquippedCover from './EquippedCover';
 // Substitui CreateListModal.tsx + EditListModal.tsx — os dois faziam
 // essencialmente a mesma coisa (nome + buscar/selecionar filmes da
 // biblioteca + salvar) como componentes duplicados, e tinham ficado
@@ -288,11 +289,13 @@ const ListFormModal: React.FC<ListFormModalProps> = ({
                       >
                         <div className="w-10 h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 shadow">
                           {movie.poster_path ? (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                            />
+                            <EquippedCover id={movie.id} type={movie.media_type} size="w185" animated={false}>
+                              <img
+                                src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                                alt={movie.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </EquippedCover>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
                               <Film className="w-4 h-4" />

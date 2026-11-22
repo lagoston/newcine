@@ -21,6 +21,7 @@ import {
 import { MOOD_BY_KEY } from '../../lib/moods';
 import { FOCUS_RING, INK, MIST, ORACLE_BY_ID, PAPER, PIXEL, VELVET, ratingTone, withAlpha, type OracleId } from '../../lib/oracleTheme';
 
+import EquippedCover from '../EquippedCover';
 // Oracle DNA (18/11/2026) — o botão do menu do filme abre esta gaveta POR
 // CIMA do menu: o oráculo "sequencia" o título e mostra os parentes dele em
 // todas as prateleiras (qualquer oráculo, qualquer humor, filme ou série).
@@ -399,7 +400,9 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
         >
           <span className="relative w-[52px] shrink-0 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
             {poster ? (
-              <OptimizedPoster src={`https://image.tmdb.org/t/p/w154${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <EquippedCover id={rel.id} type={rel.media_type} size="w185" animated={false}>
+                <OptimizedPoster src={`https://image.tmdb.org/t/p/w154${poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              </EquippedCover>
             ) : (
               <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                 <Film className="w-4 h-4" aria-hidden />

@@ -10,6 +10,7 @@ import { RANK_MEDALS, RatedTitle, decadeBadge, decadeColor } from '../lib/librar
 import { findScrollParent, useTitleCards } from '../hooks/useLazyList';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone, withAlpha } from '../lib/oracleTheme';
 
+import EquippedCover from './EquippedCover';
 // Organizar uma década de "Melhores da Década" (11/10/2026). Os títulos da
 // década, um embaixo do outro, com a posição. A pessoa:
 //   • arrasta pela alça (a gaveta rola sozinha perto da borda);
@@ -291,7 +292,9 @@ const DecadeOrganizer: React.FC<DecadeOrganizerProps> = ({ decade, entries, cust
 
               <span className="relative block w-10 sm:w-11 aspect-[2/3] shrink-0 rounded-lg overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
                 {card?.poster_path ? (
-                  <OptimizedPoster src={`https://image.tmdb.org/t/p/w154${card.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <EquippedCover id={card.id} type={item.media_type} size="w185" animated={false}>
+                    <OptimizedPoster src={`https://image.tmdb.org/t/p/w154${card.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  </EquippedCover>
                 ) : card ? (
                   <Film className="absolute inset-0 m-auto w-4 h-4" style={{ color: MIST }} aria-hidden />
                 ) : (

@@ -74,7 +74,7 @@ const DebateTrack: React.FC<DebateTrackProps> = ({ items, me, other, onOpenTitle
               aria-label={title}
               className={`block shrink-0 w-11 min-h-0 min-w-0 rounded-md hover:brightness-110 transition ${FOCUS_RING}`}
             >
-              <PosterArt path={connectionPoster(item, lang)} rounded="rounded-md" />
+              <PosterArt path={connectionPoster(item, lang)} rounded="rounded-md" titleId={item.movie_id} mediaType={item.media_type} />
             </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[14px] font-medium leading-snug" style={{ color: PAPER }} title={title}>

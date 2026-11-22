@@ -107,7 +107,7 @@ const CalibrateRow: React.FC<CalibrateRowProps> = ({ items, other, onRated, onSh
                 aria-label={done ? `${title}: ${t('connection.rated.you', { rating: mine })}` : t('connection.calibrate.rate', { title })}
                 className={`relative block w-full min-h-0 min-w-0 text-left rounded-lg transition ${done ? 'cursor-default' : 'hover:brightness-110'} ${FOCUS_RING}`}
               >
-                <PosterArt path={connectionPoster(item, lang)} className={done ? 'opacity-70' : ''} />
+                <PosterArt path={connectionPoster(item, lang)} className={done ? 'opacity-70' : ''} titleId={item.movie_id} mediaType={item.media_type} />
                 <span
                   className="absolute right-1.5 bottom-1.5 grid place-items-center w-7 h-7 rounded-full"
                   style={{

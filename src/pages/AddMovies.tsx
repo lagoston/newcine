@@ -18,6 +18,7 @@ import OracleForYouBox from '../components/OracleForYouBox';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
 
+import EquippedCover from '../components/EquippedCover';
 // Adicionar Filmes — "a mesa do oráculo".
 //   1. Cabeçalho: voltar pra Biblioteca, importar (IMDb / CineOracle),
 //      título e quantos títulos você já tem.
@@ -292,11 +293,13 @@ export default function AddMovies() {
                         style={{ background: VELVET }}
                       >
                         {movie.poster_path ? (
-                          <OptimizedPoster
-                            src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                            alt={movie.title}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
+                          <EquippedCover id={movie.id} type={movie.media_type}>
+                            <OptimizedPoster
+                              src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                              alt={movie.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          </EquippedCover>
                         ) : (
                           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center" style={{ color: MIST }}>
                             <Film className="w-7 h-7" aria-hidden />

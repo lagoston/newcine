@@ -22,6 +22,7 @@ import PokerInviteActions from './poker/friends/PokerInviteActions';
 import { StatusPill, TradeCard } from './posterJackpot/PosterTradesPanel';
 import { acceptedToast, getMyTrades, respondTrade, tradeErrorCode, type PosterTrade } from '../lib/posterTrades';
 
+import EquippedCover from './EquippedCover';
 interface WhispersModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -576,11 +577,13 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     >
       <span className="relative shrink-0 w-14 aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
         {whisper.movie_poster && (
-          <OptimizedPoster
-            src={`https://image.tmdb.org/t/p/w185${whisper.movie_poster}`}
-            alt={whisper.movie_title || ''}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <EquippedCover id={whisper.movie_id} type={whisper.media_type} size="w185" animated={false}>
+            <OptimizedPoster
+              src={`https://image.tmdb.org/t/p/w185${whisper.movie_poster}`}
+              alt={whisper.movie_title || ''}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </EquippedCover>
         )}
         {busyId === whisper.id && (
           <span className="absolute inset-0 grid place-items-center bg-black/50">

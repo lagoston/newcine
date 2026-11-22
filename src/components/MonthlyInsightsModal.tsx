@@ -8,6 +8,7 @@ import OracleSheet from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
 import { shareImageFile, downloadImageFile } from '../lib/shareImage';
 
+import EquippedCover from './EquippedCover';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -602,11 +603,13 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                   {monthlyData.top_movies.slice(0, 3).map((m, i) => (
                     <li key={`${m.media_type}:${m.movie_id}`} className="min-w-0">
                       <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
-                        <OptimizedPoster
-                          src={`https://image.tmdb.org/t/p/w342${m.poster_path}`}
-                          alt={m.title}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <EquippedCover id={m.movie_id} type={m.media_type}>
+                          <OptimizedPoster
+                            src={`https://image.tmdb.org/t/p/w342${m.poster_path}`}
+                            alt={m.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        </EquippedCover>
                         <span
                           style={{ ...PIXEL, background: 'rgba(18,13,34,0.85)', color: PAPER }}
                           className="absolute top-2 left-2 min-w-[1.8rem] text-center px-1.5 py-0.5 rounded-md text-sm ring-1 ring-white/15"

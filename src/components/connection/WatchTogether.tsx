@@ -321,7 +321,7 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
                 aria-label={top.title}
                 className={`block shrink-0 w-[104px] min-h-0 min-w-0 rounded-lg hover:brightness-110 transition ${FOCUS_RING}`}
               >
-                <PosterArt path={top.poster_path} size="w342" />
+                <PosterArt path={top.poster_path} size="w342" titleId={top.id} mediaType="movie" />
               </button>
               <div className="min-w-0 flex-1 pt-0.5">
                 <p style={{ ...PIXEL, color: AMBER }} className="text-[13px] leading-none">
@@ -359,7 +359,7 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
                       title={movie.title}
                       className={`block w-full min-h-0 min-w-0 text-left rounded-lg hover:brightness-110 transition ${FOCUS_RING}`}
                     >
-                      <PosterArt path={movie.poster_path} />
+                      <PosterArt path={movie.poster_path} titleId={movie.id} mediaType="movie" />
                     </button>
                     <div className="mt-1.5 flex justify-center" aria-hidden>
                       <TonePill color={ratingTone(Math.round(movie.matchScore)).color}>{formatRating(movie.matchScore, lang, true)}</TonePill>

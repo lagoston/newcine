@@ -31,6 +31,32 @@
   object-fit: cover;
 }
 
+/* 22/11/2026 (pedido do Bruno: "efeitos como holográfico e golden dos pôsteres
+   do poker continuam bugados nas pontinhas que deveriam ser arredondadas";
+   Taxi Driver holográfico, Cartas na Mesa com as pontas de cima aparecendo, A
+   Cor do Dinheiro com as de baixo). Até aqui só o .pj-art era arredondado e
+   contava com o overflow: hidden para recortar o que vai dentro. No celular
+   esse recorte falha justamente nos pôsteres com efeito: a capa leva um
+   `filter` e as lâminas levam `mix-blend-mode` e animação, e cada uma vira
+   uma camada própria na placa de vídeo, que escapa do recorte arredondado do
+   pai. O que aparecia era o canto QUADRADO da própria capa (por isso em cada
+   pôster apareciam as pontas onde a arte é clara: em cima num, embaixo no
+   outro). A correção de 04/11 arredondou só o friso de ouro.
+   Agora nada depende do recorte do pai: a capa e cada lâmina do efeito têm o
+   MESMO raio do pôster e se desenham já arredondadas. Onde a moldura é reta
+   (raio 0) tudo continua reto. */
+.pj-art > img,
+.pj-ultra-tint,
+.pj-ultra-lift,
+.pj-holo-foil,
+.pj-holo-layer,
+.pj-holo-sheen,
+.pj-gold-wash,
+.pj-gold-grain,
+.pj-gold-sheen {
+  border-radius: inherit;
+}
+
 /* Negativo: o filme revelado ao contrário. */
 .pj-negative > img {
   filter: invert(1) contrast(1.08) saturate(1.1);

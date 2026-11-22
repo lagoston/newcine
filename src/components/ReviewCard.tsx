@@ -3,6 +3,7 @@ import { Star, AlertTriangle, Eye, EyeOff, Pencil, Trash2, Film, Sparkles } from
 import { useTranslation } from 'react-i18next';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
+import EquippedCover from './EquippedCover';
 export interface Review {
   id: string;
   user_id: string;
@@ -64,11 +65,13 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, on
   const createdAt = new Date(review.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
 
   const moviePoster = movieInfo?.poster_path ? (
-    <img
-      src={`https://image.tmdb.org/t/p/w92${movieInfo.poster_path}`}
-      alt=""
-      className="w-12 h-[72px] rounded-lg object-cover ring-1 ring-white/10"
-    />
+    <EquippedCover id={review.movie_id} type={review.media_type} owner={review.user_id} size="w185" animated={false}>
+      <img
+        src={`https://image.tmdb.org/t/p/w92${movieInfo.poster_path}`}
+        alt=""
+        className="w-12 h-[72px] rounded-lg object-cover ring-1 ring-white/10"
+      />
+    </EquippedCover>
   ) : (
     <span className="grid place-items-center w-12 h-[72px] rounded-lg ring-1 ring-white/10" style={{ background: NIGHT, color: MIST }}>
       <Film className="w-5 h-5" aria-hidden />

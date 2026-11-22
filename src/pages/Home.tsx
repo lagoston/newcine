@@ -27,6 +27,7 @@ import { markFirstScreen } from '../lib/firstScreen';
 import { useHomeBoot } from '../lib/homeBoot';
 import { useMyProfile } from '../lib/data';
 
+import EquippedCover from '../components/EquippedCover';
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (mouse em cima ou dedo encostando no pôster
 // já adianta o modal — lib/titleCards)
@@ -217,7 +218,9 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                     }}
                   >
                     {/* 19/11/2026 (Reborn, onda 2b): o tamanho do TMDB sai da largura do ladrilho (até 148 px) × a densidade da tela */}
-                    <PosterImage path={movie.poster_path} width={148} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                    <EquippedCover id={movie.id} type={movie.media_type}>
+                      <PosterImage path={movie.poster_path} width={148} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                    </EquippedCover>
                     {meta === 'rank' && (
                       <span
                         style={{ ...PIXEL, background: 'rgba(18,13,34,0.82)', color: PAPER }}

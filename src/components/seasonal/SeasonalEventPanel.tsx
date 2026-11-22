@@ -25,6 +25,7 @@ import { PortalSpiral } from '../secretRoom/TerrorPortal';
 import { TrialBadge, TrialMarkButton, TrialNote } from './DirectorTrialBar';
 import { BONE, CANDLE } from '../secretRoom/terrorTheme';
 
+import EquippedCover from '../EquippedCover';
 // O atalho para a prateleira que também conta (ex.: Sombrio e Assustador no
 // Halloween) abre esse humor no Acervo, só com filmes (09/11/2026; de 05 a
 // 09/11 era uma pergunta na Mesa de cartas, que saiu; antes, a Biblioteca do
@@ -562,11 +563,13 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                           className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 transition-transform duration-200 group-hover:-translate-y-1"
                           style={{ background: VELVET, boxShadow: `0 18px 30px -18px ${oracle?.color ?? theme.accent}` }}
                         >
-                          <OptimizedPoster
-                            src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                            alt={movie.title}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
+                          <EquippedCover id={movie.id} type={movie.media_type}>
+                            <OptimizedPoster
+                              src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                              alt={movie.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          </EquippedCover>
                           {badgeFor(movie.id)}
                           {isCounted && (
                             <span

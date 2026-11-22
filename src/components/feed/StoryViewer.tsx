@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEquippedPoster } from '../../lib/equippedPosters';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -29,6 +30,7 @@ import { AchievementBackdrop, AchievementCard } from './AchievementStory';
 import { LayerScope, overlays, useLayerEntry } from '../../overlays';
 import { JackpotBackdrop, JackpotCard } from './JackpotStory';
 
+import EquippedCover from '../EquippedCover';
 // "Stories automáticos" do Feed dos Amigos: ocupa a tela, monta um cartão
 // com a capa da obra, a nota do amigo e o começo da resenha. Embaixo, curtir
 // (vira sussurro para o amigo) e comentar. Avança sozinho; segurar pausa,
@@ -335,7 +337,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   const tone = story ? ratingTone(story.rating) : ratingTone(null);
-  const poster = story ? storyPoster(story, lang) : null;
+  // 22/11/2026 (pedido do Bruno: o pôster equipado "e o mais importante - nos
+  // stories se gerados por avaliação, resenha, watchlist"): o story de um
+  // título mostra o pôster que o DONO do story equipou nele, com o efeito
+  // (sem a marca de colecionador: o canto dela é o da medalha da nota). O
+  // fundo desfocado sai da mesma arte, para a luz combinar. Conquistas e o story do Jackpot não entram (o id deles não é de
+  // um título, ou o story já é o próprio pôster).
+  const storyIsTitle = Boolean(story && (story.media_type === 'movie' || story.media_type === 'tv') && story.kind !== 'jackpot');
+  const equippedArt = useEquippedPoster(storyIsTitle ? story?.owner.id : null, story?.media_type, story?.movie_id);
+  const poster = equippedArt?.file_path ?? (story ? storyPoster(story, lang) : null);
   const title = story ? storyTitle(story, lang) : '';
   const year = story ? storyYear(story) : null;
   const commentList = Array.isArray(storyComments) ? storyComments : [];
@@ -653,7 +663,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
                           }}
                         >
                           {poster ? (
-                            <img src={`https://image.tmdb.org/t/p/w500${poster}`} alt={title} draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+                            <EquippedCover id={storyIsTitle ? story.movie_id : null} type={story.media_type} owner={story.owner.id} size="w500">
+                              <img src={`https://image.tmdb.org/t/p/w500${poster}`} alt={title} draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+                            </EquippedCover>
                           ) : (
                             <span className="absolute inset-0 grid place-items-center p-4 text-center" style={{ ...PIXEL, color: MIST }}>
                               {title}

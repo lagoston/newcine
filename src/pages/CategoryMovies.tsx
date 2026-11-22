@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
+import EquippedCover from '../components/EquippedCover';
 const CategoryMovies = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
@@ -165,15 +166,17 @@ const CategoryMovies = () => {
                   whileHover={{ scale: 1.05, y: -4 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
-                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-out"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
-                    }}
-                  />
+                  <EquippedCover id={movie.id} type={movie.media_type}>
+                    <img
+                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                      alt={movie.title}
+                      className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-out"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
+                      }}
+                    />
+                  </EquippedCover>
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end">
                     <div className="p-5">
                       <h3 className="text-white font-bold mb-2 line-clamp-2 text-lg">{movie.title}</h3>
