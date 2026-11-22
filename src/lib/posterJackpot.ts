@@ -488,6 +488,12 @@ function loadEquipped(ownerId: string): Promise<EquippedMap> {
   return cached;
 }
 
+// 22/11/2026: a mesma leitura para quem não é componente (o story
+// compartilhado monta a imagem dentro de um clique). Falhou = mapa vazio: o
+// pôster equipado é enfeite, nunca derruba quem pediu.
+export const loadEquippedPosters = (ownerId: string | null | undefined): Promise<EquippedMap> =>
+  ownerId ? loadEquipped(ownerId).catch(() => new Map() as EquippedMap) : Promise.resolve(new Map() as EquippedMap);
+
 // Os pôsteres equipados de uma pessoa (a dona da biblioteca na tela).
 export function useEquippedPosters(ownerId: string | null | undefined): EquippedMap {
   const [map, setMap] = useState<EquippedMap>(() => new Map());

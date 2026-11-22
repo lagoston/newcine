@@ -479,7 +479,21 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void; onLayer?: 
         </div>
       ) : (
         <>
+          {/* 22/11/2026 (pedido do Bruno: "atualmente aparece os nossos pôsteres
+              primeiro e depois os dos amigos, inverta"): quem entra na coleção de
+              um amigo quer ver primeiro o que ELE tem; os meus vêm depois. Só a
+              ordem das duas listas mudou; a barra de baixo segue "o que dou ⇄ o
+              que recebo", como nos cartões das propostas. */}
           <section className="mt-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="text-[13.5px] font-semibold" style={{ color: '#FFE8A3' }}>{t('trades.pickGet', { name: friend.username })}</h4>
+              <span className="shrink-0 text-[12px] tabular-nums" style={{ color: MIST }}>{t('trades.slotsCount', { count: get.length, max: TRADE_SLOTS })}</span>
+            </div>
+            <div className="mt-2">
+              <PickGrid posters={board.theirs} selected={get} onOpen={(poster) => setInfo({ poster, side: 'get' })} blockedLabel={t('trades.youHave')} />
+            </div>
+          </section>
+          <section className="mt-5">
             <div className="flex items-baseline justify-between gap-3">
               <h4 className="text-[13.5px] font-semibold" style={{ color: '#FFE8A3' }}>{t('trades.pickGive')}</h4>
               <span className="shrink-0 text-[12px] tabular-nums" style={{ color: MIST }}>{t('trades.slotsCount', { count: give.length, max: TRADE_SLOTS })}</span>
@@ -491,15 +505,6 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void; onLayer?: 
                 <PickGrid posters={board.mine} selected={give} onOpen={(poster) => setInfo({ poster, side: 'give' })} blockedLabel={t('trades.theyHave')} />
               </div>
             )}
-          </section>
-          <section className="mt-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <h4 className="text-[13.5px] font-semibold" style={{ color: '#FFE8A3' }}>{t('trades.pickGet', { name: friend.username })}</h4>
-              <span className="shrink-0 text-[12px] tabular-nums" style={{ color: MIST }}>{t('trades.slotsCount', { count: get.length, max: TRADE_SLOTS })}</span>
-            </div>
-            <div className="mt-2">
-              <PickGrid posters={board.theirs} selected={get} onOpen={(poster) => setInfo({ poster, side: 'get' })} blockedLabel={t('trades.youHave')} />
-            </div>
           </section>
 
           <div className="sticky bottom-0 -mx-1 mt-5 px-1 pt-3 pb-1" style={{ background: 'linear-gradient(180deg, transparent, rgba(18,13,34,0.96) 22%)' }}>
