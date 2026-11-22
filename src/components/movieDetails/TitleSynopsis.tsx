@@ -6,6 +6,7 @@ import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
 import SectionTitle from './SectionTitle';
 import { SECTION_CLASS } from './shared';
 
+import EquippedCover from '../EquippedCover';
 // Sinopse ("Ler mais" quando é longa) e, embaixo dela, a saga / trilogia /
 // continuação do filme. A saga chega por conta própria e re-renderiza só
 // esta seção.
@@ -123,13 +124,15 @@ const TitleSynopsis: React.FC<TitleSynopsisProps> = ({ movieId, rawMediaType, ov
                         style={{ background: VELVET, minWidth: 0 }}
                       >
                         {poster ? (
-                          <img
-                            src={`https://image.tmdb.org/t/p/w185${poster}`}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className={`absolute inset-0 w-full h-full object-cover transition-transform ${isCurrent ? '' : 'group-hover:scale-105'}`}
-                          />
+                          <EquippedCover id={part.movie_id} type="movie" size="w185">
+                            <img
+                              src={`https://image.tmdb.org/t/p/w185${poster}`}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className={`absolute inset-0 w-full h-full object-cover transition-transform ${isCurrent ? '' : 'group-hover:scale-105'}`}
+                            />
+                          </EquippedCover>
                         ) : (
                           <span className="absolute inset-0 grid place-items-center p-1.5 text-center text-[11px] leading-tight" style={{ color: MIST }}>
                             {title || <Film className="w-5 h-5" aria-hidden />}

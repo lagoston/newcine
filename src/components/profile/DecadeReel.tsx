@@ -14,6 +14,7 @@ import { openTitle } from '../../overlays';
 import DecadeOrganizer from '../DecadeOrganizer';
 import { ModuleTitle, formatOne } from './observatoryKit';
 
+import EquippedCover from '../EquippedCover';
 // As décadas da pessoa numa linha do tempo: a altura de cada barra é
 // quantos títulos ela avaliou da década, a cor é a era (âmbar até os anos
 // 70, azul dos 80 aos 2000, verde dos 2010 em diante — as cores dos
@@ -27,6 +28,8 @@ interface DecadeReelProps {
   bands: DecadeBand[];
   favorite: DecadeBand | null;
   ownerName?: string;
+  // 22/11/2026: o dono do perfil (a capa é o pôster que ELE equipou)
+  ownerId?: string;
   // Só no seu perfil: grava a ordem de uma década (vazio = volta às notas).
   onSaveOrder?: (decade: number, keys: string[]) => Promise<void>;
 }
@@ -34,7 +37,7 @@ interface DecadeReelProps {
 const BAR_AREA = 92;
 const REEL_SIZE = 12;
 
-const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onSaveOrder }) => {
+const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, ownerId, onSaveOrder }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<number | null>(favorite?.decade ?? null);
@@ -215,13 +218,15 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onS
                   <button type="button" onClick={() => open(item)} className={`group block w-full text-left rounded-xl ${FOCUS_RING}`} aria-label={`${i + 1}. ${item.title}`}>
                     <span className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 group-hover:ring-white/30 transition" style={{ background: VELVET }}>
                       {item.poster_path ? (
-                        <img
-                          src={`https://image.tmdb.org/t/p/w185${item.poster_path}`}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-                        />
+                        <EquippedCover id={item.id} type={item.media_type} owner={ownerId} size="w185">
+                          <img
+                            src={`https://image.tmdb.org/t/p/w185${item.poster_path}`}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+                          />
+                        </EquippedCover>
                       ) : (
                         <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
                           <Film className="w-5 h-5" aria-hidden />

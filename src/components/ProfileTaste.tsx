@@ -139,7 +139,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
           <PeopleOrbit actors={observatory.actors} directors={observatory.directors} ownerName={ownerName} />
         </div>
         <div className="lg:col-span-2 min-w-0">
-          <DecadeReel bands={observatory.bands} favorite={observatory.favorite} ownerName={ownerName} onSaveOrder={isOwn ? observatory.saveDecadeOrder : undefined} />
+          <DecadeReel bands={observatory.bands} favorite={observatory.favorite} ownerName={ownerName} ownerId={userId} onSaveOrder={isOwn ? observatory.saveDecadeOrder : undefined} />
         </div>
       </div>
 

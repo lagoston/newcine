@@ -16,6 +16,7 @@ import { useAuth } from '../../lib/auth';
 import { openTitle } from '../../overlays';
 import OracleProfileSheet from './OracleProfileSheet';
 
+import EquippedCover from '../EquippedCover';
 // Escolhidos a dedo — o painel das três cartas do Oracle Hub. Cada oráculo
 // tem a sua fileira: a carta dele na frente (tocar abre o perfil do oráculo)
 // e os melhores títulos (pela nota prevista) que ele guarda nas três
@@ -160,14 +161,16 @@ const OracleRow: React.FC<{
                       style={{ background: VELVET }}
                     >
                       {movie.poster_path ? (
-                        <img
-                          src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                          alt={movie.title}
-                          loading="lazy"
-                          decoding="async"
-                          draggable={false}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <EquippedCover id={movie.id} type={movie.media_type}>
+                          <img
+                            src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                            alt={movie.title}
+                            loading="lazy"
+                            decoding="async"
+                            draggable={false}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        </EquippedCover>
                       ) : (
                         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
                           <Film className="w-7 h-7" aria-hidden />
