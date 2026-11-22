@@ -376,25 +376,56 @@ function paintEffectLayers(ctx: Ctx, w: number, h: number, effect: PosterEffect)
     // .pj-gold-sheen: a lâmina de luz (105deg, caixa de 300% × 100%),
     // color-dodge, na opacidade do pôster parado (0.55). Quadro no meio da
     // passada (background-position 60% 0).
+    // as paradas da lâmina: onde fica e o quanto aparece
+    const blade: [number, number][] = [
+      [0.38, 0],
+      [0.44, 0.25],
+      [0.49, 0.95],
+      [0.5, 1],
+      [0.51, 0.95],
+      [0.56, 0.25],
+      [0.62, 0],
+    ];
+    const bladeColors = ['255,214,120', '255,214,120', '255,244,205', '255,255,255', '255,244,205', '255,214,120', '255,214,120'];
     ctx.globalCompositeOperation = 'color-dodge';
     ctx.globalAlpha = 0.55;
-    ctx.fillStyle = cssLinear(ctx, 105, -2 * w * 0.6, 0, w * 3, h, [
-      [0.38, 'rgba(255,214,120,0)'],
-      [0.44, 'rgba(255,214,120,0.25)'],
-      [0.49, 'rgba(255,244,205,0.95)'],
-      [0.5, 'rgba(255,255,255,1)'],
-      [0.51, 'rgba(255,244,205,0.95)'],
-      [0.56, 'rgba(255,214,120,0.25)'],
-      [0.62, 'rgba(255,214,120,0)'],
-    ]);
+    ctx.fillStyle = cssLinear(
+      ctx,
+      105,
+      -2 * w * 0.6,
+      0,
+      w * 3,
+      h,
+      blade.map(([at, alpha], i): [number, string] => [at, `rgba(${bladeColors[i]},${alpha})`]),
+    );
+    ctx.fillRect(0, 0, w, h);
+    // 22/11/2026 (parecer do crítico): a lâmina lia fria. O color-dodge clareia
+    // a cor que já está na capa (numa capa verde ou azul o brilho sai azulado);
+    // parado, sem a passada que no site puxa o olho, não parecia ouro. Uma
+    // segunda passada da mesma lâmina, em ouro (#FFD678) e em screen, põe a cor
+    // do metal em cima.
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = cssLinear(
+      ctx,
+      105,
+      -2 * w * 0.6,
+      0,
+      w * 3,
+      h,
+      blade.map(([at, alpha]): [number, string] => [at, `rgba(255,214,120,${alpha})`]),
+    );
     ctx.fillRect(0, 0, w, h);
   }
   ctx.restore();
 }
 
 // .pj-gold-rim: o friso de ouro por dentro da borda (dois fios e um brilho).
+// 22/11/2026 (parecer do crítico): 1,6× mais grosso que a conta do CSS (os dois
+// fios e o brilho na mesma proporção). Na imagem parada, vista inteira no
+// celular, o friso do site sumia e o pôster dourado parecia um pôster comum.
 function paintGoldRim(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
-  const k = w / 264;
+  const k = (w / 264) * 1.6;
   ctx.save();
   roundRectPath(ctx, x, y, w, h, r);
   ctx.clip();
@@ -569,6 +600,12 @@ function drawCollectorMark(ctx: Ctx, rarity: PosterRarity, serial: number, right
   ctx.restore();
 }
 
+// 22/11/2026 (parecer do crítico): a letra da marca de colecionador não desce
+// de 26 px. Com 5% da largura ela caía para 18–24 px no pôster menor (com
+// resenha): o número, que é o que a pessoa quer mostrar, ficava ilegível no
+// celular. No pôster de 360 a plaquinha chega a ~44% da largura.
+const MARK_MIN_EM = 26;
+
 interface PosterBox {
   x: number;
   y: number;
@@ -654,7 +691,7 @@ function drawPoster(ctx: Ctx, box: PosterBox, art: HTMLCanvasElement | null, inp
     ctx.strokeStyle = 'rgba(255,255,255,0.16)';
     ctx.stroke();
   }
-  if (art && input.equipped?.serial) drawCollectorMark(ctx, input.equipped.rarity, input.equipped.serial, x + w, y + h, Math.max(18, w * 0.05));
+  if (art && input.equipped?.serial) drawCollectorMark(ctx, input.equipped.rarity, input.equipped.serial, x + w, y + h, Math.max(MARK_MIN_EM, w * 0.05));
 }
 
 // ---------------------------------------------------------------------------
@@ -666,7 +703,8 @@ function drawPoster(ctx: Ctx, box: PosterBox, art: HTMLCanvasElement | null, inp
 // também em degraus; cada degrau suaviza o anterior. No menor degrau as cores
 // ganham saturação (o saturate(1.25) do story do feed): sobram duas ou três
 // manchas grandes de cor, sem desenho nenhum da capa.
-function ambientOf(art: HTMLCanvasElement): HTMLCanvasElement {
+// Devolve também `peak`: o ponto mais claro do desfoque (luminância de 0 a 255).
+function ambientOf(art: HTMLCanvasElement): { canvas: HTMLCanvasElement; peak: number } {
   const steps: [number, number][] = [
     [288, 512],
     [144, 256],
@@ -697,6 +735,7 @@ function ambientOf(art: HTMLCanvasElement): HTMLCanvasElement {
   };
   steps.slice(1).forEach(([w, h]) => resample(w, h));
   const small = current.getContext('2d', { willReadFrequently: true });
+  let peak = 0;
   if (small) {
     try {
       const image = small.getImageData(0, 0, current.width, current.height);
@@ -720,6 +759,7 @@ function ambientOf(art: HTMLCanvasElement): HTMLCanvasElement {
         d[i] = clamp255((0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * b);
         d[i + 1] = clamp255((0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * b);
         d[i + 2] = clamp255((0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * b);
+        peak = Math.max(peak, 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]);
       }
       small.putImageData(image, 0, 0);
     } catch {
@@ -727,7 +767,7 @@ function ambientOf(art: HTMLCanvasElement): HTMLCanvasElement {
     }
   }
   [...steps].reverse().slice(1).forEach(([w, h]) => resample(w, h));
-  return current;
+  return { canvas: current, peak };
 }
 
 // A cor da nota NÃO vira mancha no fundo: sobre a capa desfocada, um verde ou
@@ -736,10 +776,19 @@ function drawBackground(ctx: Ctx, poster: HTMLCanvasElement | null) {
   ctx.fillStyle = NIGHT;
   ctx.fillRect(0, 0, W, H);
   if (poster) {
+    const ambient = ambientOf(poster);
+    // 22/11/2026 (parecer do crítico): pôster claro "lavava" a noite (o
+    // negativo equipado, uma capa creme): o fundo virava um cinza-lilás e o
+    // texto perdia o chão. A capa desfocada entra a 0,58, como sempre, até onde
+    // o ponto mais claro dela deixa o fundo atrás do texto no máximo em
+    // ~#3A3350 (luminância 54); daí para cima a opacidade desce, com piso de
+    // 0,30 (uma capa branca). A conta: o véu deixa passar 54% no trecho mais
+    // aberto e a noite tem luminância 15,6, então 0,54 · α · (pico − 15,6) ≤ 38,4.
+    const alpha = ambient.peak > 15.6 ? Math.min(0.58, Math.max(0.3, 71 / (ambient.peak - 15.6))) : 0.58;
     ctx.save();
-    ctx.globalAlpha = 0.58;
+    ctx.globalAlpha = alpha;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(ambientOf(poster), 0, 0, W, H);
+    ctx.drawImage(ambient.canvas, 0, 0, W, H);
     ctx.restore();
     // o véu do story do feed, um pouco mais fechado: aqui há texto em cima
     const veil = ctx.createLinearGradient(0, 0, 0, H);
@@ -1004,8 +1053,11 @@ function drawBalloon(ctx: Ctx, input: TitleStoryInput, plan: BalloonPlan, y: num
     body.lines.forEach((line, i) => ctx.fillText(line, left, ty + i * body.lineHeight + Math.round(body.size * 0.98)));
     ty += body.lines.length * body.lineHeight;
     if (plan.more) {
-      ctx.font = pixelFont(34, 500);
-      ctx.fillStyle = fill;
+      // 22/11/2026 (parecer do crítico): em tinta, 36 px. Na cor da faixa o
+      // aviso tinha contraste de 2,6:1 a 3,4:1 sobre o papel; a cor da nota
+      // fica só na faixa e nas aspas.
+      ctx.font = pixelFont(36, 500);
+      ctx.fillStyle = INK;
       ctx.textAlign = 'right';
       ctx.fillText(noLig(input.copy.more), x + CW - BALLOON.padX, ty + MORE_ROW - 8);
       ctx.textAlign = 'left';
@@ -1064,9 +1116,17 @@ function drawFooter(
   const room = W - M - brandW - 36 - tx;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = sansFont(40, 600);
+  // 22/11/2026 (parecer do crítico): o @ diminui de 40 até 34 px antes de ser
+  // cortado (o site aceita nomes de até 20 letras; a 40 px cabiam ~17).
+  const handle = `@${owner.username}`;
+  let handleSize = 40;
+  ctx.font = sansFont(handleSize, 600);
+  while (handleSize > 34 && ctx.measureText(handle).width > room) {
+    handleSize -= 2;
+    ctx.font = sansFont(handleSize, 600);
+  }
   ctx.fillStyle = PAPER;
-  ctx.fillText(truncateToWidth(ctx, `@${owner.username}`, room), tx, cy - 6);
+  ctx.fillText(truncateToWidth(ctx, handle, room), tx, cy - 6);
   ctx.font = sansFont(32);
   ctx.fillStyle = MIST;
   ctx.fillText(truncateToWidth(ctx, input.copy.action, room), tx, cy + 38);
@@ -1188,10 +1248,24 @@ export async function drawTitleStory(input: TitleStoryInput): Promise<HTMLCanvas
     if (title.cut) title = fitTitle(ctx, input.title, { width: CW, height: 200, sizes: [58, 54, 50], maxLines: 3, weight: 500 });
     const titleH = title.lines.length * title.lineHeight;
     const META_H = 50;
-    const verdictH = verdict ? 34 + (verdict.watchlist ? 100 : 132) : 0;
+    // 22/11/2026 (parecer do crítico): sem resenha a nota é a mensagem inteira
+    // e estava MENOR (170 px) do que no layout com resenha (210). Agora 220; o
+    // pôster cede a altura (~842 → ~815). O nome da nota segue em 58 px.
+    const NUMBER_P = 220;
+    let numberAscent = 0;
+    if (verdict && !verdict.watchlist) {
+      ctx.font = pixelFont(NUMBER_P);
+      numberAscent = Math.round(ctx.measureText(verdict.number).actualBoundingBoxAscent || NUMBER_P * 0.66);
+    }
+    const verdictH = verdict ? 34 + (verdict.watchlist ? 100 : numberAscent + 16) : 0;
     const GAP_FOOT_P = 50;
     const rest = GAP_TITLE + titleH + META_H + verdictH + GAP_FOOT_P + FOOT_H;
-    const posterH = Math.round(Math.min(900, Math.max(560, AVAIL - rest)));
+    // 22/11/2026 (parecer do crítico): sem pôster o cartão de veludo não passa
+    // de 420 × 630. Do tamanho de um pôster (585 × 878) era uma placa vazia com
+    // um olho pequeno no meio. (A outra saída, o título dentro do cartão como
+    // no story do feed, repetia o título que já vai logo embaixo.)
+    const posterMax = poster ? 900 : 630;
+    const posterH = Math.round(Math.min(posterMax, Math.max(560, AVAIL - rest)));
     const posterW = Math.round((posterH * 2) / 3);
     const top = Math.round(SAFE_TOP + PAD + Math.max(0, (AVAIL - posterH - rest) / 2));
     const box: PosterBox = { x: Math.round((W - posterW) / 2), y: top, w: posterW, h: posterH };
@@ -1227,7 +1301,7 @@ export async function drawTitleStory(input: TitleStoryInput): Promise<HTMLCanvas
         ctx.fillText(labelText, x0 + unit * 8 + 28, y + 6 + unit * 11 - 22);
       } else {
         // "10/10  Obra-Prima" numa linha só, na mesma linha de base
-        const size = 170;
+        const size = NUMBER_P;
         const numberW = drawNumber(ctx, verdict, 0, 0, size, tone, false);
         let labelSize = 58;
         ctx.font = pixelFont(labelSize, 500);
@@ -1237,7 +1311,7 @@ export async function drawTitleStory(input: TitleStoryInput): Promise<HTMLCanvas
         }
         const total = numberW + 34 + ctx.measureText(labelText).width;
         const x0 = Math.round((W - total) / 2);
-        const base = y + 124;
+        const base = y + numberAscent + 6;
         drawNumber(ctx, verdict, x0, base, size, tone);
         ctx.font = pixelFont(labelSize, 500);
         ctx.fillStyle = PAPER;
