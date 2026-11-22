@@ -449,8 +449,12 @@ export interface BrandMark {
   rects: { color: string; x: number; y: number; w: number; h: number }[];
 }
 
-let brandMarkPromise: Promise<BrandMark | null> | null = null;
+// 22/11/2026: a memória é por endereço. Era uma variável só: quem pedisse o
+// logotipo (cineoracle-wordmark.svg) depois do olho recebia o olho de novo. O
+// story do título desenha os dois (a assinatura completa).
+const brandMarkPromises = new Map<string, Promise<BrandMark | null>>();
 export function loadBrandMark(url = '/brand/cineoracle-mark.svg'): Promise<BrandMark | null> {
+  let brandMarkPromise = brandMarkPromises.get(url);
   if (!brandMarkPromise) {
     brandMarkPromise = (async () => {
       try {
@@ -467,10 +471,11 @@ export function loadBrandMark(url = '/brand/cineoracle-mark.svg'): Promise<Brand
         if (!box || !rects.length) return null;
         return { cols: +box[1], rows: +box[2], rects };
       } catch {
-        brandMarkPromise = null;
+        brandMarkPromises.delete(url);
         return null;
       }
     })();
+    brandMarkPromises.set(url, brandMarkPromise);
   }
   return brandMarkPromise;
 }
