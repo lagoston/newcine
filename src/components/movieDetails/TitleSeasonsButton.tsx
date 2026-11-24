@@ -7,7 +7,6 @@ import { VELVET, PAPER, MIST, FOCUS_RING } from '../../lib/oracleTheme';
 // temporadas), com a contagem do que a pessoa já viu.
 
 interface TitleSeasonsButtonProps {
-  loggedIn: boolean;
   seasonCount: number;
   hasRated: boolean;
   // quantos episódios a pessoa já marcou
@@ -15,13 +14,13 @@ interface TitleSeasonsButtonProps {
   onOpen: () => void;
 }
 
-const TitleSeasonsButton: React.FC<TitleSeasonsButtonProps> = ({ loggedIn, seasonCount, hasRated, watchedCount, onOpen }) => {
+const TitleSeasonsButton: React.FC<TitleSeasonsButtonProps> = ({ seasonCount, hasRated, watchedCount, onOpen }) => {
   const { t } = useTranslation();
 
   return (
     <button
       onClick={onOpen}
-      className={`${loggedIn ? 'mt-3' : 'mt-5'} w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
+      className={`mt-5 w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
       style={{ background: VELVET }}
     >
       <span className="flex items-center gap-3 min-w-0">

@@ -4504,39 +4504,14 @@
   },
   "oracleDna": {
     "title": "Oracle DNA",
-    "cardHint": "Twins, roots and heirs across every shelf",
     "sequencing": "Sequencing the DNA across the shelves…",
     "genomeTitle": "Genome",
     "genomeCount_one": "{{count}} gene read",
     "genomeCount_other": "{{count}} genes read",
-    "genomeAria": "This title's genes, rarest first. Tap a gene to see only the relatives that carry it.",
-    "geneAria_one": "{{gene}}, {{rarity}}, {{count}} relative carries it",
-    "geneAria_other": "{{gene}}, {{rarity}}, {{count}} relatives carry it",
-    "rarity": {
-      "1": "common gene",
-      "2": "rare gene",
-      "3": "very rare gene"
-    },
+    "genomeAria": "This title's genes, rarest first",
+    "geneAria_one": "{{gene}}: {{count}} relative carries this gene",
+    "geneAria_other": "{{gene}}: {{count}} relatives carry this gene",
     "genomeUnnamed": "This title's genes have no names yet: the oracle can read them, but can't say them yet.",
-    "genomeEmpty": "The oracle hasn't found any genes in this title yet.",
-    "lensesAria": "DNA lenses",
-    "lens": {
-      "twins": "Twins",
-      "shelves": "Other shelves",
-      "roots": "Roots",
-      "heirs": "Heirs",
-      "author": "Signature",
-      "screenSeries": "In series",
-      "screenMovies": "In films"
-    },
-    "lensHint": {
-      "twins": "The closest in every way: themes, body, who signed it and who loved it.",
-      "shelves": "The same themes living in another mood or with another oracle: the DNA in another body.",
-      "roots": "They came first and already carried these genes.",
-      "heirs": "They came later and inherited the genes.",
-      "screen": "The same DNA on the other side of the screen.",
-      "author": "The same hand: who directed it or who led the cast."
-    },
     "series": "Series",
     "sharedAria_one": "{{count}} shared gene",
     "sharedAria_other": "{{count}} shared genes",
@@ -4549,9 +4524,7 @@
       "creator": "Same creator",
       "cast": "With {{name}}",
       "crowd_one": "{{count}} cinephile loved both",
-      "crowd_other": "{{count}} cinephiles loved both",
-      "anime": "Anime",
-      "bw": "Black and white"
+      "crowd_other": "{{count}} cinephiles loved both"
     },
     "predicted": "predicted {{n}}",
     "predHint": "The rating the oracle predicts for you",
@@ -4563,19 +4536,42 @@
     "orphan": "No strong relatives on the shelves. An orphan — which, for a film, is sometimes a compliment.",
     "onlyGene": "Only: {{gene}}",
     "clearGene": "Show all genes",
-    "emptyLens": "No relative with this gene in this lens.",
     "how": {
       "title": "How the oracle reads DNA",
-      "themesTitle": "Themes",
-      "themes": "the title's keywords, weighted by rarity: sharing a rare gene is worth far more than sharing a common one. Places and sources barely count.",
-      "authorTitle": "Signature",
-      "author": "the same director and the same lead cast.",
-      "crowdTitle": "Crowd",
-      "crowd": "how many CineOracle cinephiles gave both an 8 or higher.",
-      "bodyTitle": "Body",
-      "body": "genres, era, country of origin and style, which only count when the themes match too.",
-      "note": "The percentage is DNA affinity, not a rating. Titles from the same saga are left out: they're already in the title's menu."
+      "genes": "Every keyword of a title is a gene. Sharing a rare gene is worth far more than sharing a common one; places and sources barely count. In the genome, the rarest come first. Some genes count but stay unnamed: the ones that give away the plot, the ones on sensitive themes and the ones not yet reviewed.",
+      "pct": "The percentage is affinity: the shared genes, plus the same director, the lead cast and the CineOracle cinephiles who gave both an 8 or higher. Genre, era and country only add a nudge when the themes already match. A relative starts at 39%: below that, the oracle does not call it family.",
+      "note": "Affinity is not a rating. “The same hand” shows no percentage: those titles are here for the director or the cast, not for the themes. Titles from the same saga are left out: they're already in the title's menu."
     },
+    "short": "DNA",
+    "open": "Oracle DNA: this title's family across the shelves",
+    "genomeNamed_one": ", {{count}} with a name",
+    "genomeNamed_other": ", {{count}} with a name",
+    "genomeTap": "Tap a gene to see only the relatives that carry it.",
+    "section": {
+      "closest": "Closest relatives",
+      "roots": "Roots",
+      "peers": "From the same year",
+      "heirs": "Heirs",
+      "others": "Other relatives",
+      "screenSeries": "In series",
+      "screenMovies": "In films",
+      "hand": "The same hand"
+    },
+    "sectionHint": {
+      "roots": "came before",
+      "heirs": "came after",
+      "screen": "the same DNA on the other side of the screen",
+      "hand": "here for the director or the cast, not the themes"
+    },
+    "film": "Film",
+    "more_one": "Show {{count}} more",
+    "more_other": "Show {{count}} more",
+    "yours": "Your rating {{n}}",
+    "saved": "On your watchlist",
+    "pctHint": "DNA affinity (not a rating)",
+    "openTitle": "Open {{title}} ({{year}})",
+    "openTitleNoYear": "Open {{title}}",
+    "emptyGene": "No relative carries this gene.",
     "voice": {
       "bogart": {
         "0": "I flicked my tongue across every shelf looking for this one's relatives. Some live far from me, and that's fine.",
@@ -4593,7 +4589,6 @@
         "2": "Snakes know snakes. And stories know stories, even on different shelves."
       },
       "outside": "This one doesn't live on our shelves. But its blood runs through them."
-    },
-    "shelfOf": "{{oracle}}'s shelf:"
+    }
   }
 }

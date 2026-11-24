@@ -4,7 +4,8 @@ import type { OracleId } from './oracleTheme';
 // Oracle DNA (18/11/2026) — os parentes de um título em TODAS as prateleiras
 // dos oráculos. Quem calcula é o banco (public.oracle_dna): só dados e regras,
 // sem IA, igual para todos. Ver o comentário da função para as quatro fitas
-// (temas, autoria, plateia, corpo) e as lentes.
+// (temas, autoria, plateia, corpo) e as lentes. A tela não mostra mais as
+// lentes como abas: lê a mesma resposta em seções (familyOf, no fim).
 //
 // A resposta fica guardada na sessão por 10 minutos (abrir o DNA, abrir um
 // parente, voltar: não pede de novo). Uma nota nova muda pouca coisa no DNA —
@@ -174,17 +175,52 @@ export function getOracleDna(id: number, media: DnaMedia, opts: { fresh?: boolea
   return promise;
 }
 
-// A ordem de cada lente: "outras prateleiras" pela força dos temas (o mesmo
-// tema em outro corpo); as outras pela afinidade inteira.
-export function relativesFor(items: DnaRelative[], lens: DnaLens, gene: number | null): DnaRelative[] {
-  const list = items.filter((i) => i.lenses.includes(lens) && (gene === null || i.shared.includes(gene)));
-  if (lens === 'shelves') return [...list].sort((a, b) => b.kw - a.kw || b.score - a.score || a.id - b.id);
-  return [...list].sort((a, b) => b.score - a.score || a.id - b.id);
+// 24/11/2026 — A FAMÍLIA EM SEÇÕES (no lugar das seis lentes).
+// As lentes eram abas que mostravam quase os mesmos títulos: cada parente
+// aparecia, em média, em duas delas (medido em oito títulos: de 1,8 a 2,6), e
+// "Outras prateleiras" era "Gêmeos" menos um ou dois. A gaveta agora é uma
+// página só, e cada parente aparece UMA vez:
+//   • closest — os cinco de maior afinidade (qualquer época, filme ou série);
+//   • roots / peers / heirs — o resto da mesma tela, pela época: mais antigos,
+//     do mesmo ano, mais novos (others = sem ano para comparar);
+//   • screen — o resto que mora na outra tela (série ↔ filme);
+//   • hand — quem entrou só pela direção ou pelo elenco, sem dividir temas.
+// "Parente pelos temas" é o que o banco pôs em alguma lente de temas; quem
+// veio só na lente "author" entrou pela mão, e não pelos genes. O banco não
+// mudou (o app antigo usa a mesma resposta): isto é só a leitura da tela.
+export type DnaSection = 'closest' | 'roots' | 'peers' | 'heirs' | 'others' | 'screen' | 'hand';
+export const DNA_SECTIONS: DnaSection[] = ['closest', 'roots', 'peers', 'heirs', 'others', 'screen', 'hand'];
+export const DNA_CLOSEST = 5;
+
+const THEME_LENSES: DnaLens[] = ['twins', 'shelves', 'roots', 'heirs', 'screen'];
+export const sharesThemes = (rel: DnaRelative): boolean => rel.lenses.some((l) => THEME_LENSES.includes(l));
+
+const byAffinity = (a: DnaRelative, b: DnaRelative) => b.score - a.score || a.id - b.id;
+
+// gene: só os parentes que carregam aquele gene (o filtro do genoma).
+export function familyOf(
+  items: DnaRelative[],
+  sourceYear: number | null,
+  media: DnaMedia,
+  gene: number | null
+): Record<DnaSection, DnaRelative[]> {
+  const pool = gene === null ? items : items.filter((i) => i.shared.includes(gene));
+  const kin = pool.filter(sharesThemes).sort(byAffinity);
+  const out: Record<DnaSection, DnaRelative[]> = {
+    closest: kin.slice(0, DNA_CLOSEST),
+    roots: [],
+    peers: [],
+    heirs: [],
+    others: [],
+    screen: [],
+    hand: pool.filter((i) => !sharesThemes(i)).sort(byAffinity),
+  };
+  kin.slice(DNA_CLOSEST).forEach((rel) => {
+    if (rel.media_type !== media) out.screen.push(rel);
+    else if (sourceYear === null || rel.year === null) out.others.push(rel);
+    else if (rel.year < sourceYear) out.roots.push(rel);
+    else if (rel.year > sourceYear) out.heirs.push(rel);
+    else out.peers.push(rel);
+  });
+  return out;
 }
-
-// A cor de cada gene do genoma, na ordem (a hélice e as fichas usam as mesmas).
-export const GENE_COLORS = ['#F0ABFC', '#5EEAD4', '#FDE68A', '#93C5FD', '#FDBA74', '#86EFAC', '#F9A8D4', '#C4B5FD', '#67E8F9', '#FCA5A5', '#BEF264', '#E9D5FF'];
-
-// Raridade de um gene em três pontos: até 10 títulos nas prateleiras, até 40,
-// ou mais.
-export const geneRarity = (df: number): 1 | 2 | 3 => (df <= 10 ? 3 : df <= 40 ? 2 : 1);

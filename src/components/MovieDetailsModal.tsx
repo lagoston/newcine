@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useId, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, ChevronRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
@@ -15,11 +15,7 @@ import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
 import PersonPageSheet, { type PersonSeed } from './PersonPageSheet';
 import OracleDnaSheet from './oracleDna/OracleDnaSheet';
-import DnaHelix from './oracleDna/DnaHelix';
-import { GENE_COLORS } from '../lib/oracleDna';
-import {
-  NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, withAlpha,
-} from '../lib/oracleTheme';
+import { NIGHT, PAPER, FOCUS_RING } from '../lib/oracleTheme';
 import { SECTION_CLASS, mediaTypeOf, type TitleMovie } from './movieDetails/shared';
 import { useTitleRelation } from './movieDetails/useTitleRelation';
 import { useTitleMood } from './movieDetails/useTitleMood';
@@ -234,6 +230,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const openTrailer = useCallback(() => setShowTrailerModal(true), []);
   const closeTrailer = useCallback(() => setShowTrailerModal(false), []);
   const openRecommend = useCallback(() => setShowRecommendModal(true), []);
+  // 24/11/2026: o Oracle DNA abre pelo símbolo na linha de ações rápidas.
+  const openDna = useCallback(() => setShowDna(true), []);
   const openReviews = useCallback(() => setShowReviewsModal(true), []);
   const openQuickAdd = useCallback(() => setShowQuickAdd(true), []);
   const openDeleteConfirmation = useCallback(() => setShowDeleteConfirmation(true), []);
@@ -357,33 +355,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     loggedIn={loggedIn}
                     onOpenTrailer={openTrailer}
                     onRecommend={openRecommend}
+                    onOpenDna={openDna}
                   />
-
-                  {/* Oracle DNA: os parentes do título em todas as prateleiras. */}
-                  {session?.user && (
-                    <button
-                      type="button"
-                      onClick={() => setShowDna(true)}
-                      aria-haspopup="dialog"
-                      className={`group mt-5 w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-fuchsia-300/40 text-left transition ${FOCUS_RING}`}
-                      style={{ background: `linear-gradient(100deg, ${withAlpha('#E879F9', 0.13)} 0%, ${VELVET} 58%)` }}
-                    >
-                      <span className="flex items-center gap-3 min-w-0">
-                        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg overflow-hidden" style={{ background: withAlpha('#E879F9', 0.14) }}>
-                          <DnaHelix size="icon" bases={GENE_COLORS.slice(0, 4)} className="w-9 h-9" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[17px] leading-tight" style={{ ...PIXEL, color: PAPER }}>{t('oracleDna.title')}</span>
-                          <span className="block mt-0.5 text-sm truncate" style={{ color: MIST }}>{t('oracleDna.cardHint')}</span>
-                        </span>
-                      </span>
-                      <ChevronRight className="w-5 h-5 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
-                    </button>
-                  )}
 
                   {isTvShow && (
                     <TitleSeasonsButton
-                      loggedIn={loggedIn}
                       seasonCount={seasonCount}
                       hasRated={hasRated}
                       watchedCount={episodes.watchedEpisodes.size}

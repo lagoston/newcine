@@ -935,6 +935,30 @@ img[loading="lazy"] {
   }
 }
 
+/* Oracle DNA (24/11/2026): a hélice no alto da gaveta. O SVG é mais largo que
+   a faixa e anda um giro (64 px, o TURN de DnaHelix.tsx) para a esquerda, em
+   laço: só transform, sem repintar. As pontas somem num degradê (máscara). */
+.dna-band {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+.dna-band__svg {
+  display: block;
+  max-width: none;
+  animation: dna-drift 9s linear infinite;
+}
+@keyframes dna-drift {
+  to {
+    transform: translate3d(-64px, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dna-band__svg {
+    animation: none;
+  }
+}
+
 /* Observatório do perfil (12/10/2026): os temas da roda dos humores
    flutuam devagar e uma varredura de radar gira atrás da roda. Sem nada
    disso para quem pede menos movimento. */

@@ -1,12 +1,15 @@
 import React from 'react';
-import { Loader2, Instagram, Send, Play } from 'lucide-react';
+import { Loader2, Instagram, Send, Play, Dna } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PAPER } from '../../lib/oracleTheme';
 import { QUICK_ACTION } from './shared';
 import { useShareStory } from './useShareStory';
 
-// Ações rápidas (trailer, sussurrar, story): ícone em cima, nome embaixo,
-// sem contorno.
+// Ações rápidas (trailer, sussurrar, story, DNA): ícone em cima, nome
+// embaixo, sem contorno.
+// 24/11/2026: o Oracle DNA mora aqui, como um símbolo de DNA do tamanho dos
+// outros três. Antes era um cartão da largura do menu, igual ao de "Temporadas
+// e episódios" e ao da saga, e competia com eles.
 
 interface TitleQuickActionsProps {
   movieId: number;
@@ -20,9 +23,11 @@ interface TitleQuickActionsProps {
   loggedIn: boolean;
   onOpenTrailer: () => void;
   onRecommend: () => void;
+  // Abre a gaveta do Oracle DNA (só para quem está logado: o banco exige).
+  onOpenDna?: () => void;
 }
 
-const TitleQuickActions: React.FC<TitleQuickActionsProps> = ({ movieId, title, posterPath, mediaType, releaseDate, userId, loggedIn, onOpenTrailer, onRecommend }) => {
+const TitleQuickActions: React.FC<TitleQuickActionsProps> = ({ movieId, title, posterPath, mediaType, releaseDate, userId, loggedIn, onOpenTrailer, onRecommend, onOpenDna }) => {
   const { t } = useTranslation();
   const { isSharing, share } = useShareStory({ id: movieId, title, posterPath, mediaType, releaseDate }, userId);
 
@@ -53,6 +58,19 @@ const TitleQuickActions: React.FC<TitleQuickActionsProps> = ({ movieId, title, p
             )}
             {t('movieModal.shareStory')}
           </button>
+          {onOpenDna && (
+            <button
+              onClick={onOpenDna}
+              aria-haspopup="dialog"
+              aria-label={t('oracleDna.open')}
+              title={t('oracleDna.open')}
+              className={QUICK_ACTION}
+              style={{ color: PAPER }}
+            >
+              <Dna className="w-[22px] h-[22px] text-teal-300" aria-hidden />
+              {t('oracleDna.short')}
+            </button>
+          )}
         </>
       )}
     </div>

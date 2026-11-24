@@ -152,4 +152,8 @@ export interface FriendRating {
 export const SECTION_CLASS = 'pt-6 mt-6 border-t border-white/[0.07]';
 
 // Ações rápidas: ícone em cima, nome embaixo, sem contorno.
-export const QUICK_ACTION = `flex-col gap-1.5 w-[5.5rem] py-2 rounded-xl text-xs font-medium hover:bg-white/[0.06] active:bg-white/[0.09] transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
+// 24/11/2026: a linha ganhou a quarta ação (o Oracle DNA). Com a largura fixa
+// de 5,5rem, quatro botões pediam 364 px e o menu no celular tem 320 a 350 de
+// miolo: agora cada um ocupa uma fatia igual da linha, até os mesmos 5,5rem
+// (com uma, duas ou três ações, e em tela larga, nada muda).
+export const QUICK_ACTION = `flex-col gap-1.5 flex-1 basis-0 min-w-0 max-w-[5.5rem] py-2 rounded-xl text-xs font-medium hover:bg-white/[0.06] active:bg-white/[0.09] transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;

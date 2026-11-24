@@ -4503,39 +4503,14 @@
   },
   "oracleDna": {
     "title": "Oracle DNA",
-    "cardHint": "Gêmeos, raízes e herdeiros em todas as prateleiras",
     "sequencing": "Sequenciando o DNA nas prateleiras…",
     "genomeTitle": "Genoma",
     "genomeCount_one": "{{count}} gene lido",
     "genomeCount_other": "{{count}} genes lidos",
-    "genomeAria": "Genes do título, do mais raro ao mais comum. Toque num gene para ver só os parentes que o carregam.",
-    "geneAria_one": "{{gene}}, {{rarity}}, {{count}} parente com ele",
-    "geneAria_other": "{{gene}}, {{rarity}}, {{count}} parentes com ele",
-    "rarity": {
-      "1": "gene comum",
-      "2": "gene raro",
-      "3": "gene raríssimo"
-    },
+    "genomeAria": "Genes do título, do mais raro ao mais comum",
+    "geneAria_one": "{{gene}}: {{count}} parente com este gene",
+    "geneAria_other": "{{gene}}: {{count}} parentes com este gene",
     "genomeUnnamed": "Os genes deste título ainda não têm nome: o oráculo lê, mas ainda não sabe dizer.",
-    "genomeEmpty": "O oráculo ainda não encontrou genes neste título.",
-    "lensesAria": "Lentes do DNA",
-    "lens": {
-      "twins": "Gêmeos",
-      "shelves": "Outras prateleiras",
-      "roots": "Raízes",
-      "heirs": "Herdeiros",
-      "author": "Assinatura",
-      "screenSeries": "Em séries",
-      "screenMovies": "Em filmes"
-    },
-    "lensHint": {
-      "twins": "Os mais parecidos em tudo: temas, corpo, quem assina e quem amou.",
-      "shelves": "Os mesmos temas morando em outro humor ou com outro oráculo: o DNA em outro corpo.",
-      "roots": "Vieram antes e já carregavam esses genes.",
-      "heirs": "Vieram depois e herdaram os genes.",
-      "screen": "O mesmo DNA do outro lado da tela.",
-      "author": "A mesma mão: quem dirigiu ou quem esteve no elenco principal."
-    },
     "series": "Série",
     "sharedAria_one": "{{count}} gene em comum",
     "sharedAria_other": "{{count}} genes em comum",
@@ -4548,9 +4523,7 @@
       "creator": "Mesmo criador",
       "cast": "Com {{name}}",
       "crowd_one": "{{count}} cinéfilo amou os dois",
-      "crowd_other": "{{count}} cinéfilos amaram os dois",
-      "anime": "Anime",
-      "bw": "Preto e branco"
+      "crowd_other": "{{count}} cinéfilos amaram os dois"
     },
     "predicted": "prevista {{n}}",
     "predHint": "A nota que o oráculo prevê para você",
@@ -4562,19 +4535,42 @@
     "orphan": "Nenhum parente forte nas prateleiras. Um órfão — o que, num filme, às vezes é elogio.",
     "onlyGene": "Só com: {{gene}}",
     "clearGene": "Mostrar todos os genes",
-    "emptyLens": "Nenhum parente com este gene nesta lente.",
     "how": {
       "title": "Como o oráculo lê o DNA",
-      "themesTitle": "Temas",
-      "themes": "as palavras-chave do título, pesadas pela raridade: dividir um gene raro vale muito mais que dividir um comum. Lugar e origem quase não contam.",
-      "authorTitle": "Assinatura",
-      "author": "o mesmo diretor e o mesmo elenco principal.",
-      "crowdTitle": "Plateia",
-      "crowd": "quantos cinéfilos do CineOracle deram 8 ou mais aos dois.",
-      "bodyTitle": "Corpo",
-      "body": "gêneros, época, país de origem e estilo, que só contam quando os temas também batem.",
-      "note": "A porcentagem é afinidade de DNA, não nota. Os da mesma saga ficam de fora: eles já estão no menu do título."
+      "genes": "Cada palavra-chave de um título é um gene. Dividir um gene raro vale muito mais que dividir um comum; lugar e origem quase não contam. No genoma, os mais raros vêm primeiro. Alguns genes contam mas ficam sem nome: os que entregam a trama, os de tema sensível e os que ainda não foram revisados.",
+      "pct": "A porcentagem é a afinidade: os genes em comum, mais a mesma direção, o elenco principal e os cinéfilos do CineOracle que deram 8 ou mais aos dois. Gênero, época e país só dão um empurrão quando os temas já batem. Parente começa em 39%: abaixo disso o oráculo não chama de família.",
+      "note": "Afinidade não é nota. Em “A mesma mão” não há porcentagem: são títulos que entraram pela direção ou pelo elenco, e não pelos temas. Os da mesma saga ficam de fora: já estão no menu do título."
     },
+    "short": "DNA",
+    "open": "Oracle DNA: a família deste título nas prateleiras",
+    "genomeNamed_one": ", {{count}} com nome",
+    "genomeNamed_other": ", {{count}} com nome",
+    "genomeTap": "Toque num gene para ver só quem o carrega.",
+    "section": {
+      "closest": "Os mais próximos",
+      "roots": "Raízes",
+      "peers": "Do mesmo ano",
+      "heirs": "Herdeiros",
+      "others": "Outros parentes",
+      "screenSeries": "Em séries",
+      "screenMovies": "Em filmes",
+      "hand": "A mesma mão"
+    },
+    "sectionHint": {
+      "roots": "vieram antes",
+      "heirs": "vieram depois",
+      "screen": "o mesmo DNA do outro lado da tela",
+      "hand": "pela direção ou pelo elenco, não pelos temas"
+    },
+    "film": "Filme",
+    "more_one": "Mostrar mais {{count}}",
+    "more_other": "Mostrar mais {{count}}",
+    "yours": "Sua nota {{n}}",
+    "saved": "Na watchlist",
+    "pctHint": "Afinidade de DNA (não é nota)",
+    "openTitle": "Abrir {{title}} ({{year}})",
+    "openTitleNoYear": "Abrir {{title}}",
+    "emptyGene": "Nenhum parente com este gene.",
     "voice": {
       "bogart": {
         "0": "Passei a língua nas prateleiras inteiras atrás dos parentes deste aqui. Alguns moram longe de mim, e tudo bem.",
@@ -4592,7 +4588,6 @@
         "2": "Cobra conhece cobra. E história conhece história, mesmo em prateleiras diferentes."
       },
       "outside": "Este aqui não mora nas nossas prateleiras. Mas o sangue dele corre por elas."
-    },
-    "shelfOf": "Prateleira de {{oracle}}:"
+    }
   }
 }

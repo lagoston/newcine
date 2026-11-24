@@ -1,42 +1,55 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Bookmark, Clapperboard, Film, Info, Loader2, RotateCcw, Tv, Users, X } from 'lucide-react';
+import { AlertCircle, Bookmark, ChevronDown, Dna, Film, Info, Loader2, RotateCcw, X } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import OptimizedPoster from '../OptimizedPoster';
-import DnaHelix from './DnaHelix';
+import DnaHelix, { DNA_ACCENT } from './DnaHelix';
 import { posterOf, titleOf } from '../oracleAcervo/titles';
 import {
-  DNA_LENSES,
-  GENE_COLORS,
-  geneRarity,
+  DNA_CLOSEST,
+  DNA_SECTIONS,
+  familyOf,
   getOracleDna,
   peekOracleDna,
-  relativesFor,
-  type DnaLens,
+  sharesThemes,
   type DnaMedia,
   type DnaPredLabel,
   type DnaRelative,
   type DnaResult,
+  type DnaSection,
 } from '../../lib/oracleDna';
 import { MOOD_BY_KEY } from '../../lib/moods';
 import { FOCUS_RING, INK, MIST, ORACLE_BY_ID, PAPER, PIXEL, VELVET, ratingTone, withAlpha, type OracleId } from '../../lib/oracleTheme';
 
 import EquippedCover from '../EquippedCover';
-// Oracle DNA (18/11/2026) — o botão do menu do filme abre esta gaveta POR
-// CIMA do menu: o oráculo "sequencia" o título e mostra os parentes dele em
-// todas as prateleiras (qualquer oráculo, qualquer humor, filme ou série).
+// Oracle DNA (18/11/2026) — o símbolo de DNA na linha de ações do menu do
+// título abre esta gaveta POR CIMA do menu: o oráculo "sequencia" o título e
+// mostra a família dele em todas as prateleiras (qualquer oráculo, qualquer
+// humor, filme ou série). O cálculo é do banco (public.oracle_dna) — ver
+// lib/oracleDna.ts.
 //
-//   • No alto, a voz do oráculo (frases escritas à mão, sem IA), a hélice e
-//     o genoma: os genes do título que têm nome, do mais raro ao mais comum.
-//     Tocar num gene filtra os parentes que carregam aquele gene.
-//   • As lentes: Gêmeos, Outras prateleiras (o mesmo tema em outro humor ou
-//     com outro oráculo), Raízes (mais antigos), Herdeiros (mais novos), Na
-//     outra tela (série ↔ filme) e Assinatura (mesmo diretor ou elenco).
-//   • Cada parente: a afinidade (%), os genes em comum, o porquê (diretor,
-//     elenco, cinéfilos que amaram os dois, país) e a sua nota / a prevista.
-//   • Tocar num parente abre o menu dele por cima desta gaveta (fechar volta
-//     para cá); quem cuida disso é o menu do filme (onOpenTitle).
-// O cálculo é do banco (public.oracle_dna) — ver lib/oracleDna.ts.
+// 24/11/2026 — REDESENHO ("tudo muito colorido e uma explosão de informações
+// que se confundem"). O que saiu e por quê:
+//   • doze cores de gene, três bolinhas de raridade e a contagem em cada ficha
+//     do genoma: as fichas agora são todas iguais (a ordem já é do mais raro
+//     ao mais comum); só a ficha escolhida se destaca;
+//   • as seis lentes em abas: mostravam quase os mesmos títulos (cada parente
+//     aparecia em duas, em média). Viraram seções de uma página só, e cada
+//     parente aparece uma vez (lib/oracleDna.ts → familyOf);
+//   • em cada parente: a régua colorida das quatro fitas, a porcentagem em
+//     quatro cores, o avatar do oráculo, o humor colorido, os genes cada um
+//     numa cor, os ícones dos porquês, a bandeira do país, "anime" e "preto e
+//     branco" (o "corpo" pesa no máximo 0,1 da conta e só quando os temas já
+//     batem: não é motivo para mostrar);
+//   • a porcentagem de quem NÃO divide temas (seção "A mesma mão"): era sempre
+//     39% ou 50%, o piso do diretor em comum, e não dizia nada.
+// O que ficou: a voz do oráculo, a hélice, o genoma com o filtro por gene, e
+// em cada parente o título, o ano e o humor, os genes em comum, a mão em
+// comum, a afinidade e a sua nota (ou a prevista). Duas cores de texto, uma
+// cor de destaque (a do DNA) e a cor da nota, que é a língua do site inteiro.
+//
+// Tocar num parente abre o menu dele por cima desta gaveta (fechar volta
+// para cá); quem cuida disso é o menu do filme (onOpenTitle).
 
 interface OracleDnaSheetProps {
   open: boolean;
@@ -58,37 +71,12 @@ interface OracleDnaSheetProps {
   zIndexClass?: string;
 }
 
-const PCT_TONES: { min: number; color: string }[] = [
-  { min: 85, color: '#F0ABFC' },
-  { min: 70, color: '#5EEAD4' },
-  { min: 55, color: '#FDE68A' },
-  { min: 0, color: MIST },
-];
-const pctColor = (pct: number) => (PCT_TONES.find((tone) => pct >= tone.min) || PCT_TONES[PCT_TONES.length - 1]).color;
-
-// As quatro fitas, nas cores usadas na régua de cada parente e na explicação.
-const STRANDS = [
-  { key: 'themes', color: '#E879F9' },
-  { key: 'author', color: '#FB923C' },
-  { key: 'crowd', color: '#38BDF8' },
-  { key: 'body', color: '#A3E635' },
-] as const;
-
-const countryFlag = (code: string) => {
-  if (!code || code.length !== 2) return '🌍';
-  return String.fromCodePoint(...code.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0)));
-};
-
-const regionName = (code: string, lang: string) => {
-  try {
-    return new Intl.DisplayNames([lang], { type: 'region' }).of(code) || code;
-  } catch {
-    return code;
-  }
-};
-
 // Frase do oráculo: fixa por título (o mesmo filme, a mesma frase).
 const VOICE_COUNT = 3;
+// Quantos parentes cada seção mostra antes do "Mostrar mais".
+const SECTION_FIRST = 4;
+// As seções que levam uma linha explicando o critério.
+const HINTED: DnaSection[] = ['roots', 'heirs', 'screen', 'hand'];
 
 const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   open,
@@ -110,16 +98,16 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   const [data, setData] = useState<DnaResult | null>(() => (open ? peekOracleDna(titleId, mediaType) : null));
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
-  const [lens, setLens] = useState<DnaLens>('twins');
   const [gene, setGene] = useState<number | null>(null);
   const [howOpen, setHowOpen] = useState(false);
+  const [expanded, setExpanded] = useState<DnaSection[]>([]);
 
-  // Título novo (ou gaveta reaberta): lente e filtro do zero.
+  // Título novo (ou gaveta reaberta): filtro e seções do zero.
   const key = `${mediaType}:${titleId}`;
   useEffect(() => {
-    setLens('twins');
     setGene(null);
     setHowOpen(false);
+    setExpanded([]);
   }, [key]);
 
   useEffect(() => {
@@ -161,42 +149,24 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
 
   const items = useMemo(() => data?.items ?? [], [data]);
   const source = data?.source ?? null;
-
-  // As lentes com algum parente (as vazias somem); a contagem respeita o gene.
-  const lensCounts = useMemo(() => {
-    const out = {} as Record<DnaLens, number>;
-    DNA_LENSES.forEach((l) => {
-      out[l] = relativesFor(items, l, gene).length;
-    });
-    return out;
-  }, [items, gene]);
-  const lensesShown = useMemo(
-    () => DNA_LENSES.filter((l) => items.some((i) => i.lenses.includes(l))),
-    [items]
-  );
-  useEffect(() => {
-    if (lensesShown.length && !lensesShown.includes(lens)) setLens(lensesShown[0]);
-  }, [lensesShown, lens]);
-
-  const list = useMemo(() => relativesFor(items, lens, gene), [items, lens, gene]);
-
-  // Genoma: a cor de cada gene e quantos parentes carregam cada um.
   const genome = useMemo(() => data?.genome ?? [], [data]);
-  const geneColor = useMemo(() => {
-    const map = new Map<number, string>();
-    genome.forEach((g, i) => map.set(g.id, GENE_COLORS[i % GENE_COLORS.length]));
-    return map;
-  }, [genome]);
+  const sourceYear = source?.year ?? year ?? null;
+
+  // A família em seções; cada parente aparece uma vez (o filtro por gene vale
+  // para todas).
+  const family = useMemo(() => familyOf(items, sourceYear, mediaType, gene), [items, sourceYear, mediaType, gene]);
+  const sectionsShown = DNA_SECTIONS.filter((section) => family[section].length > 0);
+
+  // Quantos parentes carregam cada gene do genoma (sem nenhum, a ficha não filtra).
   const carriers = useMemo(() => {
     const map = new Map<number, number>();
     items.forEach((it) => it.shared.forEach((id) => map.set(id, (map.get(id) || 0) + 1)));
     return map;
   }, [items]);
-  const highlightIndex = gene === null ? null : genome.findIndex((g) => g.id === gene);
+  const canFilter = genome.some((g) => (carriers.get(g.id) || 0) > 0);
 
   const geneLabel = (id: number) => {
-    const fromGenome = genome.find((g) => g.id === id);
-    const g = fromGenome || data?.genes[String(id)];
+    const g = genome.find((entry) => entry.id === id) || data?.genes[String(id)];
     if (!g) return null;
     return isPt ? g.pt : g.en;
   };
@@ -205,68 +175,57 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   // parente mais forte (ou a Cypher, que mora no escuro).
   const voiceOracle: OracleId = source?.oracle ?? items[0]?.oracle ?? 'cypher';
   const voice = ORACLE_BY_ID[voiceOracle];
-  const voiceLine = !source
+  // Sem nenhum parente a frase ("olha a família que apareceu") desmentia a
+  // tela: quem fala é o aviso de órfão.
+  const voiceLine = !source || items.length === 0
     ? null
     : !source.in_shelf
       ? t('oracleDna.voice.outside')
       : t(`oracleDna.voice.${voiceOracle}.${titleId % VOICE_COUNT}`);
 
-  const otherScreenLabel = mediaType === 'tv' ? t('oracleDna.lens.screenMovies') : t('oracleDna.lens.screenSeries');
-  const lensLabel = (l: DnaLens) => (l === 'screen' ? otherScreenLabel : t(`oracleDna.lens.${l}`));
-
   const predLabel: DnaPredLabel = data?.predLabel ?? 'hidden';
+  const sectionTitle = (section: DnaSection) =>
+    section === 'screen' ? t(mediaType === 'tv' ? 'oracleDna.section.screenMovies' : 'oracleDna.section.screenSeries') : t(`oracleDna.section.${section}`);
 
-  // ---------- Topo: voz, hélice e genoma ----------
+  // ---------- Topo: a voz, a hélice e o genoma ----------
   const hero = (
     <section>
       {voiceLine && (
         <SheetFade id={`voice-${key}`} className="flex items-start gap-3">
-          <img
-            src={voice.avatar}
-            alt=""
-            aria-hidden
-            className="w-9 h-9 rounded-full object-cover shrink-0"
-            style={{ boxShadow: `0 0 0 1.5px ${voice.color}` }}
-          />
-          <p className="text-[15px] leading-snug" style={{ color: PAPER }}>
-            <span className="sr-only">{voice.name}: </span>
-            <span style={{ color: voice.color }} className="font-semibold mr-1.5" aria-hidden>
+          <img src={voice.avatar} alt="" aria-hidden className="w-8 h-8 mt-0.5 rounded-full object-cover shrink-0 ring-1 ring-white/15" />
+          <p className="min-w-0 text-[14.5px] leading-snug" style={{ color: PAPER }}>
+            <span className="sr-only">{voice.name}: </span>“{voiceLine}”
+            <span className="block mt-1 text-xs" style={{ color: MIST }} aria-hidden>
               {voice.name}
             </span>
-            “{voiceLine}”
           </p>
         </SheetFade>
       )}
 
-      <div className="mt-4 rounded-2xl ring-1 ring-white/[0.08] overflow-hidden" style={{ background: withAlpha('#1C1433', 0.9) }}>
-        <div className="h-[72px] w-full">
-          <DnaHelix
-            className="w-full h-full"
-            bases={genome.map((g) => geneColor.get(g.id) || MIST)}
-            highlight={highlightIndex !== null && highlightIndex >= 0 ? highlightIndex : null}
-            busy={status === 'loading'}
-          />
-        </div>
-        <div className="px-4 pb-4 pt-1">
-          {status === 'loading' ? (
-            <p className="text-sm" style={{ color: MIST }} aria-live="polite">
-              {t('oracleDna.sequencing')}
-            </p>
-          ) : status === 'ready' && source ? (
-            <>
-              <p className="flex items-baseline justify-between gap-3 text-xs uppercase tracking-wide" style={{ color: MIST }}>
-                <span>{t('oracleDna.genomeTitle')}</span>
-                {source.genes > 0 && (
-                  <span className="normal-case tracking-normal">{t('oracleDna.genomeCount', { count: source.genes })}</span>
-                )}
-              </p>
-              {genome.length > 0 ? (
-                <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={t('oracleDna.genomeAria')} title={t('oracleDna.genomeAria')}>
+      <DnaHelix className={voiceLine ? 'mt-4' : ''} />
+
+      <div className="mt-3">
+        {status === 'loading' ? (
+          <p className="text-sm" style={{ color: MIST }} aria-live="polite">
+            {t('oracleDna.sequencing')}
+          </p>
+        ) : status === 'ready' && source && source.genes > 0 ? (
+          <>
+            <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-tight">
+              {t('oracleDna.genomeTitle')}
+            </h3>
+            {genome.length > 0 ? (
+              <>
+                <p className="mt-1 text-[12.5px] leading-snug" style={{ color: MIST }}>
+                  {t('oracleDna.genomeCount', { count: source.genes })}
+                  {genome.length < source.genes && t('oracleDna.genomeNamed', { count: genome.length })}.
+                  {canFilter && ` ${t('oracleDna.genomeTap')}`}
+                </p>
+                <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={t('oracleDna.genomeAria')}>
                   {genome.map((g) => {
-                    const color = geneColor.get(g.id) || MIST;
                     const count = carriers.get(g.id) || 0;
                     const active = gene === g.id;
-                    const rarity = geneRarity(g.df);
+                    const label = isPt ? g.pt : g.en;
                     return (
                       <li key={g.id}>
                         <button
@@ -274,129 +233,82 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
                           disabled={count === 0}
                           aria-pressed={active}
                           onClick={() => setGene(active ? null : g.id)}
-                          aria-label={t('oracleDna.geneAria', {
-                            gene: isPt ? g.pt : g.en,
-                            rarity: t(`oracleDna.rarity.${rarity}`),
-                            count,
-                          })}
-                          title={t(`oracleDna.rarity.${rarity}`)}
-                          className={`inline-flex items-center gap-1.5 h-7 pl-2 pr-2 rounded-full text-[12.5px] font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${FOCUS_RING}`}
+                          aria-label={t('oracleDna.geneAria', { gene: label, count })}
+                          className={`inline-flex items-center h-8 px-3 rounded-full text-[13px] font-medium transition-colors disabled:cursor-default ${count > 0 && !active ? 'hover:bg-white/[0.12]' : ''} ${FOCUS_RING}`}
                           style={
                             active
-                              ? { background: color, color: INK, boxShadow: `0 0 14px ${withAlpha(color, 0.45)}` }
-                              : { background: withAlpha(color, 0.1), color, boxShadow: `inset 0 0 0 1px ${withAlpha(color, 0.35)}` }
+                              ? { background: PAPER, color: INK }
+                              : count > 0
+                                ? { background: 'rgba(255,255,255,0.07)', color: PAPER }
+                                : { color: withAlpha(MIST, 0.62), boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)' }
                           }
                         >
-                          <span className="inline-flex gap-[2px]" aria-hidden>
-                            {[1, 2, 3].map((dot) => (
-                              <span
-                                key={dot}
-                                className="w-1 h-1 rounded-full"
-                                style={{ background: active ? INK : color, opacity: dot <= rarity ? 1 : 0.22 }}
-                              />
-                            ))}
-                          </span>
-                          {isPt ? g.pt : g.en}
-                          {count > 0 && (
-                            <span className="ml-0.5 text-[11px] tabular-nums" style={{ opacity: active ? 0.75 : 0.7 }} aria-hidden>
-                              {count}
-                            </span>
-                          )}
+                          {label}
                         </button>
                       </li>
                     );
                   })}
                 </ul>
-              ) : (
-                <p className="mt-2 text-sm leading-snug" style={{ color: MIST }}>
-                  {source.genes > 0 ? t('oracleDna.genomeUnnamed') : t('oracleDna.genomeEmpty')}
-                </p>
-              )}
-            </>
-          ) : null}
-        </div>
+              </>
+            ) : (
+              <p className="mt-1.5 text-sm leading-snug" style={{ color: MIST }}>
+                {t('oracleDna.genomeUnnamed')}
+              </p>
+            )}
+          </>
+        ) : null}
       </div>
     </section>
   );
 
-  // ---------- As lentes ----------
-  const lensBar = lensesShown.length > 1 && (
-    <div className="mt-5 -mx-5 sm:-mx-7 px-5 sm:px-7 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div role="tablist" aria-label={t('oracleDna.lensesAria')} className="flex gap-1.5 w-max">
-        {lensesShown.map((l) => {
-          const active = l === lens;
-          return (
-            <button
-              key={l}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls="dna-relatives"
-              id={`dna-lens-${l}`}
-              onClick={() => setLens(l)}
-              className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium transition ${FOCUS_RING}`}
-              style={
-                active
-                  ? { background: PAPER, color: INK }
-                  : { background: VELVET, color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)' }
-              }
-            >
-              {lensLabel(l)}
-              <span className="text-[11px] tabular-nums" style={{ opacity: 0.65 }}>
-                {lensCounts[l]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
   // ---------- Um parente ----------
-  const renderRelative = (rel: DnaRelative, index: number) => {
+  const renderRelative = (rel: DnaRelative, section: DnaSection) => {
     const name = titleOf(rel, lang) || '—';
     const poster = posterOf(rel, lang);
-    const oracle = ORACLE_BY_ID[rel.oracle];
     const mood = MOOD_BY_KEY[rel.mood];
-    const named = rel.shared.filter((id) => geneLabel(id));
-    const shownGenes = named.slice(0, 4);
-    const moreGenes = rel.n_shared - shownGenes.length;
+    const kin = sharesThemes(rel);
     const loading = loadingId === rel.id;
 
-    // O porquê além dos temas: no máximo dois, do mais forte ao mais leve.
-    const whys: { key: string; icon: React.ReactNode; text: string }[] = [];
-    if (rel.same_director) {
-      // Série com série: o "diretor" do banco é quem criou a série.
-      const creator = mediaType === 'tv' && rel.media_type === 'tv';
-      whys.push({ key: 'dir', icon: <Clapperboard className="w-3.5 h-3.5" aria-hidden />, text: t(creator ? 'oracleDna.why.creator' : 'oracleDna.why.director') });
-    }
-    if (rel.cast.length > 0) whys.push({ key: 'cast', icon: <Film className="w-3.5 h-3.5" aria-hidden />, text: t('oracleDna.why.cast', { name: rel.cast[0] }) });
-    if (rel.co_lovers >= 2) whys.push({ key: 'crowd', icon: <Users className="w-3.5 h-3.5" aria-hidden />, text: t('oracleDna.why.crowd', { count: rel.co_lovers }) });
-    if (rel.countries.length > 0) whys.push({ key: 'country', icon: <span aria-hidden>{countryFlag(rel.countries[0])}</span>, text: regionName(rel.countries[0], lang) });
-    if (rel.anime) whys.push({ key: 'anime', icon: null, text: t('oracleDna.why.anime') });
-    if (rel.bw) whys.push({ key: 'bw', icon: null, text: t('oracleDna.why.bw') });
+    // Onde ele mora: o tipo (só quando é da outra tela e a seção não diz), o
+    // ano e o humor da prateleira.
+    const meta = [
+      rel.media_type !== mediaType && section !== 'screen' ? t(rel.media_type === 'tv' ? 'oracleDna.series' : 'oracleDna.film') : null,
+      rel.year ? String(rel.year) : null,
+      mood ? t(mood.labelKey) : ORACLE_BY_ID[rel.oracle].name,
+    ].filter(Boolean);
+
+    // Os genes em comum que têm nome (até três); o resto vira "+N".
+    const named = rel.shared.filter((id) => geneLabel(id));
+    const shownGenes = named.slice(0, 3);
+    const moreGenes = rel.n_shared - shownGenes.length;
+
+    // A mão em comum e a plateia: no máximo dois, do mais forte ao mais leve.
+    const whys: string[] = [];
+    // Série com série: o "diretor" do banco é quem criou a série.
+    if (rel.same_director) whys.push(t(mediaType === 'tv' && rel.media_type === 'tv' ? 'oracleDna.why.creator' : 'oracleDna.why.director'));
+    if (rel.cast.length > 0) whys.push(t('oracleDna.why.cast', { name: rel.cast[0] }));
+    if (rel.co_lovers >= 2) whys.push(t('oracleDna.why.crowd', { count: rel.co_lovers }));
     const shownWhys = whys.slice(0, 2);
 
-    // A régua das quatro fitas (só desenho; o texto ao lado diz o mesmo).
-    const strandLevels = [
-      Math.min(1, rel.kw / 0.15),
-      rel.same_director ? 1 : rel.cast.length ? 0.6 : 0,
-      rel.co_lovers >= 2 ? Math.min(1, rel.co_lovers / 4) : 0,
-      Math.min(1, (rel.countries.length ? 0.5 : 0) + (rel.anime || rel.bw ? 0.3 : 0) + (source?.mood && rel.mood === source.mood ? 0.3 : 0)),
-    ];
+    // A sua relação com ele: a nota, ou a watchlist e a nota prevista.
+    const rated = rel.my_rating !== null;
+    const pred = !rated && rel.pred !== null && predLabel !== 'hidden' ? rel.pred : null;
 
-    const myTone = rel.my_rating !== null ? ratingTone(rel.my_rating) : rel.in_watchlist ? ratingTone(null) : null;
-    const showPred = rel.my_rating === null && rel.pred !== null && predLabel !== 'hidden';
-    const predTone = showPred ? ratingTone(rel.pred) : null;
-    const pColor = pctColor(rel.pct);
+    const aria = kin
+      ? rel.year
+        ? t('oracleDna.openRelative', { title: name, year: rel.year, pct: rel.pct })
+        : t('oracleDna.openRelativeNoYear', { title: name, pct: rel.pct })
+      : rel.year
+        ? t('oracleDna.openTitle', { title: name, year: rel.year })
+        : t('oracleDna.openTitleNoYear', { title: name });
 
     return (
-      <li key={`${rel.media_type}:${rel.id}`} className="search-row" style={{ '--row-i': Math.min(index, 12) } as React.CSSProperties}>
+      <li key={`${rel.media_type}:${rel.id}`}>
         <button
           type="button"
           onClick={() => onOpenTitle(rel.id, rel.media_type)}
-          aria-label={rel.year ? t('oracleDna.openRelative', { title: name, year: rel.year, pct: rel.pct }) : t('oracleDna.openRelativeNoYear', { title: name, pct: rel.pct })}
-          className={`group w-full flex items-start gap-3 rounded-xl px-2 py-2.5 text-left transition hover:bg-white/[0.05] active:bg-white/[0.08] ${FOCUS_RING}`}
+          aria-label={aria}
+          className={`w-full flex items-start gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.05] active:bg-white/[0.08] ${FOCUS_RING}`}
         >
           <span className="relative w-[52px] shrink-0 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
             {poster ? (
@@ -416,115 +328,106 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
           </span>
 
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 min-w-0">
-              <span className="font-medium leading-snug truncate" style={{ color: PAPER }}>{name}</span>
-              {rel.media_type === 'tv' && (
-                <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-semibold uppercase tracking-wide" style={{ background: withAlpha('#A78BFA', 0.16), color: '#C4B5FD' }}>
-                  <Tv className="w-3 h-3" aria-hidden />
-                  {t('oracleDna.series')}
-                </span>
-              )}
+            <span className="block font-medium leading-snug line-clamp-2 break-words" style={{ color: PAPER }}>
+              {name}
             </span>
-            <span className="mt-0.5 flex items-center gap-1.5 text-[12.5px] min-w-0" style={{ color: MIST }}>
-              {rel.year && <span className="shrink-0">{rel.year}</span>}
-              {rel.year && <span aria-hidden className="shrink-0 opacity-50">·</span>}
-              <img
-                src={oracle.avatar}
-                alt=""
-                aria-hidden
-                title={oracle.name}
-                className="w-4 h-4 rounded-full object-cover shrink-0"
-                style={{ boxShadow: `0 0 0 1px ${oracle.color}` }}
-              />
-              <span className="sr-only">{t('oracleDna.shelfOf', { oracle: oracle.name })}</span>
-              {mood ? (
-                <span className="truncate" style={{ color: mood.color }}>{t(mood.labelKey)}</span>
-              ) : (
-                <span className="truncate" style={{ color: oracle.color }}>{oracle.name}</span>
-              )}
+            <span className="block mt-0.5 text-[12.5px] truncate" style={{ color: MIST }}>
+              {meta.join(' · ')}
             </span>
 
             {(shownGenes.length > 0 || moreGenes > 0) && (
-              <span className="mt-1 text-[12.5px] leading-snug line-clamp-2 break-words">
-                <span className="sr-only">{t('oracleDna.sharedAria', { count: rel.n_shared })}: </span>
-                {shownGenes.map((id, i) => {
-                  const c = geneColor.get(id) || '#E9D5FF';
-                  const hot = gene === id;
-                  return (
+              <span className="mt-1.5 flex items-start gap-1.5 text-[12.5px] leading-snug">
+                <Dna className="w-3.5 h-3.5 mt-[2px] shrink-0" style={{ color: MIST }} aria-hidden />
+                <span className="min-w-0 line-clamp-2 break-words" style={{ color: withAlpha(PAPER, 0.84) }}>
+                  <span className="sr-only">{t('oracleDna.sharedAria', { count: rel.n_shared })}: </span>
+                  {shownGenes.map((id, i) => (
                     <React.Fragment key={id}>
-                      {i > 0 && (
-                        <span aria-hidden className="mx-1" style={{ color: MIST, opacity: 0.5 }}>
-                          ·
-                        </span>
-                      )}
-                      <span style={{ color: c, fontWeight: hot ? 700 : 500, textShadow: hot ? `0 0 10px ${withAlpha(c, 0.6)}` : undefined }}>{geneLabel(id)}</span>
+                      {i > 0 && ', '}
+                      <span style={gene === id ? { color: PAPER, fontWeight: 700 } : undefined}>{geneLabel(id)}</span>
                     </React.Fragment>
-                  );
-                })}
-                {moreGenes > 0 && (
-                  <span className="tabular-nums" style={{ color: MIST }}>
-                    {shownGenes.length > 0 ? ` ${t('oracleDna.moreGenes', { count: moreGenes })}` : t('oracleDna.unnamedGenes', { count: moreGenes })}
-                  </span>
-                )}
+                  ))}
+                  {moreGenes > 0 && (
+                    <span className="tabular-nums" style={{ color: MIST }}>
+                      {/* espaço que não quebra: o "+1" não fica sozinho na linha de baixo */}
+                      {shownGenes.length > 0 ? `\u00A0${t('oracleDna.moreGenes', { count: moreGenes })}` : t('oracleDna.unnamedGenes', { count: moreGenes })}
+                    </span>
+                  )}
+                </span>
               </span>
             )}
 
             {shownWhys.length > 0 && (
-              <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]" style={{ color: MIST }}>
-                {shownWhys.map((w) => (
-                  <span key={w.key} className="inline-flex items-center gap-1 min-w-0">
-                    {w.icon}
-                    <span className="truncate">{w.text}</span>
-                  </span>
-                ))}
+              <span className="block mt-1 text-xs leading-snug" style={{ color: MIST }}>
+                {shownWhys.join(' · ')}
               </span>
             )}
           </span>
 
-          <span className="shrink-0 flex flex-col items-end gap-1.5 pl-1">
-            <span className="flex items-end gap-1.5">
-              <span className="flex items-end gap-[2px] h-5 pb-[3px]" aria-hidden>
-                {STRANDS.map((s, i) => (
-                  <span
-                    key={s.key}
-                    className="w-[3px] rounded-full"
-                    style={{ height: `${4 + strandLevels[i] * 13}px`, background: s.color, opacity: strandLevels[i] > 0 ? 0.35 + 0.65 * strandLevels[i] : 0.18 }}
-                  />
-                ))}
-              </span>
-              <span className="text-right leading-none">
-                <span style={{ ...PIXEL, color: pColor, textShadow: rel.pct >= 85 ? `0 0 14px ${withAlpha('#F0ABFC', 0.5)}` : undefined }} className="block text-[22px] tabular-nums">
-                  {rel.pct}%
-                </span>
-              </span>
-            </span>
-            {myTone ? (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold leading-none"
-                style={{ color: myTone.color, boxShadow: `inset 0 0 0 1px ${myTone.ring}` }}
-              >
-                {rel.my_rating !== null ? (
-                  t('person.yourRating', { rating: rel.my_rating })
-                ) : (
-                  <>
-                    <Bookmark className="w-3 h-3" aria-hidden />
-                    {t('person.inWatchlist')}
-                  </>
-                )}
-              </span>
-            ) : null}
-            {showPred && predTone && (
-              <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold leading-none"
-                style={{ color: predTone.color, background: withAlpha('#8B5CF6', 0.12) }}
-                title={t('oracleDna.predHint')}
-              >
-                {predLabel === 'guess' ? t('acervo.pred.guess', { n: rel.pred }) : t('oracleDna.predicted', { n: rel.pred })}
+          <span className="shrink-0 pl-1 text-right">
+            {kin && (
+              <span style={{ ...PIXEL, color: PAPER }} className="block text-[17px] leading-none tabular-nums" title={t('oracleDna.pctHint')}>
+                {rel.pct}%
               </span>
             )}
+            {rated ? (
+              <span className={`block text-[11.5px] font-semibold leading-none ${kin ? 'mt-2' : 'mt-0.5'}`} style={{ color: ratingTone(rel.my_rating).color }}>
+                {t('oracleDna.yours', { n: rel.my_rating })}
+              </span>
+            ) : rel.in_watchlist || pred !== null ? (
+              <span
+                className={`inline-flex items-center justify-end gap-1 text-[11.5px] leading-none ${kin ? 'mt-2' : 'mt-0.5'}`}
+                style={{ color: MIST }}
+                title={pred !== null ? t('oracleDna.predHint') : undefined}
+              >
+                {rel.in_watchlist && (
+                  <>
+                    <Bookmark className="w-3 h-3" aria-hidden />
+                    <span className={pred !== null ? 'sr-only' : undefined}>{t('oracleDna.saved')}</span>
+                  </>
+                )}
+                {pred !== null && (predLabel === 'guess' ? t('acervo.pred.guess', { n: pred }) : t('oracleDna.predicted', { n: pred }))}
+              </span>
+            ) : null}
           </span>
         </button>
       </li>
+    );
+  };
+
+  // ---------- Uma seção da família ----------
+  const renderSection = (section: DnaSection, index: number) => {
+    const list = family[section];
+    const first = section === 'closest' ? DNA_CLOSEST : SECTION_FIRST;
+    // Um só escondido não vale um botão: a seção mostra todos.
+    const showAll = expanded.includes(section) || list.length <= first + 1;
+    const shown = showAll ? list : list.slice(0, first);
+    const hidden = list.length - shown.length;
+    const headingId = `dna-section-${section}`;
+    return (
+      <section key={section} aria-labelledby={headingId} className={index === 0 ? 'mt-7' : 'mt-6'}>
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+          <h3 id={headingId} style={{ ...PIXEL, color: PAPER }} className="text-lg leading-tight">
+            {sectionTitle(section)}
+          </h3>
+          {HINTED.includes(section) && (
+            <p className="text-[12.5px] leading-snug" style={{ color: MIST }}>
+              {t(`oracleDna.sectionHint.${section}`)}
+            </p>
+          )}
+        </div>
+        <ol className="mt-1.5 -mx-2">{shown.map((rel) => renderRelative(rel, section))}</ol>
+        {hidden > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => [...current, section])}
+            className={`mt-0.5 inline-flex items-center gap-1 h-9 px-2 -ml-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-white/[0.06] ${FOCUS_RING}`}
+            style={{ color: MIST }}
+          >
+            {t('oracleDna.more', { count: hidden })}
+            <ChevronDown className="w-4 h-4" aria-hidden />
+          </button>
+        )}
+      </section>
     );
   };
 
@@ -532,16 +435,15 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   let body: React.ReactNode = null;
   if (status === 'loading') {
     body = (
-      <ul className="mt-6 space-y-2" aria-busy="true" aria-label={t('common.loading')}>
+      <ul className="mt-7 space-y-2" aria-busy="true" aria-label={t('common.loading')}>
         {[0, 1, 2, 3].map((i) => (
-          <li key={i} className="flex items-center gap-3 px-2 py-2">
+          <li key={i} className="flex items-center gap-3 py-2">
             <span className="w-[52px] aspect-[2/3] rounded-md animate-pulse" style={{ background: VELVET }} />
             <span className="flex-1 space-y-2">
               <span className="block h-4 w-3/5 rounded animate-pulse" style={{ background: VELVET }} />
               <span className="block h-3 w-2/5 rounded animate-pulse" style={{ background: VELVET }} />
-              <span className="block h-5 w-4/5 rounded-full animate-pulse" style={{ background: VELVET }} />
+              <span className="block h-3 w-4/5 rounded animate-pulse" style={{ background: VELVET }} />
             </span>
-            <span className="w-10 h-6 rounded animate-pulse" style={{ background: VELVET }} />
           </li>
         ))}
       </ul>
@@ -573,12 +475,8 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
   } else {
     body = (
       <>
-        {lensBar}
-        <p className="mt-3 text-[13px] leading-snug" style={{ color: MIST }}>
-          {t(`oracleDna.lensHint.${lens}`)}
-        </p>
         {gene !== null && (
-          <div className="mt-3">
+          <div className="mt-5">
             <button
               type="button"
               onClick={() => setGene(null)}
@@ -591,21 +489,13 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
             </button>
           </div>
         )}
-        <SheetFade id={`${lens}-${gene ?? 'all'}`}>
-          {list.length === 0 ? (
-            <p className="mt-5 text-sm" style={{ color: MIST }}>
-              {t('oracleDna.emptyLens')}
-            </p>
+        <SheetFade id={gene ?? 'all'}>
+          {sectionsShown.length > 0 ? (
+            sectionsShown.map(renderSection)
           ) : (
-            <ol
-              id="dna-relatives"
-              role={lensesShown.length > 1 ? 'tabpanel' : undefined}
-              aria-labelledby={lensesShown.length > 1 ? `dna-lens-${lens}` : undefined}
-              aria-label={lensesShown.length > 1 ? undefined : lensLabel(lens)}
-              className="mt-3 -mx-2 space-y-0.5"
-            >
-              {list.map(renderRelative)}
-            </ol>
+            <p className="mt-5 text-sm" style={{ color: MIST }}>
+              {t('oracleDna.emptyGene')}
+            </p>
           )}
         </SheetFade>
       </>
@@ -614,32 +504,23 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
 
   // ---------- Como se lê ----------
   const how = status === 'ready' && items.length > 0 && (
-    <section className="mt-6 pt-4 border-t border-white/[0.07]">
+    <section className="mt-7 pt-4 border-t border-white/[0.07]">
       <button
         type="button"
         onClick={() => setHowOpen((v) => !v)}
         aria-expanded={howOpen}
-        className={`inline-flex items-center gap-2 text-sm font-medium rounded ${FOCUS_RING}`}
-        style={{ color: '#F0ABFC' }}
+        className={`inline-flex items-center gap-2 text-[13px] font-medium rounded ${FOCUS_RING}`}
+        style={{ color: MIST }}
       >
         <Info className="w-4 h-4" aria-hidden />
         {t('oracleDna.how.title')}
+        <ChevronDown className={`w-4 h-4 transition-transform ${howOpen ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {howOpen && (
-        <SheetFade id="how" className="mt-3 space-y-2.5">
-          <ul className="space-y-2.5">
-            {STRANDS.map((s) => (
-              <li key={s.key} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: PAPER }}>
-                <span className="mt-[3px] w-[3px] h-3.5 rounded-full shrink-0" style={{ background: s.color }} aria-hidden />
-                <span>
-                  <span className="font-semibold" style={{ color: s.color }}>{t(`oracleDna.how.${s.key}Title`)}</span>
-                  {' — '}
-                  {t(`oracleDna.how.${s.key}`)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-[12.5px] leading-snug" style={{ color: MIST }}>{t('oracleDna.how.note')}</p>
+        <SheetFade id="how" className="mt-3 space-y-2.5 max-w-[62ch] text-[13px] leading-relaxed">
+          <p style={{ color: PAPER }}>{t('oracleDna.how.genes')}</p>
+          <p style={{ color: PAPER }}>{t('oracleDna.how.pct')}</p>
+          <p style={{ color: MIST }}>{t('oracleDna.how.note')}</p>
         </SheetFade>
       )}
     </section>
@@ -652,8 +533,8 @@ const OracleDnaSheet: React.FC<OracleDnaSheetProps> = ({
       title={t('oracleDna.title')}
       subtitle={[title, year].filter(Boolean).join(' · ')}
       leading={
-        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl overflow-hidden" style={{ background: withAlpha('#E879F9', 0.14) }}>
-          <DnaHelix size="icon" bases={GENE_COLORS.slice(0, 4)} className="w-9 h-9" />
+        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl" style={{ background: withAlpha(DNA_ACCENT, 0.12), color: DNA_ACCENT }}>
+          <Dna className="w-5 h-5" aria-hidden />
         </span>
       }
       size="lg"
