@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Loader2, Search, X } from 'lucide-react';
+import { Loader2, RotateCw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import DirectorPage from '../components/director/DirectorPage';
 import { BRASS, PANEL, useDirectorLang } from '../lib/directorUi';
 import DirectorMfaCard from '../components/director/DirectorMfaCard';
+import PosterArtPicker from '../components/director/PosterArtPicker';
 import { useDirector } from '../contexts/DirectorContext';
 import { NIGHT, PAPER, MIST, VELVET, FOCUS_RING } from '../lib/oracleTheme';
 import { RARITY_META, RARITIES } from '../lib/posterJackpot';
@@ -51,6 +52,8 @@ const COPY = {
     pick: 'Escolher',
     loading: 'Trazendo o título e as artes…',
     noImages: 'O TMDB não tem outras artes para este título.',
+    imagesFailed: 'Não consegui buscar as artes deste título no TMDB.',
+    retryImages: 'Tentar de novo',
     existing: 'Pôsteres deste título',
     noneYet: 'Ainda nenhum pôster deste título.',
     offShelf: 'Este título não está em nenhuma prateleira dos oráculos.',
@@ -82,6 +85,8 @@ const COPY = {
     pick: 'Pick',
     loading: 'Bringing the title and the artwork…',
     noImages: 'TMDB has no other artwork for this title.',
+    imagesFailed: "I couldn't fetch this title's artwork from TMDB.",
+    retryImages: 'Try again',
     existing: 'Posters of this title',
     noneYet: 'No poster of this title yet.',
     offShelf: 'This title is not on any oracle shelf.',
@@ -107,7 +112,8 @@ const COPY = {
   },
 } as const;
 
-type Chosen = { hit: SearchHit; info: TitleInfo | null; images: TmdbImage[] | null };
+// imagesFailed: a lista de artes não veio (rede, limite de pedidos); a tela diz e deixa tentar de novo
+type Chosen = { hit: SearchHit; info: TitleInfo | null; images: TmdbImage[] | null; imagesFailed?: boolean };
 
 export default function DirectorPosters() {
   const lang = useDirectorLang();
@@ -177,12 +183,30 @@ export default function DirectorPosters() {
         setChosen(null);
         return;
       }
-      const [info, images] = await Promise.all([fetchTitleInfo(hit.media, hit.id), fetchPosterImages(hit.media, hit.id).catch(() => [])]);
-      setChosen({ hit, info, images });
+      const [info, images] = await Promise.all([
+        fetchTitleInfo(hit.media, hit.id),
+        fetchPosterImages(hit.media, hit.id).catch((error) => {
+          console.error('Director poster images:', error);
+          return null;
+        }),
+      ]);
+      setChosen({ hit, info, images: images ?? [], imagesFailed: images === null });
     } catch (error) {
       fail(error);
       setChosen(null);
     }
+  };
+
+  // 24/11/2026: buscar de novo só as artes (o título e os pôsteres dele ficam)
+  const reloadImages = async () => {
+    if (!chosen) return;
+    const hit = chosen.hit;
+    setChosen({ ...chosen, images: null, imagesFailed: false });
+    const images = await fetchPosterImages(hit.media, hit.id).catch((error) => {
+      console.error('Director poster images:', error);
+      return null;
+    });
+    setChosen((current) => (current && current.hit === hit ? { ...current, images: images ?? [], imagesFailed: images === null } : current));
   };
 
   const create = async () => {
@@ -332,39 +356,27 @@ export default function DirectorPosters() {
                 )}
 
                 <h3 className="mt-5 text-sm font-semibold" style={{ color: PAPER }}>{c.art}</h3>
-                {chosen.images.length === 0 ? (
-                  <p className="mt-1 text-xs" style={{ color: MIST }}>{c.noImages}</p>
-                ) : (
-                  <div role="radiogroup" aria-label={c.art} className="mt-2 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2">
-                    {chosen.images.map((img) => {
-                      const used = usedPaths.has(img.file_path);
-                      const selected = image === img.file_path;
-                      return (
-                        <button
-                          key={img.file_path}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          aria-label={`${img.lang ?? '—'} ${used ? c.used : ''}`}
-                          disabled={used}
-                          onClick={() => setImage(img.file_path)}
-                          className={`relative block min-h-0 rounded-lg overflow-hidden disabled:opacity-35 ${FOCUS_RING}`}
-                          style={{ aspectRatio: '2 / 3', boxShadow: selected ? `0 0 0 3px ${RARITY_META[rarity].color}` : '0 0 0 1px rgba(243,234,211,0.12)' }}
-                        >
-                          <img src={IMG(img.file_path)} alt="" loading="lazy" className="w-full h-full object-cover" />
-                          <span className="absolute left-1 top-1 rounded px-1 text-[10px] font-semibold uppercase" style={{ background: 'rgba(18,13,34,0.75)', color: PAPER }}>
-                            {img.lang ?? '—'}
-                          </span>
-                          {selected && (
-                            <span className="absolute right-1 top-1 grid place-items-center w-6 h-6 rounded-full" style={{ background: RARITY_META[rarity].color, color: NIGHT }}>
-                              <Check className="w-4 h-4" aria-hidden />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* 24/11/2026: a grade das artes virou director/PosterArtPicker (todas as
+                    artes, filtro por idioma, miniaturas com estado, prévia e o campo
+                    de colar o link). Erro ao buscar a lista não é mais "sem artes". */}
+                {chosen.imagesFailed && (
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: '#FCA5A5' }}>
+                    {c.imagesFailed}
+                    <button
+                      type="button"
+                      onClick={reloadImages}
+                      className={`inline-flex items-center gap-1.5 h-8 min-h-0 px-3 rounded-full text-xs font-semibold ${FOCUS_RING}`}
+                      style={{ color: PAPER, border: '1px solid rgba(243,234,211,0.25)' }}
+                    >
+                      <RotateCw className="w-3.5 h-3.5" aria-hidden />
+                      {c.retryImages}
+                    </button>
+                  </p>
                 )}
+                {!chosen.imagesFailed && chosen.images.length === 0 && (
+                  <p className="mt-1 text-xs" style={{ color: MIST }}>{c.noImages}</p>
+                )}
+                <PosterArtPicker lang={lang} images={chosen.images} usedPaths={usedPaths} value={image} onChange={setImage} accent={RARITY_META[rarity].color} />
 
                 <h3 className="mt-5 text-sm font-semibold" style={{ color: PAPER }}>{c.rarity}</h3>
                 <div role="radiogroup" aria-label={c.rarity} className="mt-2 flex flex-wrap gap-2">

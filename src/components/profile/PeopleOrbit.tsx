@@ -74,7 +74,10 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
   const reduceMotion = useReducedMotion();
   const [sheet, setSheet] = useState<PersonSeed | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
-  const [role, setRole] = useState<'cast' | 'director'>(actors.length === 0 && directors.length > 0 ? 'director' : 'cast');
+  // 24/11/2026 (pedido do Bruno: "No perfil do usuário faça com que 'direção'
+  // apareça antes de 'atuação'"): a Direção é a primeira aba e é a que abre.
+  // Só abre na Atuação quem ainda não tem diretor para mostrar e já tem ator.
+  const [role, setRole] = useState<'cast' | 'director'>(directors.length === 0 && actors.length > 0 ? 'cast' : 'director');
 
   const openPerson = (person: ObservatoryPerson, personRole: 'cast' | 'director') => {
     if (!person.id) {
@@ -201,7 +204,7 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
       />
       <div className="mt-4 flex items-center justify-between gap-3">
         <div role="tablist" aria-label={t('profile.observatory.peopleTitle')} className="inline-flex p-1 rounded-full ring-1 ring-white/10" style={{ background: 'rgba(18,13,34,0.6)' }}>
-          {(['cast', 'director'] as const).map((id) => {
+          {(['director', 'cast'] as const).map((id) => {
             const active = role === id;
             return (
               <button

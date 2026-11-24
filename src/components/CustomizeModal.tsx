@@ -306,6 +306,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     return { isPremiumLocked, unlockInfo, progress: Math.min(progress, required || progress), required, tagMet, isLocked: isPremiumLocked || !tagMet, kit };
   };
 
+  // 24/11/2026 (pedido do Bruno: "Faça com que avatares e banners
+  // desbloqueados apareçam por primeiro no menu de customização"): em cada
+  // aba, primeiro o padrão, depois o que a pessoa já pode usar, por último o
+  // que ainda está bloqueado. Dentro de cada grupo a ordem de sempre. O que
+  // decide é o mesmo `isLocked` que desenha o cadeado, então a lista nunca
+  // discorda do ladrilho. A ordem só muda quando um bloqueio muda (ganhou a
+  // tag, virou Premium): escolher um item não embaralha nada.
+  const unlockedFirst = <T extends { id: string }>(items: T[], isLocked: (item: T) => boolean): T[] => {
+    const standard = items.filter((item) => item.id === 'default');
+    const others = items.filter((item) => item.id !== 'default');
+    return [...standard, ...others.filter((item) => !isLocked(item)), ...others.filter((item) => isLocked(item))];
+  };
+
   // ---- Peças visuais compartilhadas ----
   const tileClass = (selected: boolean, locked: boolean) =>
     `cz-tile group relative w-full rounded-2xl text-left ring-1 transition ${FOCUS_RING} ${
@@ -371,7 +384,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   // ---- Molduras ----
   const renderFrameContent = () => {
-    const ordered = [frames.default, ...Object.values(frames).filter((frame) => frame.id !== 'default')];
+    const ordered = unlockedFirst(Object.values(frames), (frame) => lockState(frame, `frame:${frame.id}`).isLocked);
 
     const avatarPreview = (frame: (typeof frames)[FrameId], animate: boolean) => {
       if ('renderType' in frame && frame.renderType === 'component') {
@@ -432,7 +445,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   // ---- Banners ----
   const renderBannerContent = () => {
-    const ordered = [banners.default, ...Object.values(banners).filter((banner) => banner.id !== 'default')];
+    const ordered = unlockedFirst(Object.values(banners), (banner) => lockState(banner, `banner:${banner.id}`).isLocked);
 
     // Mini simulação de como o cabeçalho do perfil fica em cima do banner —
     // com o avatar e nome de usuário reais.
@@ -505,7 +518,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         {t('customize.cards.oracleCards')}
       </p>
       <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {Object.values(ORACLE_CARDS).map((card) => {
+        {unlockedFirst(Object.values(ORACLE_CARDS), (card) => lockState(card).isLocked).map((card) => {
           const state = lockState(card);
           const selected = selectedCard === card.id;
           const busy = savingKey === `card:${card.id}`;
@@ -553,7 +566,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   // Screenwriter, Marquee Lights/Memoirist).
   const renderTextEffectsContent = () => {
     const previewName = username ? `@${username}` : `@${t('customize.you')}`;
-    const ordered = Object.values(textEffects);
+    const ordered = unlockedFirst(Object.values(textEffects), (effect) => !meetsTextEffectRequirement(effect.id, isPremium, reviewCount));
 
     return (
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">

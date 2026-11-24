@@ -163,8 +163,24 @@ export interface TmdbImage {
 }
 
 // As artes de pôster de um título (só a conta diretor passa no tmdb-proxy).
+//
+// 24/11/2026 (pedido do Bruno: "Pôsteres às vezes não carregam no modo diretor
+// quando tento implantar um novo"): até aqui vinham só as artes marcadas como
+// português, inglês ou sem idioma, e só as 40 primeiras (O Exterminador do
+// Futuro 2 tem 163). Agora vêm todas, de todos os idiomas, na ordem do TMDB;
+// quem filtra e mostra em lotes é a tela (director/PosterArtPicker.tsx).
+// Sem `language` o TMDB devolveria tudo, mas tmdbFetch põe o idioma do site
+// em todo pedido que não traz um; por isso a lista explícita de idiomas.
+// Lembrete: o tmdb-proxy guarda esta lista por 7 dias. Uma arte enviada ao
+// TMDB depois disso não aparece até o prazo vencer; para ela existe o campo
+// de colar o link (posterPathFromLink).
+const POSTER_LANGS =
+  'pt,en,null,es,fr,de,it,ja,ko,zh,cn,ru,pl,tr,nl,sv,da,no,fi,cs,hu,el,he,ar,hi,th,uk,ro,bg,hr,sr,sk,sl,lt,lv,et,vi,id,ms,fa,ca';
+const POSTER_FILE = /^\/[A-Za-z0-9_-]{5,64}\.(jpg|jpeg|png)$/;
+
 export async function fetchPosterImages(media: TitleType, id: number): Promise<TmdbImage[]> {
-  const data = await tmdbFetch(`/${media}/${id}/images?include_image_language=pt,en,null`);
+  const data = await tmdbFetch(`/${media}/${id}/images?include_image_language=${POSTER_LANGS}`);
+  const seen = new Set<string>();
   return ((data?.posters || []) as Record<string, unknown>[])
     .map((p) => ({
       file_path: String(p.file_path || ''),
@@ -173,8 +189,23 @@ export async function fetchPosterImages(media: TitleType, id: number): Promise<T
       width: Number(p.width) || 0,
       height: Number(p.height) || 0,
     }))
-    .filter((p) => /^\/[A-Za-z0-9_-]{5,64}\.(jpg|jpeg|png)$/.test(p.file_path))
-    .slice(0, 40);
+    .filter((p) => {
+      if (!POSTER_FILE.test(p.file_path) || seen.has(p.file_path)) return false;
+      seen.add(p.file_path);
+      return true;
+    });
+}
+
+// O arquivo de uma arte a partir do que a pessoa colou: o link do TMDB
+// (https://image.tmdb.org/t/p/original/abc.jpg), o endereço da página da
+// imagem ou só o nome do arquivo. Devolve "/abc.jpg" (a forma que o banco
+// aceita em director_poster_create) ou null.
+export function posterPathFromLink(text: string): string | null {
+  const clean = text.trim().split(/[?#]/)[0];
+  const match = clean.match(/(?:^|\/)([A-Za-z0-9_-]{5,64}\.(?:jpg|jpeg|png))$/i);
+  if (!match) return null;
+  const path = `/${match[1].replace(/\.(JPG|JPEG|PNG)$/, (ext) => ext.toLowerCase())}`;
+  return POSTER_FILE.test(path) ? path : null;
 }
 
 export type PosterRarity = 'common' | 'rare' | 'epic' | 'legendary';
