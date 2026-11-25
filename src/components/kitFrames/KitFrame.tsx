@@ -264,8 +264,9 @@ export function KitFrame({ kit, src, alt = '', size = 120, className = '' }: Kit
         <div className="kit-face">{photo}</div>
         <div className="kit-face kit-back kit-back--turned" aria-hidden>
           {echo}
-          <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 44%, transparent 28%, rgba(18, 22, 14, 0.6) 78%)' }} />
-          <span className="absolute inset-0" style={{ background: 'rgba(86, 104, 64, 0.22)', mixBlendMode: 'multiply' }} />
+          {/* 25/11/2026: a sombra e o verde numa peça só (.kit-turned-veil,
+              cosmeticKits.css), redonda por conta própria */}
+          <span className="kit-turned-veil" />
           <Veins />
         </div>
         {rim}

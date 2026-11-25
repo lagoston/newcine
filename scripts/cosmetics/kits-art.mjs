@@ -96,7 +96,12 @@ function gotScene() {
 
   // montanhas: picos com neve
   const far = 'M0,200 L0,178 L40,158 L78,128 L104,140 L142,104 L176,132 L206,112 L240,138 L270,118 L300,134 L336,100 L372,128 L400,118 L400,200 Z';
-  const near = 'M0,200 L0,194 L60,186 L120,172 L160,150 L188,162 L224,136 L256,160 L284,146 L310,156 L326,134 L344,146 L372,138 L400,152 L400,200 Z';
+  // 25/11/2026: o castelo ficava equilibrado na ponta de um pico (o cume em
+  // 326,134 com a base do castelo indo de 318 a 359: metade dele no ar, com o
+  // clarão do fogo aparecendo por baixo). Agora o morro de perto tem um
+  // rochedo de topo chato, um pouco mais largo que o castelo, com a encosta
+  // caindo dos dois lados.
+  const near = 'M0,200 L0,194 L60,186 L120,172 L160,150 L188,162 L224,136 L256,160 L284,146 L298,153 L307,146 L311,139 L314,137 L363,137 L366,140 L371,141 L378,147 L390,148 L400,153 L400,200 Z';
   // capas de neve nos picos de longe: triângulo com a borda de baixo serrilhada
   const cap = (px, py, w, h) => `M${px - w},${py + h} L${px},${py} L${px + w},${py + h} L${px + w * 0.5},${py + h - 2} L${px + w * 0.15},${py + h + 1.5} L${px - w * 0.3},${py + h - 1.5} Z`;
   const snow = [cap(142, 104, 10, 9), cap(206, 112, 8, 7), cap(270, 118, 8, 6), cap(336, 100, 11, 10), cap(78, 128, 7, 6), cap(400, 118, 7, 6)].join(' ');

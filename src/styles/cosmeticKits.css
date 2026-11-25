@@ -140,6 +140,19 @@
   height: 100%;
   object-fit: cover;
 }
+/* 25/11/2026: cada peça de dentro de uma face é redonda POR CONTA PRÓPRIA.
+   Até aqui só a face era redonda (overflow: hidden) e as peças de dentro eram
+   quadradas, contando com o recorte dela. Num celular, uma peça com filtro,
+   mistura de cor ou animação vira uma camada da placa de vídeo e pode escapar
+   do recorte arredondado do pai: o Bruno viu o "efeito zumbi" do The Walking
+   Dead QUADRADO, por fora do aro. É a mesma falha dos efeitos dos pôsteres
+   (22/11, posterJackpot.css). */
+.kit-face > img,
+.kit-face > svg,
+.kit-face > span,
+.kit-photo {
+  border-radius: inherit;
+}
 
 /* ---- Game of Thrones: gira em 3D e o olho do dragão se abre (12 s) ------- */
 .kit-scene--got {
@@ -332,7 +345,22 @@
 }
 .kit-back--turned {
   opacity: 0;
+  /* cinto e suspensório (25/11/2026): além de cada peça ser redonda, a face
+     inteira é recortada em círculo; o clip-path vale para as camadas da placa
+     de vídeo também */
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
   animation: kit-turn 15s ease-in-out infinite;
+}
+/* a sombra das bordas e o verde por cima da foto: uma peça só, sem
+   mix-blend-mode (a mistura de cor era mais uma camada para escapar do
+   recorte; o tom saiu igual somando o verde escuro por cima) */
+.kit-turned-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(34, 46, 20, 0.2), rgba(34, 46, 20, 0.2)),
+    radial-gradient(circle at 50% 44%, transparent 28%, rgba(18, 22, 14, 0.6) 78%);
 }
 @keyframes kit-turn {
   0%, 63% { opacity: 0; }

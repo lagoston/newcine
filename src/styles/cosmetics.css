@@ -325,11 +325,21 @@
   z-index: 0;
 }
 
-/* O fio de contorno na cor do tema: outline por dentro da borda (não briga
-   com o box-shadow/ring de quem usa o banner e acompanha o arredondado). */
+/* O fio de contorno na cor do tema.
+   25/11/2026: é uma BORDA de verdade. Até aqui era um outline por dentro da
+   caixa, e o navegador pinta o outline ANTES dos filhos posicionados: a cena
+   do banner (::after), a textura e as peças que andam (::before, BannerFx)
+   passavam por cima do fio. Nos kits da Cobra, em que a cena encosta na
+   direita e embaixo (o morro de Game of Thrones, os prédios da Família
+   Soprano, a cerca de The Walking Dead), o fio sumia nesses lados e, com as
+   luzes das janelas e a névoa passando bem em cima dele, ficava piscando — o
+   Bruno viu isso nas prévias do Personalizar. Com a borda, tudo o que é
+   desenhado dentro do banner mora na caixa de dentro (inset: 0 parte da borda
+   para dentro) e o recorte (overflow: clip) também: nada alcança o fio.
+   Continua acompanhando o arredondado de quem usa e não briga com o
+   ring/box-shadow (que fica por fora). */
 .co-banner {
-  outline: 1px solid var(--co-line);
-  outline-offset: -1px;
+  border: 1px solid var(--co-line);
   /* 18/11/2026 (Reborn, bateria A7): o movimento dos banners passou a andar
      com transform (uma peça maior que o banner deslizando, só na placa de
      vídeo) em vez de background-position (que repintava o banner inteiro a
