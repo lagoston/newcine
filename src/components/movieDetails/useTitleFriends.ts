@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Q, isMissingFunction, useCached } from '../../lib/data';
 import type { FriendRating } from './shared';
@@ -15,6 +15,15 @@ import type { FriendRating } from './shared';
 // nos níveis 2 e 3). A resposta fica guardada 2 min por pessoa + título (reabrir
 // não pede de novo) e só na memória: é dado de outras pessoas. A cascata antiga
 // continua abaixo como PLANO B, para um banco que ainda não tenha a função.
+//
+// 25/11/2026 (pedido do Bruno: "uma bolha do meu próprio usuário aparece em
+// filmes cujos quais possuem uma resenha escrita minha [...] Um próprio usuário
+// nunca pode ver sua bolha na capa"). O nível 2 ("resenhas de quem ainda não
+// apareceu") não tirava a própria pessoa: a lista de quem já apareceu começava
+// vazia, na função do banco e na cascata daqui. Corrigido nos três lugares:
+// a função (migração 20261125191000_bolha_propria_fora.sql), a cascata (a
+// pessoa já entra como "usada") e a saída do hook (withoutSelf), que vale
+// também para uma resposta guardada de antes ou vinda de um banco antigo.
 
 type Entry = { user_id: string; rating: number | null };
 type Profile = { id: string; username: string; avatar_url: string | null };
@@ -26,7 +35,8 @@ async function fetchFriendRatings(userId: string, movieId: number, mediaType: 'm
   // Rastreia quem já está em `combined` pra nenhum nível seguinte
   // repetir a mesma pessoa (ex.: um amigo de amigo que também
   // aparece nas reviews aleatórias de terceiros).
-  const usedUserIds = new Set<string>();
+  // 25/11/2026: a própria pessoa já entra como "usada" (nunca vira bolha).
+  const usedUserIds = new Set<string>([userId]);
 
   // Nível 1: amigos diretos (amizade é simétrica — pega o outro
   // lado da relação, seja qual for quem enviou o pedido
@@ -270,12 +280,20 @@ async function loadTitleSocial(userId: string, movieId: number, mediaType: 'movi
 
 const NO_FRIENDS: FriendRating[] = [];
 
+// 25/11/2026: a própria pessoa nunca é bolha, venha a lista de onde vier.
+const withoutSelf = (list: FriendRating[], userId: string | null): FriendRating[] => {
+  if (!userId || !list.some((f) => f.user_id === userId)) return list;
+  return list.filter((f) => f.user_id !== userId);
+};
+
 export function useTitleFriends(movieId: number, mediaType: 'movie' | 'tv', userId: string | null) {
   const query = useCached<FriendRating[]>(Q.titleSocial(userId, mediaType, movieId), () => loadTitleSocial(userId as string, movieId, mediaType));
   const { error } = query;
   useEffect(() => {
     if (error) console.error('Error loading friend ratings:', error);
   }, [error]);
+  // a mesma lista devolve a mesma referência (as bolhas são React.memo)
+  const friends = useMemo(() => withoutSelf(query.data ?? NO_FRIENDS, userId), [query.data, userId]);
   // sem login nada é pedido e as bolhas ficam "carregando", como antes
-  return { friends: query.data ?? NO_FRIENDS, loading: query.isPending && !error };
+  return { friends, loading: query.isPending && !error };
 }

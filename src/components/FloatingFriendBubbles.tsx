@@ -111,7 +111,11 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
     return () => { cancelled = true; };
   }, [movieId, mediaType, session?.user?.id, maxBubbles, preloaded]);
 
-  const bubbles = friends ? friends.slice(0, maxBubbles) : fetchedBubbles;
+  // 25/11/2026 (pedido do Bruno: "Um próprio usuário nunca pode ver sua bolha
+  // na capa"): estas bolhas só trazem amigos, mas a regra fica escrita aqui
+  // também, para valer seja qual for a lista que chegar.
+  const myId = session?.user?.id;
+  const bubbles = (friends ?? fetchedBubbles).filter((bubble) => bubble.user_id !== myId).slice(0, maxBubbles);
   const loading = preloaded ? false : fetching;
 
   const getBubbleColor = (rating: number | null) => {
