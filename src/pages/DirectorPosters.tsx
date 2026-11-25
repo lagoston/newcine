@@ -35,7 +35,9 @@ import type { TitleType } from '../lib/tmdb';
 // próprio site. Busca-se o título, escolhe-se a arte (as do TMDB, pelo
 // tmdb-proxy, que só mostra as imagens para a conta diretor) e a raridade. O
 // pôster entra como rascunho (fora do sorteio) no lote do dia, com o número da
-// raridade dado pelo banco; depois, "Pôr no sorteio". A curadoria
+// raridade dado pelo banco (desde 25/11/2026 o menor número livre: o de um
+// pôster apagado ou que mudou de raridade volta a ser usado); depois, "Pôr no
+// sorteio". A curadoria
 // (/curadoria/posteres) mostra os rascunhos ao lado dos outros para ver o
 // conjunto antes de ligar.
 //

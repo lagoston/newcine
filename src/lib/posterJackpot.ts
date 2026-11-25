@@ -24,9 +24,12 @@ export const EFFECTS: PosterEffect[] = ['holo', 'negative', 'ultra_red'];
 // Bruno) e a chance num ticket (a mesma do banco).
 export const RARITY_META: Record<PosterRarity, { color: string; glow: string; odds: number }> = {
   // 16/11/2026 (pedido do Bruno): comum 56% e lendário 3% (antes 55% e 4%).
+  // 25/11/2026 (pedido do Bruno): raro 32% e épico 9% (antes 28% e 13%; os 4
+  // pontos do épico foram para o raro). No banco: migração
+  // 20261125190000_jackpot_chances_ovni_numero_vago.sql.
   common: { color: '#B9B4AE', glow: 'rgba(185,180,174,0.5)', odds: 56 },
-  rare: { color: '#5EA8FF', glow: 'rgba(94,168,255,0.6)', odds: 28 },
-  epic: { color: '#C77DFF', glow: 'rgba(199,125,255,0.65)', odds: 13 },
+  rare: { color: '#5EA8FF', glow: 'rgba(94,168,255,0.6)', odds: 32 },
+  epic: { color: '#C77DFF', glow: 'rgba(199,125,255,0.65)', odds: 9 },
   legendary: { color: '#FFC83D', glow: 'rgba(255,200,61,0.7)', odds: 3 },
 };
 

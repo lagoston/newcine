@@ -57,7 +57,8 @@ const COPY = {
     owners: (n: number) => (n === 1 ? '1 pessoa tem este pôster. A mudança aparece na coleção dela na hora.' : `${n} pessoas têm este pôster. A mudança aparece na coleção delas na hora.`),
     noOwners: 'Ninguém tem este pôster ainda.',
     rarity: 'Raridade',
-    rarityNote: 'Ao mudar de raridade o pôster ganha um número novo, o próximo da raridade nova.',
+    // 25/11/2026: o número é o menor livre da raridade (um número vago volta a ser usado)
+    rarityNote: 'Ao mudar de raridade o pôster ganha um número novo: o menor número livre da raridade nova.',
     art: 'A arte',
     changeArt: 'Trocar a arte',
     keepArt: 'Ficar com a arte atual',
@@ -82,7 +83,7 @@ const COPY = {
     owners: (n: number) => (n === 1 ? '1 person has this poster. The change shows in their collection right away.' : `${n} people have this poster. The change shows in their collections right away.`),
     noOwners: 'Nobody has this poster yet.',
     rarity: 'Rarity',
-    rarityNote: 'Changing rarity gives the poster a new number, the next one in the new rarity.',
+    rarityNote: 'Changing rarity gives the poster a new number: the lowest free number in the new rarity.',
     art: 'Artwork',
     changeArt: 'Change the artwork',
     keepArt: 'Keep the current artwork',
