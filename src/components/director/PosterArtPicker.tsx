@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, ImageOff, RotateCw, X } from 'lucide-react';
 import { NIGHT, PAPER, MIST, VELVET, FOCUS_RING } from '../../lib/oracleTheme';
 import { tmdbImage } from '../../lib/tmdbImage';
-import { posterPathFromLink, type TmdbImage } from '../../lib/directorTools';
+import { posterPathFromLink, type TitleCovers, type TmdbImage } from '../../lib/directorTools';
 
 // A escolha da arte de um pôster novo (Sala do Diretor, /diretor/posteres).
 //
@@ -21,6 +21,13 @@ import { posterPathFromLink, type TmdbImage } from '../../lib/directorTools';
 // diz que não veio e deixa tentar; a arte escolhida aparece grande antes de
 // criar; e dá para colar o link de uma arte do TMDB (para a que acabou de ser
 // enviada e ainda não entrou na lista guardada).
+//
+// 25/11/2026, pedido do Bruno: "quais são os pôsteres já em uso em português e
+// em inglês, para que a seleção seja de um pôster realmente novo". Cada arte
+// da grade agora diz o que já é: a capa que o site mostra em português, a capa
+// em inglês, um pôster que já está na roleta ou (ao editar) a arte atual do
+// pôster. A capa pode ser escolhida, mas a tela avisa: um pôster igual à capa
+// não muda nada para quem o equipa.
 
 type Lang = 'pt' | 'en';
 
@@ -33,6 +40,14 @@ const COPY = {
     more: (left: number) => `Mostrar mais ${left}`,
     emptyFilter: 'Nenhuma arte neste filtro.',
     used: 'já na roleta',
+    tagUsed: 'na roleta',
+    tagCurrent: 'atual',
+    current: 'a arte atual deste pôster',
+    coverPt: 'capa PT',
+    coverEn: 'capa EN',
+    coverBoth: 'capa do site',
+    coverLong: { pt: 'a capa que o site mostra em português', en: 'a capa que o site mostra em inglês', both: 'a capa que o site mostra' },
+    coverWarn: (which: string) => `Esta é ${which}. Um pôster igual à capa não muda nada para quem o equipa.`,
     failed: 'Não carregou',
     retry: 'Tentar de novo',
     pasteLabel: 'Não achou a arte? Cole o link dela no TMDB',
@@ -53,6 +68,14 @@ const COPY = {
     more: (left: number) => `Show ${left} more`,
     emptyFilter: 'No artwork in this filter.',
     used: 'already in the reel',
+    tagUsed: 'in the reel',
+    tagCurrent: 'current',
+    current: "this poster's current artwork",
+    coverPt: 'PT cover',
+    coverEn: 'EN cover',
+    coverBoth: 'site cover',
+    coverLong: { pt: 'the cover the site shows in Portuguese', en: 'the cover the site shows in English', both: 'the cover the site shows' },
+    coverWarn: (which: string) => `This is ${which}. A poster identical to the cover changes nothing for whoever equips it.`,
     failed: 'Did not load',
     retry: 'Try again',
     pasteLabel: "Can't find the artwork? Paste its TMDB link",
@@ -142,11 +165,15 @@ interface PosterArtPickerProps {
   onChange: (path: string | null) => void;
   // a cor da raridade escolhida (o aro da arte selecionada)
   accent: string;
+  // as capas que o site já mostra para o título (marcadas na grade)
+  covers?: TitleCovers;
+  // ao editar um pôster: a arte que ele tem hoje (marcada, não se escolhe)
+  currentPath?: string | null;
 }
 
 type Filter = 'main' | 'all' | 'textless' | string;
 
-export default function PosterArtPicker({ lang, images, usedPaths, value, onChange, accent }: PosterArtPickerProps) {
+export default function PosterArtPicker({ lang, images, usedPaths, value, onChange, accent, covers, currentPath = null }: PosterArtPickerProps) {
   const c = COPY[lang];
   const [filter, setFilter] = useState<Filter>('main');
   const [shown, setShown] = useState(BATCH);
@@ -209,6 +236,16 @@ export default function PosterArtPicker({ lang, images, usedPaths, value, onChan
   };
   const chosen = value ? images.find((img) => img.file_path === value) ?? null : null;
   const outside = Boolean(value && !chosen);
+  // 25/11/2026: a arte é uma capa do site? ('both' = a mesma nos dois idiomas)
+  const coverOf = (path: string): 'pt' | 'en' | 'both' | null => {
+    const isPt = Boolean(covers?.pt && covers.pt === path);
+    const isEn = Boolean(covers?.en && covers.en === path);
+    // sem capa própria em português, o site mostra a de inglês nos dois idiomas
+    if (isEn && (isPt || !covers?.pt)) return 'both';
+    return isPt ? 'pt' : isEn ? 'en' : null;
+  };
+  const coverTag = { pt: c.coverPt, en: c.coverEn, both: c.coverBoth };
+  const chosenCover = value ? coverOf(value) : null;
 
   return (
     <div>
@@ -228,31 +265,47 @@ export default function PosterArtPicker({ lang, images, usedPaths, value, onChan
           ) : (
             <div role="radiogroup" aria-label={c.chosen} className="mt-2 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2">
               {visible.map((img) => {
+                const isCurrent = currentPath === img.file_path;
                 const used = usedPaths.has(img.file_path);
+                const cover = coverOf(img.file_path);
                 const selected = value === img.file_path;
                 const langLabel = img.lang ?? c.noLang;
+                // o que esta arte já é: a atual do pôster, um pôster da roleta ou uma capa do site
+                const mark = isCurrent ? c.tagCurrent : used ? c.tagUsed : cover ? coverTag[cover] : null;
+                const markLong = isCurrent ? c.current : used ? c.used : cover ? c.coverLong[cover] : null;
                 return (
                   <button
                     key={img.file_path}
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    aria-label={`${langLabel}${used ? `, ${c.used}` : ''}`}
+                    aria-label={`${langLabel}${markLong ? `, ${markLong}` : ''}`}
+                    data-mark={isCurrent ? 'current' : used ? 'used' : cover ? `cover-${cover}` : undefined}
                     disabled={used}
                     onClick={() => {
                       setPasted('');
                       onChange(img.file_path);
                     }}
-                    className={`relative block min-h-0 rounded-lg overflow-hidden disabled:opacity-35 ${FOCUS_RING}`}
+                    className={`relative block min-h-0 rounded-lg overflow-hidden disabled:cursor-not-allowed ${FOCUS_RING}`}
                     style={{ aspectRatio: '2 / 3', boxShadow: selected ? `0 0 0 3px ${accent}` : '0 0 0 1px rgba(243,234,211,0.12)' }}
                   >
                     <ArtThumb path={img.file_path} label="" failedText={c.failed} retryText={c.retry} />
+                    {/* já na roleta: a arte fica apagada, a etiqueta não (25/11/2026; antes o botão inteiro ficava a 35%) */}
+                    {used && <span className="absolute inset-0" style={{ background: 'rgba(18,13,34,0.66)' }} aria-hidden />}
                     <span className="absolute left-1 top-1 rounded px-1 text-[10px] font-semibold uppercase" style={{ background: 'rgba(18,13,34,0.75)', color: PAPER }}>
                       {img.lang ?? '—'}
                     </span>
                     {selected && (
                       <span className="absolute right-1 top-1 grid place-items-center w-6 h-6 rounded-full" style={{ background: accent, color: NIGHT }}>
                         <Check className="w-4 h-4" aria-hidden />
+                      </span>
+                    )}
+                    {mark && (
+                      <span
+                        className="absolute inset-x-0 bottom-0 px-1 py-1 text-center text-[10px] font-semibold leading-tight"
+                        style={used ? { background: 'rgba(18,13,34,0.92)', color: PAPER } : { background: '#FCD34D', color: NIGHT }}
+                      >
+                        {mark}
                       </span>
                     )}
                   </button>
@@ -307,7 +360,8 @@ export default function PosterArtPicker({ lang, images, usedPaths, value, onChan
               {value.slice(1)}
               {chosen ? ` · ${chosen.lang ?? c.noLang}${chosen.width ? ` · ${chosen.width}×${chosen.height}` : ''}` : ''}
             </p>
-            {outside && <p className="mt-1.5 text-xs" style={{ color: '#FCD34D' }}>{c.pasteOutside}</p>}
+            {chosenCover && <p className="mt-1.5 text-xs" data-cover-warn style={{ color: '#FCD34D' }}>{c.coverWarn(c.coverLong[chosenCover])}</p>}
+            {outside && !chosenCover && <p className="mt-1.5 text-xs" style={{ color: '#FCD34D' }}>{c.pasteOutside}</p>}
             {previewFailed && <p className="mt-1.5 text-xs" style={{ color: '#FCA5A5' }}>{c.previewFailed}</p>}
             <button
               type="button"

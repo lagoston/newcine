@@ -110,11 +110,21 @@ export async function ensureTitleInDb(media: TitleType, id: number): Promise<boo
   return rows.has(titleKey(media, id));
 }
 
+// As capas que o site já mostra para um título: pt = a brasileira (quando o
+// título tem uma), en = a original. 25/11/2026: a tela dos pôsteres marca as
+// duas, para o pôster novo não ser igual ao que todo mundo já vê.
+export interface TitleCovers {
+  pt: string | null;
+  en: string | null;
+}
+
 export interface TitleInfo {
   inDb: boolean;
   shelves: { card: OracleId; mood: MoodKey }[];
   raters: number;
-  posters: { id: number; rarity: string; serial: number | null; file_path: string; is_active: boolean; exclusive: string | null }[];
+  // owners: quantas pessoas têm o pôster (vem do banco desde 25/11/2026)
+  posters: { id: number; rarity: string; serial: number | null; file_path: string; is_active: boolean; exclusive: string | null; owners?: number }[];
+  covers: TitleCovers;
 }
 
 export async function fetchTitleInfo(media: TitleType, id: number): Promise<TitleInfo> {
@@ -126,6 +136,10 @@ export async function fetchTitleInfo(media: TitleType, id: number): Promise<Titl
     shelves: Array.isArray(raw.shelves) ? (raw.shelves as TitleInfo['shelves']) : [],
     raters: Number(raw.raters) || 0,
     posters: Array.isArray(raw.posters) ? (raw.posters as TitleInfo['posters']) : [],
+    covers: {
+      pt: typeof (raw.covers as TitleCovers | null)?.pt === 'string' ? (raw.covers as TitleCovers).pt : null,
+      en: typeof (raw.covers as TitleCovers | null)?.en === 'string' ? (raw.covers as TitleCovers).en : null,
+    },
   };
 }
 
@@ -216,6 +230,18 @@ export const posterCreate = (media: TitleType, id: number, rarity: PosterRarity,
 export const posterSetActive = (id: number, active: boolean, reason?: string) =>
   call('director_poster_set_active', { p_id: id, p_active: active, p_reason: reason || null });
 
+// 25/11/2026 (pedido do Bruno): apagar um rascunho. O banco só apaga o que
+// está fora do sorteio e que ninguém nunca teve, girou, trocou ou apostou; o
+// resto ele recusa (in_draw, in_use). Dá para desfazer pelo Diário.
+export const posterDelete = (id: number, reason?: string) => call('director_poster_delete', { p_id: id, p_reason: reason || null });
+
+// 25/11/2026 (pedido do Bruno): trocar a raridade e/ou a arte de um pôster da
+// roleta. Vale na hora para quem o tem (a coleção aponta para o pôster). Só
+// vai o que mudou: null = fica como está. Se alguém tem o pôster, o banco pede
+// o código do app digitado nos últimos 15 minutos.
+export const posterUpdate = (id: number, change: { rarity?: PosterRarity | null; filePath?: string | null }, reason?: string) =>
+  call('director_poster_update', { p_id: id, p_rarity: change.rarity ?? null, p_file_path: change.filePath ?? null, p_reason: reason || null });
+
 export interface AuditEntry {
   id: number;
   at: string;
@@ -252,9 +278,14 @@ const ERRORS: Record<string, Record<Lang, string>> = {
     en: 'This changed afterwards. Undo the newer changes first.',
   },
   in_use: {
-    pt: 'Alguém já teve este pôster: ele não se apaga. Tire-o do sorteio.',
-    en: 'Someone already had this poster: it cannot be deleted. Take it out of the draw.',
+    pt: 'Alguém já teve este pôster: ele não se apaga. Deixe-o fora do sorteio.',
+    en: 'Someone already had this poster: it cannot be deleted. Leave it out of the draw.',
   },
+  in_draw: {
+    pt: 'Este pôster está no sorteio. Tire-o do sorteio antes de apagar.',
+    en: 'This poster is in the draw. Take it out of the draw before deleting.',
+  },
+  poster_not_found: { pt: 'Este pôster não existe mais.', en: 'This poster no longer exists.' },
   duplicate_image: { pt: 'Esta arte já está na roleta.', en: 'This artwork is already in the wheel.' },
   bad_image: { pt: 'Arte inválida.', en: 'Invalid artwork.' },
   bad_rarity: { pt: 'Raridade inválida.', en: 'Invalid rarity.' },

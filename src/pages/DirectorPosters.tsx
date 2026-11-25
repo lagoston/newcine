@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, RotateCw, Search, X } from 'lucide-react';
+import { Loader2, Pencil, RotateCw, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import DirectorPage from '../components/director/DirectorPage';
 import { BRASS, PANEL, useDirectorLang } from '../lib/directorUi';
 import DirectorMfaCard from '../components/director/DirectorMfaCard';
 import PosterArtPicker from '../components/director/PosterArtPicker';
+import PosterEditor, { type EditablePoster } from '../components/director/PosterEditor';
 import { useDirector } from '../contexts/DirectorContext';
 import { NIGHT, PAPER, MIST, VELVET, FOCUS_RING } from '../lib/oracleTheme';
 import { RARITY_META, RARITIES } from '../lib/posterJackpot';
@@ -17,6 +18,7 @@ import {
   fetchPosterImages,
   fetchTitleInfo,
   posterCreate,
+  posterDelete,
   posterSetActive,
   searchTitles,
   titleKey,
@@ -25,6 +27,7 @@ import {
   type TitleInfo,
   type TmdbImage,
 } from '../lib/directorTools';
+import type { TitleType } from '../lib/tmdb';
 
 // Pôsteres da roleta (/diretor/posteres, 16/11/2026).
 //
@@ -35,6 +38,16 @@ import {
 // raridade dado pelo banco; depois, "Pôr no sorteio". A curadoria
 // (/curadoria/posteres) mostra os rascunhos ao lado dos outros para ver o
 // conjunto antes de ligar.
+//
+// 25/11/2026 (pedido do Bruno):
+//   • apagar um rascunho: o botão "Apagar" nos pôsteres fora do sorteio que
+//     ninguém tem (antes só dava pelo "Desfazer" do Diário, e a tela não dizia);
+//   • "Já em uso neste título": ao escolher o título, as capas que o site já
+//     mostra em português e em inglês e os pôsteres dele que já existem, e as
+//     mesmas marcas na grade das artes, para o pôster novo ser uma arte nova;
+//   • editar: trocar a raridade e a arte de qualquer pôster da roleta
+//     (director/PosterEditor.tsx), inclusive os que já estão no sorteio: a
+//     seção "Na roleta" acha o pôster pelo nome do título.
 
 const IMG = (path: string | null, size = 'w185') => (path ? tmdbImage(path, size) : '');
 
@@ -56,6 +69,23 @@ const COPY = {
     retryImages: 'Tentar de novo',
     existing: 'Pôsteres deste título',
     noneYet: 'Ainda nenhum pôster deste título.',
+    inUse: 'Já em uso neste título',
+    inUseLead: 'As capas que o site já mostra e os pôsteres que o título já tem. O pôster novo deve ser uma arte diferente destas.',
+    covers: 'Capas do site',
+    coverPt: 'em português',
+    coverEn: 'em inglês',
+    coverBoth: 'em português e em inglês (o título não tem capa própria em português)',
+    coverNone: 'O título não tem capa guardada no banco.',
+    edit: 'Editar',
+    del: 'Apagar',
+    delConfirm: 'Tocar de novo apaga',
+    deleted: 'Rascunho apagado. Dá para desfazer no Diário.',
+    owners: (n: number) => (n === 1 ? '1 pessoa tem' : `${n} pessoas têm`),
+    reel: 'Na roleta',
+    reelLead: 'Para mudar a raridade ou a arte de um pôster que já está no sorteio, procure pelo nome do título. A mudança vale na hora para quem o tem.',
+    reelPh: 'Nome do título',
+    reelNone: 'Nenhum pôster no sorteio com esse nome.',
+    reelMore: (n: number) => `E mais ${n}. Escreva mais do nome para achar.`,
     offShelf: 'Este título não está em nenhuma prateleira dos oráculos.',
     art: 'A arte',
     used: 'já na roleta',
@@ -74,7 +104,7 @@ const COPY = {
     outDraw: 'fora do sorteio',
     curation: 'Ver na curadoria',
     cancel: 'Cancelar',
-    needMfa: 'Criar e pôr no sorteio pede o código do app autenticador.',
+    needMfa: 'Criar, editar, apagar e pôr no sorteio pedem o código do app autenticador.',
     notInDb: 'Não deu para trazer este título para o banco agora.',
   },
   en: {
@@ -89,6 +119,23 @@ const COPY = {
     retryImages: 'Try again',
     existing: 'Posters of this title',
     noneYet: 'No poster of this title yet.',
+    inUse: 'Already in use for this title',
+    inUseLead: 'The covers the site already shows and the posters this title already has. The new poster should be a different artwork from these.',
+    covers: 'Site covers',
+    coverPt: 'in Portuguese',
+    coverEn: 'in English',
+    coverBoth: 'in Portuguese and English (the title has no cover of its own in Portuguese)',
+    coverNone: 'The title has no cover stored in the database.',
+    edit: 'Edit',
+    del: 'Delete',
+    delConfirm: 'Tap again to delete',
+    deleted: 'Draft deleted. You can undo it in the Diary.',
+    owners: (n: number) => (n === 1 ? '1 person has it' : `${n} people have it`),
+    reel: 'In the wheel',
+    reelLead: "To change the rarity or the artwork of a poster that's already in the draw, search by the title's name. The change counts right away for whoever has it.",
+    reelPh: "Title's name",
+    reelNone: 'No poster in the draw with that name.',
+    reelMore: (n: number) => `And ${n} more. Type more of the name to find it.`,
     offShelf: 'This title is not on any oracle shelf.',
     art: 'Artwork',
     used: 'already in the wheel',
@@ -107,7 +154,7 @@ const COPY = {
     outDraw: 'out of the draw',
     curation: 'See it in curation',
     cancel: 'Cancel',
-    needMfa: 'Creating and putting in the draw ask for the authenticator code.',
+    needMfa: 'Creating, editing, deleting and putting in the draw ask for the authenticator code.',
     notInDb: "Couldn't bring this title into the database right now.",
   },
 } as const;
@@ -129,6 +176,12 @@ export default function DirectorPosters() {
   const [busy, setBusy] = useState(false);
   const [catalog, setCatalog] = useState<CurationPoster[] | null>(null);
   const [toggling, setToggling] = useState<number | null>(null);
+  // 25/11/2026: o pôster aberto no editor, o rascunho armado para apagar (o
+  // segundo toque apaga), o que está sendo apagado e a busca da seção "Na roleta"
+  const [editing, setEditing] = useState<EditablePoster | null>(null);
+  const [armed, setArmed] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [reelQuery, setReelQuery] = useState('');
 
   const loadCatalog = useCallback(async () => {
     try {
@@ -241,34 +294,106 @@ export default function DirectorPosters() {
     }
   };
 
+  // depois de editar ou apagar: a lista de fora do sorteio, a busca da roleta
+  // e, se houver um título escolhido, os pôsteres dele
+  const reloadAll = async () => {
+    await loadCatalog();
+    if (chosen) {
+      const hit = chosen.hit;
+      const info = await fetchTitleInfo(hit.media, hit.id).catch(() => null);
+      if (info) setChosen((current) => (current && current.hit === hit ? { ...current, info } : current));
+    }
+  };
+
+  const remove = async (id: number) => {
+    if (armed !== id) {
+      setArmed(id);
+      return;
+    }
+    setArmed(null);
+    setDeleting(id);
+    try {
+      await posterDelete(id);
+      toast.success(c.deleted);
+      await reloadAll();
+    } catch (error) {
+      fail(error);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const ownersById = useMemo(() => new Map((catalog || []).map((p) => [p.id, p.owners])), [catalog]);
+  const titleName = (p: CurationPoster) => `${(lang === 'pt' ? p.title_pt || p.title_en : p.title_en || p.title_pt) ?? `#${p.tmdb_id}`}${p.year ? ` (${p.year})` : ''}`;
+  // "Na roleta": os pôsteres no sorteio cujo título bate com a busca
+  const reelHits = useMemo(() => {
+    const q = reelQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return (catalog || []).filter((p) => p.is_active && p.exclusive === null && `${p.title_pt ?? ''} ${p.title_en ?? ''}`.toLowerCase().includes(q));
+  }, [catalog, reelQuery]);
+  const REEL_MAX = 12;
+
   const canChange = director.mfa;
-  const posterRow = (p: { id: number; rarity: string; serial: number | null; file_path: string; is_active: boolean; exclusive: string | null }, label?: string) => {
+  type RowPoster = { id: number; rarity: string; serial: number | null; file_path: string; is_active: boolean; exclusive: string | null; owners?: number };
+  // where: a que título o pôster pertence (o editor precisa para buscar as artes)
+  const posterRow = (p: RowPoster, where: { media: TitleType; tmdbId: number; title: string }, label?: string) => {
     const meta = RARITY_META[p.rarity as PosterRarity];
+    const owners = typeof p.owners === 'number' ? p.owners : ownersById.get(p.id) ?? 0;
+    const ghost = { color: PAPER, border: '1px solid rgba(243,234,211,0.2)' };
     return (
-      <li key={p.id} className="flex items-center gap-3 rounded-xl p-2" style={PANEL}>
+      <li key={p.id} data-poster={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl p-2" style={PANEL}>
         <img src={IMG(p.file_path, 'w92')} alt="" loading="lazy" className="w-12 rounded object-cover shrink-0" style={{ height: 72, boxShadow: `0 0 0 2px ${meta?.color ?? MIST}` }} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-32">
           {label && <p className="text-sm font-medium truncate" style={{ color: PAPER }}>{label}</p>}
           <p className="text-xs" style={{ color: meta?.color ?? MIST }}>
             {RARITY_NAME[lang][p.rarity as PosterRarity] ?? p.rarity} {p.serial ? `· nº ${p.serial}` : ''}
           </p>
-          <p className="text-xs" style={{ color: MIST }}>{p.exclusive ? 'Pôster Poker' : p.is_active ? c.inDraw : c.outDraw}</p>
+          <p className="text-xs" style={{ color: MIST }}>
+            {p.exclusive ? 'Pôster Poker' : p.is_active ? c.inDraw : c.outDraw}
+            {owners > 0 && ` · ${c.owners(owners)}`}
+          </p>
         </div>
         {!p.exclusive && (
-          <button
-            type="button"
-            disabled={!canChange || toggling === p.id}
-            onClick={() => toggle(p.id, !p.is_active)}
-            className={`shrink-0 inline-flex items-center gap-1 h-10 min-h-0 px-3 rounded-full text-xs font-semibold disabled:opacity-40 ${FOCUS_RING}`}
-            style={p.is_active ? { color: '#FCA5A5', border: '1px solid rgba(248,113,113,0.4)' } : { background: BRASS, color: NIGHT }}
-          >
-            {toggling === p.id && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />}
-            {p.is_active ? c.deactivate : c.activate}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto">
+            {/* apagar: só fora do sorteio e sem dono (o banco confere de novo) */}
+            {!p.is_active && owners === 0 && (
+              <button
+                type="button"
+                disabled={!canChange || deleting === p.id}
+                onClick={() => remove(p.id)}
+                onBlur={() => armed === p.id && setArmed(null)}
+                className={`shrink-0 inline-flex items-center gap-1 h-10 min-h-0 px-3 rounded-full text-xs font-semibold disabled:opacity-40 ${FOCUS_RING}`}
+                style={armed === p.id ? { background: '#DC2626', color: '#fff' } : { color: '#FCA5A5', border: '1px solid rgba(248,113,113,0.4)' }}
+              >
+                {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : <Trash2 className="w-3.5 h-3.5" aria-hidden />}
+                {armed === p.id ? c.delConfirm : c.del}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setEditing({ id: p.id, media: where.media, tmdbId: where.tmdbId, title: where.title, rarity: p.rarity as PosterRarity, serial: p.serial, file_path: p.file_path, is_active: p.is_active, owners })}
+              className={`shrink-0 inline-flex items-center gap-1 h-10 min-h-0 px-3 rounded-full text-xs font-semibold ${FOCUS_RING}`}
+              style={ghost}
+            >
+              <Pencil className="w-3.5 h-3.5" aria-hidden />
+              {c.edit}
+            </button>
+            <button
+              type="button"
+              disabled={!canChange || toggling === p.id}
+              onClick={() => toggle(p.id, !p.is_active)}
+              className={`shrink-0 inline-flex items-center gap-1 h-10 min-h-0 px-3 rounded-full text-xs font-semibold disabled:opacity-40 ${FOCUS_RING}`}
+              style={p.is_active ? { color: '#FCA5A5', border: '1px solid rgba(248,113,113,0.4)' } : { background: BRASS, color: NIGHT }}
+            >
+              {toggling === p.id && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />}
+              {p.is_active ? c.deactivate : c.activate}
+            </button>
+          </div>
         )}
       </li>
     );
   };
+  const catalogRow = (p: CurationPoster) => posterRow(p, { media: p.media_type, tmdbId: p.tmdb_id, title: titleName(p) }, titleName(p));
 
   return (
     <DirectorPage title={c.title} lead={c.lead}>
@@ -348,12 +473,43 @@ export default function DirectorPosters() {
                 {chosen.info.shelves.length === 0 && (
                   <p className="mt-2 text-xs" style={{ color: '#FCD34D' }}>{c.offShelf}</p>
                 )}
-                <h3 className="mt-4 text-sm font-semibold" style={{ color: PAPER }}>{c.existing}</h3>
-                {chosen.info.posters.length === 0 ? (
-                  <p className="mt-1 text-xs" style={{ color: MIST }}>{c.noneYet}</p>
-                ) : (
-                  <ul className="mt-2 grid gap-2 sm:grid-cols-2">{chosen.info.posters.map((p) => posterRow(p))}</ul>
-                )}
+                {/* 25/11/2026: o que o título já usa — as capas do site (pt e en) e os
+                    pôsteres que já existem — para a arte nova ser mesmo nova */}
+                <div className="mt-4 rounded-xl p-3" style={{ background: 'rgba(18,13,34,0.5)', border: '1px solid rgba(243,234,211,0.08)' }} data-in-use>
+                  <h3 className="text-sm font-semibold" style={{ color: PAPER }}>{c.inUse}</h3>
+                  <p className="mt-0.5 text-xs" style={{ color: MIST }}>{c.inUseLead}</p>
+                  <p className="mt-3 text-xs font-semibold" style={{ color: PAPER }}>{c.covers}</p>
+                  {(() => {
+                    const { pt, en } = chosen.info.covers;
+                    // sem capa própria em português (ou igual), o site mostra a de inglês nos dois idiomas
+                    const same = Boolean(en) && (!pt || pt === en);
+                    const list: { path: string; text: string; key: string }[] = same
+                      ? [{ path: en as string, text: c.coverBoth, key: 'both' }]
+                      : [
+                          ...(pt ? [{ path: pt, text: c.coverPt, key: 'pt' }] : []),
+                          ...(en ? [{ path: en, text: c.coverEn, key: 'en' }] : []),
+                        ];
+                    if (list.length === 0) return <p className="mt-1 text-xs" style={{ color: MIST }}>{c.coverNone}</p>;
+                    return (
+                      <ul className="mt-2 flex flex-wrap gap-3">
+                        {list.map((cover) => (
+                          <li key={cover.key} data-cover={cover.key} className="flex items-center gap-2.5 max-w-[16rem]">
+                            <img src={IMG(cover.path, 'w154')} alt="" loading="lazy" className="w-16 rounded-md object-cover shrink-0" style={{ aspectRatio: '2 / 3', background: VELVET, boxShadow: '0 0 0 1px rgba(243,234,211,0.18)' }} />
+                            <span className="text-xs leading-snug" style={{ color: MIST }}>{cover.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                  <p className="mt-4 text-xs font-semibold" style={{ color: PAPER }}>{c.existing}</p>
+                  {chosen.info.posters.length === 0 ? (
+                    <p className="mt-1 text-xs" style={{ color: MIST }}>{c.noneYet}</p>
+                  ) : (
+                    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {chosen.info.posters.map((p) => posterRow(p, { media: chosen.hit.media, tmdbId: chosen.hit.id, title: `${chosen.hit.title}${chosen.hit.year ? ` (${chosen.hit.year})` : ''}` }))}
+                    </ul>
+                  )}
+                </div>
 
                 <h3 className="mt-5 text-sm font-semibold" style={{ color: PAPER }}>{c.art}</h3>
                 {/* 24/11/2026: a grade das artes virou director/PosterArtPicker (todas as
@@ -376,7 +532,7 @@ export default function DirectorPosters() {
                 {!chosen.imagesFailed && chosen.images.length === 0 && (
                   <p className="mt-1 text-xs" style={{ color: MIST }}>{c.noImages}</p>
                 )}
-                <PosterArtPicker lang={lang} images={chosen.images} usedPaths={usedPaths} value={image} onChange={setImage} accent={RARITY_META[rarity].color} />
+                <PosterArtPicker lang={lang} images={chosen.images} usedPaths={usedPaths} value={image} onChange={setImage} accent={RARITY_META[rarity].color} covers={chosen.info.covers} />
 
                 <h3 className="mt-5 text-sm font-semibold" style={{ color: PAPER }}>{c.rarity}</h3>
                 <div role="radiogroup" aria-label={c.rarity} className="mt-2 flex flex-wrap gap-2">
@@ -435,11 +591,37 @@ export default function DirectorPosters() {
         ) : offDraw.length === 0 ? (
           <p className="mt-3 text-sm" style={{ color: MIST }}>{c.noDrafts}</p>
         ) : (
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {offDraw.map((p) => posterRow(p, `${(lang === 'pt' ? p.title_pt || p.title_en : p.title_en || p.title_pt) ?? `#${p.tmdb_id}`}${p.year ? ` (${p.year})` : ''}`))}
-          </ul>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">{offDraw.map(catalogRow)}</ul>
         )}
       </section>
+
+      {/* ---------- Na roleta (25/11/2026): achar um pôster do sorteio para editar ---------- */}
+      <section className="mt-6 rounded-2xl p-4 sm:p-5" style={PANEL} aria-labelledby="poster-reel">
+        <h2 id="poster-reel" className="text-base font-semibold" style={{ color: PAPER }}>{c.reel}</h2>
+        <p className="mt-1 text-xs" style={{ color: MIST }}>{c.reelLead}</p>
+        <label className="mt-3 flex items-center gap-2 h-11 px-3 rounded-xl" style={{ background: VELVET, border: '1px solid rgba(243,234,211,0.12)' }}>
+          <Search className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
+          <span className="sr-only">{c.reelPh}</span>
+          <input
+            value={reelQuery}
+            onChange={(event) => setReelQuery(event.target.value)}
+            placeholder={c.reelPh}
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm"
+            style={{ color: PAPER }}
+          />
+        </label>
+        {reelQuery.trim().length >= 2 &&
+          (reelHits.length === 0 ? (
+            <p className="mt-3 text-sm" style={{ color: MIST }}>{c.reelNone}</p>
+          ) : (
+            <>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">{reelHits.slice(0, REEL_MAX).map(catalogRow)}</ul>
+              {reelHits.length > REEL_MAX && <p className="mt-2 text-xs" style={{ color: MIST }}>{c.reelMore(reelHits.length - REEL_MAX)}</p>}
+            </>
+          ))}
+      </section>
+
+      <PosterEditor lang={lang} poster={editing} usedPaths={usedPaths} onClose={() => setEditing(null)} onSaved={reloadAll} />
     </DirectorPage>
   );
 }

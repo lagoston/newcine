@@ -28,7 +28,8 @@ const COPY = {
     code: 'Código de 6 números',
     confirm: 'Confirmar',
     needCode: 'Cadastrado. Digite o código do app para usar as ferramentas nesta sessão.',
-    needRecent: 'Para tirar coisas do site, digite o código de novo (vale 15 minutos).',
+    // 25/11/2026: editar um pôster que alguém tem também pede o código recente
+    needRecent: 'Para tirar coisas do site ou mudar o que alguém já tem, digite o código de novo (vale 15 minutos).',
     ready: 'Código conferido nesta sessão. Tirar coisas do site pede o código de novo depois de 15 minutos.',
     readyRecent: 'Código recente: pode pôr e tirar por 15 minutos.',
     again: 'Digitar o código de novo',
@@ -46,7 +47,7 @@ const COPY = {
     code: '6-digit code',
     confirm: 'Confirm',
     needCode: 'Set up. Enter the app code to use the tools in this session.',
-    needRecent: 'To remove things from the site, enter the code again (good for 15 minutes).',
+    needRecent: 'To remove things from the site or change what someone already has, enter the code again (good for 15 minutes).',
     ready: 'Code checked in this session. Removing things asks for the code again after 15 minutes.',
     readyRecent: 'Recent code: you can add and remove for 15 minutes.',
     again: 'Enter the code again',
