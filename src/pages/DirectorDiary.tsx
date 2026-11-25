@@ -35,6 +35,9 @@ const COPY = {
       'poster.deactivate': 'Tirou do sorteio',
       'poster.update': 'Editou o pôster',
       'poster.delete': 'Apagou o rascunho',
+      // 25/11/2026: dar e tirar o Premium Vitalício (/diretor/premium)
+      'premium.grant': 'Deu o Premium Vitalício a',
+      'premium.revoke': 'Tirou o Premium Vitalício de',
       'role.self_revoke': 'Largou o papel',
       undo: 'Desfez',
     } as Record<string, string>,
@@ -57,6 +60,8 @@ const COPY = {
       'poster.deactivate': 'Took out of the draw',
       'poster.update': 'Edited poster',
       'poster.delete': 'Deleted draft',
+      'premium.grant': 'Gave Lifetime Premium to',
+      'premium.revoke': 'Removed Lifetime Premium from',
       'role.self_revoke': 'Gave up the role',
       undo: 'Undid',
     } as Record<string, string>,
@@ -133,6 +138,9 @@ export default function DirectorDiary() {
     } else if (entry.kind === 'poster_items' && entry.meta) {
       media = String(entry.meta.media_type);
       id = Number(entry.meta.tmdb_id);
+    } else if (entry.kind === 'premium') {
+      // 25/11/2026: a linha do Premium Vitalício mostra a conta, não um título
+      return typeof entry.meta?.username === 'string' && entry.meta.username ? `@${entry.meta.username}` : '';
     }
     if (!media || !id) return entry.target ?? '';
     return titles.get(`${media}:${id}`)?.title ?? `#${id}`;

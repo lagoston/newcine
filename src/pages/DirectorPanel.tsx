@@ -66,6 +66,7 @@ const COPY = {
     tools: [
       { to: '/diretor/prateleiras', label: 'Prateleiras dos oráculos', hint: 'Pôr, mudar de prateleira e tirar títulos' },
       { to: '/diretor/posteres', label: 'Pôsteres da roleta', hint: 'Escolher a arte, a raridade e pôr no sorteio' },
+      { to: '/diretor/premium', label: 'Premium Vitalício', hint: 'Dar e tirar o Premium Vitalício de uma conta' },
       { to: '/diretor/diario', label: 'Diário', hint: 'Tudo o que esta conta mudou, com desfazer' },
     ],
     panicTitle: 'Largar o papel',
@@ -112,6 +113,7 @@ const COPY = {
     tools: [
       { to: '/diretor/prateleiras', label: 'Oracle shelves', hint: 'Add, move and remove titles' },
       { to: '/diretor/posteres', label: 'Wheel posters', hint: 'Pick the artwork, the rarity and put it in the draw' },
+      { to: '/diretor/premium', label: 'Lifetime Premium', hint: 'Give and remove Lifetime Premium on an account' },
       { to: '/diretor/diario', label: 'Diary', hint: 'Everything this account changed, with undo' },
     ],
     panicTitle: 'Give up the role',
@@ -263,7 +265,8 @@ export default function DirectorPanel() {
           <p className="mt-1 text-xs leading-relaxed max-w-prose" style={{ color: MIST }}>
             {c.toolsLead}
           </p>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+          {/* 25/11/2026: são quatro ferramentas (entrou o Premium Vitalício): duas por linha */}
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {c.tools.map((tool) => (
               <li key={tool.to}>
                 <Link

@@ -143,7 +143,7 @@ export async function fetchTitleInfo(media: TitleType, id: number): Promise<Titl
   };
 }
 
-type Result = { ok: boolean; changed?: boolean; audit_id?: number; id?: number; serial?: number };
+type Result = { ok: boolean; changed?: boolean; audit_id?: number; id?: number; serial?: number; premium?: boolean };
 
 async function call(name: string, args: Record<string, unknown>): Promise<Result> {
   const { data, error } = await supabase.rpc(name, args);
@@ -242,6 +242,49 @@ export const posterDelete = (id: number, reason?: string) => call('director_post
 export const posterUpdate = (id: number, change: { rarity?: PosterRarity | null; filePath?: string | null }, reason?: string) =>
   call('director_poster_update', { p_id: id, p_rarity: change.rarity ?? null, p_file_path: change.filePath ?? null, p_reason: reason || null });
 
+// ---------- Premium Vitalício (25/11/2026) ----------
+//
+// Pedido do Bruno: "Faça com que a conta diretor possa dar e remover o Premium
+// Vitalício para usuários." Até aqui era só pelo console do banco. A lista e a
+// busca pedem só o papel; dar e tirar pedem o código do app digitado nos
+// últimos 15 minutos (nível 3), nos dois sentidos. Bots não recebem. Fica no
+// Diário, com desfazer (migração 20261125192000_director_premium.sql).
+export interface PremiumPerson {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  // lifetime = tem o vitalício; premium = está Premium hoje, por ele ou pela assinatura
+  lifetime: boolean;
+  premium: boolean;
+  bot: boolean;
+}
+
+const toPerson = (raw: unknown): PremiumPerson | null => {
+  const r = (raw || {}) as Record<string, unknown>;
+  if (typeof r.id !== 'string') return null;
+  return {
+    id: r.id,
+    username: typeof r.username === 'string' ? r.username : '',
+    avatar_url: typeof r.avatar_url === 'string' && r.avatar_url ? r.avatar_url : null,
+    lifetime: r.lifetime === true,
+    premium: r.premium === true,
+    bot: r.bot === true,
+  };
+};
+
+// holders: quem tem o vitalício hoje; hits: as contas cujo @ bate com a busca
+// (2 letras ou mais; vazio sem busca).
+export async function fetchPremiumPeople(query?: string): Promise<{ holders: PremiumPerson[]; hits: PremiumPerson[] }> {
+  const { data, error } = await supabase.rpc('director_premium_people', { p_query: query?.trim() || null });
+  if (error) throw error;
+  const raw = (data || {}) as { holders?: unknown[]; hits?: unknown[] };
+  const list = (rows: unknown) => (Array.isArray(rows) ? rows.map(toPerson).filter((person): person is PremiumPerson => person !== null) : []);
+  return { holders: list(raw.holders), hits: list(raw.hits) };
+}
+
+export const premiumSet = (userId: string, on: boolean, reason?: string) =>
+  call('director_premium_set', { p_user: userId, p_on: on, p_reason: reason || null });
+
 export interface AuditEntry {
   id: number;
   at: string;
@@ -290,6 +333,8 @@ const ERRORS: Record<string, Record<Lang, string>> = {
   bad_image: { pt: 'Arte inválida.', en: 'Invalid artwork.' },
   bad_rarity: { pt: 'Raridade inválida.', en: 'Invalid rarity.' },
   exclusive: { pt: 'Exclusivo do Pôster Poker: não passa por aqui.', en: 'Poster Poker exclusive: not handled here.' },
+  user_not_found: { pt: 'Esta conta não existe mais.', en: 'This account no longer exists.' },
+  is_bot: { pt: 'Esta conta é um bot: bots não recebem Premium.', en: 'This account is a bot: bots do not get Premium.' },
   not_undoable: { pt: 'Isto não se desfaz.', en: 'This cannot be undone.' },
 };
 

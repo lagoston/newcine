@@ -60,6 +60,7 @@ const DirectorPanel = lazy(() => import('./pages/DirectorPanel'));
 const DirectorShelves = lazy(() => import('./pages/DirectorShelves'));
 const DirectorPosters = lazy(() => import('./pages/DirectorPosters'));
 const DirectorDiary = lazy(() => import('./pages/DirectorDiary'));
+const DirectorPremium = lazy(() => import('./pages/DirectorPremium'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -152,6 +153,7 @@ function App() {
                   <Route path="/diretor" element={<ProtectedRoute><DirectorPanel /></ProtectedRoute>} />
                   <Route path="/diretor/prateleiras" element={<ProtectedRoute><DirectorShelves /></ProtectedRoute>} />
                   <Route path="/diretor/posteres" element={<ProtectedRoute><DirectorPosters /></ProtectedRoute>} />
+                  <Route path="/diretor/premium" element={<ProtectedRoute><DirectorPremium /></ProtectedRoute>} />
                   <Route path="/diretor/diario" element={<ProtectedRoute><DirectorDiary /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />

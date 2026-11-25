@@ -1,6 +1,6 @@
 {
  "_": "Funções do banco que a tela chama e que já foram conferidas (existem e podem ser chamadas). Ver scripts/check-rpc.mjs.",
- "conferido_em": "2026-11-20",
+ "conferido_em": "2026-11-25",
  "confirmed": [
   "ack_cobra_kit_drops",
   "add_feed_comment",
@@ -12,6 +12,7 @@
   "delete_user_account",
   "director_audit_list",
   "director_event_trial",
+  "director_premium_people",
   "director_self_revoke",
   "director_title_info",
   "equip_cobra_kit",
