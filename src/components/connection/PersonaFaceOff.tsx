@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import UserAvatar, { type AvatarUser } from '../UserAvatar';
 import { PersonaCard, PersonaPoster } from '../PersonaBits';
-import { MOOD_BY_LETTER } from '../../lib/moods';
+import { MOOD_BY_LETTER, showCode, showLetter } from '../../lib/moods';
 import { personaText, type PersonaEntry } from '../../lib/persona';
 import { PAPER, MIST, PIXEL } from '../../lib/oracleTheme';
 
@@ -32,14 +32,14 @@ const Side: React.FC<{ side: FaceOffSide; shared: Set<string>; language: string 
       ) : (
         <PersonaPoster path={null} alt="" size="w185" className="mt-2.5 w-16 rounded-lg" />
       )}
-      <span className="mt-2.5 text-[24px] leading-none tracking-wide" style={PIXEL} aria-label={side.code}>
+      <span className="mt-2.5 text-[24px] leading-none tracking-wide" style={PIXEL} aria-label={showCode(side.code)}>
         {side.code.split('').map((letter, i) => (
           <span
             key={`${letter}-${i}`}
             style={{ color: MOOD_BY_LETTER[letter]?.color ?? MIST, opacity: shared.has(letter) ? 1 : 0.35 }}
             aria-hidden
           >
-            {letter}
+            {showLetter(letter)}
           </span>
         ))}
       </span>

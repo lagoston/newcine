@@ -130,7 +130,7 @@ const ShelfPots: React.FC<ShelfPotsProps> = ({ world, st, isOwn, ownerName, them
                 <span aria-hidden className="absolute inset-x-0 bottom-0 transition-[height] duration-300" style={{ height: `${value > 0 ? 10 + (value / maxShare) * 62 : 0}%`, background: withMoodAlpha(item, isSel ? 0.5 : 0.3) }} />
                 <span className="relative flex h-full flex-col items-center justify-center gap-[3px]">
                   <span style={{ ...PIXEL, color: item.color, textShadow: '0 1px 6px rgba(13,9,25,0.9)' }} className="text-[18px] leading-none">
-                    {item.letter}
+                    {item.glyph}
                   </span>
                   <span style={{ ...PIXEL, color: PAPER, textShadow: '0 1px 6px rgba(13,9,25,0.9)' }} className="text-[11px] leading-none tabular-nums">
                     {pct(value)}
@@ -157,7 +157,7 @@ const ShelfPots: React.FC<ShelfPotsProps> = ({ world, st, isOwn, ownerName, them
                 style={{ ...PIXEL, color: mood.color, background: withMoodAlpha(mood, 0.14), boxShadow: `inset 0 0 0 1px ${withMoodAlpha(mood, 0.4)}` }}
                 aria-hidden
               >
-                {mood.letter}
+                {mood.glyph}
               </span>
               <span className="min-w-0">
                 <span className="block text-lg font-semibold leading-snug" style={{ color: PAPER }}>

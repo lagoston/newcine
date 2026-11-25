@@ -51,7 +51,7 @@ const LandingPersona: React.FC = () => {
                   <span aria-hidden className="absolute left-0 top-0 bottom-0 w-1" style={{ background: mood.color, opacity: on ? 1 : 0.7 }} />
                   <span className="flex items-center justify-between gap-1">
                     <span style={{ ...PIXEL, color: mood.color }} className="text-2xl sm:text-[28px] leading-none" aria-hidden>
-                      {mood.letter}
+                      {mood.glyph}
                     </span>
                     <Icon className="w-4 h-4 shrink-0" style={{ color: mood.color }} aria-hidden />
                   </span>
@@ -98,7 +98,7 @@ const LandingPersona: React.FC = () => {
                     style={{ ...PIXEL, color: mood.color, background: withAlpha(mood.color, 0.18), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.45)}` }}
                     aria-hidden
                   >
-                    {mood.letter}
+                    {mood.glyph}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-semibold leading-none" style={{ color: mood.color }}>{t(mood.labelKey)}</span>

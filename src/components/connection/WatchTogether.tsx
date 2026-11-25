@@ -183,7 +183,7 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
         }}
       >
         <span style={{ ...PIXEL, color: mood.color, opacity: on ? 1 : 0.5 }} className="text-[15px] leading-none" aria-hidden>
-          {mood.letter}
+          {mood.glyph}
         </span>
         {t(mood.labelKey)}
       </button>

@@ -17,7 +17,7 @@ export type { MoodItemArt, MoodItemId } from './types';
 // indiretamente a ele". As escolhas dele, na mesma noite:
 //   • Mind-Blowing (🧩 Enigmatic): a escultura impossível, um triângulo de
 //     Penrose com um pião que gira no alto e nunca cai;
-//   • Psicodélico (🍭 Dreamwalker): a luminária de lava, de chão;
+//   • Sensorial, antes Psicodélico (🍭 Dreamwalker): a luminária de lava, de chão;
 //   • Catarse (☯️ Soul Collector): a redoma das almas, duas luzinhas, uma
 //     clara e uma escura, girando uma em volta da outra;
 //   • Adrenalina (🧨 Daredevil): um simulador de kart ("ideia melhor" que o

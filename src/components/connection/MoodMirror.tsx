@@ -86,7 +86,7 @@ const MoodMirror: React.FC<MoodMirrorProps> = ({ me, other, meName, otherName, m
               </span>
               <span className="flex items-center justify-center gap-1 min-w-0 text-center" aria-hidden>
                 <span style={{ ...PIXEL, color: mood.color }} className="text-[14px] leading-none">
-                  {mood.letter}
+                  {mood.glyph}
                 </span>
                 <span className="text-[11.5px] sm:text-[12.5px] leading-tight line-clamp-2" style={{ color: mood.color }}>
                   {t(mood.labelKey)}

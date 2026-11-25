@@ -126,6 +126,10 @@ export const Q = {
   catalogRow: (uid: Owner, mode: string, lang: string, type: string, id: number) =>
     spec(typeof uid === 'string' ? uid : undefined, ['catalog', 'row', mode, lang, type, id, uid ?? 'visitante'], mode.startsWith('magra') ? 30 * MIN : 10 * MIN),
   personaWorld: (uid: Owner, of: string) => spec(uid, ['persona', 'world', of, uid], 10 * MIN, of === uid),
+  // 25/11/2026: a prateleira que cada mentor do Acervo veste e a ordem das runas
+  // dele para esta pessoa (get_oracle_affinity). É dela: vai para o aparelho, e
+  // na volta ao Acervo o salão já abre com as cores certas.
+  oracleAffinity: (uid: Owner) => spec(uid, ['oracle', 'affinity', uid], 10 * MIN, true),
   feed: (uid: Owner) => spec(uid, ['feed', uid], 1 * MIN),
 };
 

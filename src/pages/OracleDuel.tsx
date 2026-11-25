@@ -365,7 +365,7 @@ export default function OracleDuel() {
                 <section className="border-t border-white/[0.07] pt-10">
                   {stepTitle(2, t('duel.chooseMoods'))}
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5" role="group" aria-label={t('duel.chooseMoods')}>
-                    {MOODS.map((mood) => moodChip(mood.key, t(mood.labelKey), mood.color, mood.letter))}
+                    {MOODS.map((mood) => moodChip(mood.key, t(mood.labelKey), mood.color, mood.glyph))}
                     {moodChip(SURPRISE_KEY, t('oracle.moods.randomSurprise'), SURPRISE_COLOR, <Shuffle className="w-4 h-4" />)}
                   </div>
                 </section>

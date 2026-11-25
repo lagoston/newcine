@@ -1,5 +1,5 @@
 import { NIGHT, PAPER, MIST, INK, PIXEL_FONT_STACK } from './oracleTheme';
-import { MOOD_BY_LETTER } from './moods';
+import { MOOD_BY_LETTER, showLetter } from './moods';
 import { worldState, type PersonaWorld } from './personaWorld';
 import { SANS_STACK, ensureCanvasFonts, loadBrandMark, drawBrandMark, roundRectPath, wrapLines, fitFont, drawGlow, drawStarDust, canvasToBlob } from './storyCanvas';
 import { drawMoth, drawRoom, mothSpec, paintFrame, RH, RW } from '../components/personaWorld/draw';
@@ -96,8 +96,9 @@ function drawCodeLeft(ctx: Ctx, code: string, x: number, cy: number, size: numbe
   let at = x;
   code.split('').forEach((letter) => {
     ctx.fillStyle = MOOD_BY_LETTER[letter]?.color ?? MIST;
-    ctx.fillText(letter, at, cy);
-    at += ctx.measureText(letter).width + gap;
+    // 25/11/2026: a letra que a pessoa vê (o Sensorial é "S" na tela)
+    ctx.fillText(showLetter(letter), at, cy);
+    at += ctx.measureText(showLetter(letter)).width + gap;
   });
   ctx.restore();
   return at - gap - x;
@@ -106,7 +107,7 @@ function drawCodeLeft(ctx: Ctx, code: string, x: number, cy: number, size: numbe
 const codeWidth = (ctx: Ctx, code: string, size: number): number => {
   ctx.save();
   ctx.font = `${size}px ${PIXEL_FONT_STACK}`;
-  const width = code.split('').reduce((sum, letter) => sum + ctx.measureText(letter).width, 0) + size * 0.08 * (code.length - 1);
+  const width = code.split('').reduce((sum, letter) => sum + ctx.measureText(showLetter(letter)).width, 0) + size * 0.08 * (code.length - 1);
   ctx.restore();
   return width;
 };

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Hourglass, MapPin, X } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { MOOD_BY_LETTER } from '../../lib/moods';
+import { MOOD_BY_LETTER, showCode, showLetter } from '../../lib/moods';
 import { mapPersonaEntry, personaText, PERSONA_THRESHOLD, type PersonaEntry } from '../../lib/persona';
 import { FURNITURE, LEVEL_AT, LETTERS, MAX_LEVEL, PET_GOAL, levelText, worldState, type PersonaWorld, type PetId, type WorldState } from '../../lib/personaWorld';
 import { ORACLE_TAGS, PROGRESSION_TAGS } from '../../lib/tags';
@@ -638,7 +638,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
   );
   const tile = (letter: string | null) => (
     <span aria-hidden className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] text-[12px] leading-none" style={{ ...PIXEL, color: letter ? (MOOD_BY_LETTER[letter]?.color ?? MIST) : PAPER, background: INK }}>
-      {letter ?? '+'}
+      {letter ? showLetter(letter) : '+'}
     </span>
   );
 
@@ -863,7 +863,7 @@ const StudioGuide: React.FC<StudioGuideProps> = ({ world, isOwn, ownerName, extr
         {slice.map((entry) => {
           const mine = entry.code === st.code;
           const text = personaText(entry, i18n.language);
-          const label = `${entry.code}: ${text.title} (${text.character})${mine && isOwn ? ` · ${t('oracle.persona.yours')}` : ''}`;
+          const label = `${showCode(entry.code)}: ${text.title} (${text.character})${mine && isOwn ? ` · ${t('oracle.persona.yours')}` : ''}`;
           const inside = (
             <>
               <span className="relative block transition-transform duration-200 group-hover:-translate-y-0.5">

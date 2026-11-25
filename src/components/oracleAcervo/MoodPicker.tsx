@@ -8,6 +8,7 @@ import type { AcervoMedia, AcervoOccasion } from '../../lib/mesa/types';
 import { OCCASION_ICON } from './occasions';
 import OccasionPanel from './OccasionPanel';
 import { useLayerEntry } from './layerStack';
+import { mixHex } from './mentorArt';
 
 // As 9 letras de humor do Acervo (05/11/2026): a mesma letra e a mesma cor do
 // código da Persona. No celular, 2 linhas (5 + 5, com Filmes | Séries no fim
@@ -29,6 +30,16 @@ import { useLayerEntry } from './layerStack';
 //     em papel). Ele abre, logo abaixo das letras, o painel com todas as fichas
 //     (OccasionPanel), que antes ficavam numa fileira à parte.
 //
+// 25/11/2026 (o Acervo como salão dos mentores; pedido do Bruno: a pegada
+// "mitológica, hotel habboolística, da dungeons and dragons", e "As ordens das
+// prateleiras devem se adaptar"):
+//   • a ordem agora é a do MENTOR escolhido para esta pessoa (a primeira runa
+//     é a prateleira que ele veste; lib/oracleAffinity.ts). Quem monta a ordem
+//     é a página; sem a resposta do banco, continua a ordem da Persona;
+//   • cada casa virou uma pedra de runa: cantos cortados, a borda na cor da
+//     prateleira e a letra entalhada. O tamanho, o lugar e o que cada toque
+//     faz são os mesmos de antes.
+//
 // Larguras conferidas no celular (5 casas + Filmes | Séries na 2ª linha):
 //   • 412 px ou mais (380 úteis): casas de 44 → 5 × 44 + 4 × 6 = 244, mais a
 //     chave com texto (~122) e o vão de 6;
@@ -40,6 +51,25 @@ import { useLayerEntry } from './layerStack';
 // O min-w/min-h 0 desfaz, só no celular estreito, o mínimo de 44 px que o
 // index.css dá a todo botão (senão a casa de 40 continuaria com 44).
 const LETTER_SIZE = 'w-11 h-11 max-[411px]:w-10 max-[411px]:h-10 max-[411px]:min-w-0 max-[411px]:min-h-0 sm:w-12 sm:h-12';
+
+// A pedra de runa: duas camadas com os cantos cortados (a borda e a face). O
+// corte fica nas camadas, e não no botão, para o anel de foco do teclado não
+// ser cortado junto.
+const cut = (n: number) =>
+  `polygon(${n}px 0, calc(100% - ${n}px) 0, 100% ${n}px, 100% calc(100% - ${n}px), calc(100% - ${n}px) 100%, ${n}px 100%, 0 calc(100% - ${n}px), 0 ${n}px)`;
+const STONE_EDGE = cut(5);
+const STONE_FACE = cut(4);
+
+const Stone: React.FC<{ edge: string; face: string }> = ({ edge, face }) => (
+  <>
+    <span aria-hidden className="absolute inset-0 transition-colors duration-150" style={{ background: edge, clipPath: STONE_EDGE }} />
+    <span
+      aria-hidden
+      className="absolute inset-[2px] transition-colors duration-150"
+      style={{ background: face, clipPath: STONE_FACE, boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.07)' }}
+    />
+  </>
+);
 
 interface MoodPickerProps {
   // A ordem das 9 letras (null: ainda chegando).
@@ -69,21 +99,20 @@ const LetterButton: React.FC<{ moodKey: string; active: boolean; off: boolean; o
       aria-pressed={active}
       aria-label={t('acervo.moodAria', { mood: name })}
       title={name}
-      className={`relative grid place-items-center ${LETTER_SIZE} shrink-0 rounded-[10px] sm:rounded-xl transition-[background-color,box-shadow,transform,opacity] duration-150 ${FOCUS_RING} ${
+      className={`relative grid place-items-center ${LETTER_SIZE} shrink-0 rounded-[8px] transition-[box-shadow,transform,opacity] duration-150 ${FOCUS_RING} ${
         active ? '' : 'hover:-translate-y-0.5 hover:opacity-100 motion-reduce:hover:translate-y-0'
       }`}
       style={{
         ...PIXEL,
         color: mood.color,
         opacity: off ? 0.55 : 1,
-        background: active ? withAlpha(mood.color, 0.2) : VELVET,
-        boxShadow: active
-          ? `inset 0 0 0 2px ${mood.color}, 0 0 18px -6px ${withAlpha(mood.color, 0.8)}`
-          : `inset 0 0 0 1.5px ${withAlpha(mood.color, off ? 0.22 : 0.35)}`,
+        // a runa escolhida acende
+        boxShadow: active ? `0 0 16px -5px ${withAlpha(mood.color, 0.9)}` : undefined,
       }}
     >
-      <span aria-hidden className="text-[24px] sm:text-[26px] leading-none">
-        {mood.letter}
+      <Stone edge={active ? mood.color : mixHex(VELVET, mood.color, off ? 0.26 : 0.42)} face={active ? mixHex(VELVET, mood.color, 0.26) : VELVET} />
+      <span aria-hidden className="relative text-[24px] sm:text-[26px] leading-none" style={{ textShadow: '0 2px 0 rgba(0,0,0,0.45)' }}>
+        {mood.glyph}
       </span>
     </button>
   );
@@ -91,7 +120,9 @@ const LetterButton: React.FC<{ moodKey: string; active: boolean; off: boolean; o
 
 // A casa de uma letra que ainda não chegou (a ordem vem do servidor).
 const EmptySlot: React.FC = () => (
-  <span aria-hidden className={`${LETTER_SIZE} shrink-0 rounded-[10px] sm:rounded-xl`} style={{ background: VELVET, opacity: 0.45 }} />
+  <span aria-hidden className={`relative ${LETTER_SIZE} shrink-0`} style={{ opacity: 0.45 }}>
+    <Stone edge={VELVET} face={VELVET} />
+  </span>
 );
 
 export const MediaToggle: React.FC<{ media: AcervoMedia; onMedia: (media: AcervoMedia) => void }> = ({ media, onMedia }) => {
@@ -150,22 +181,16 @@ const OccasionsButton = React.forwardRef<
       aria-controls={open ? panelId : undefined}
       aria-label={label}
       title={label}
-      className={`relative grid place-items-center ${LETTER_SIZE} shrink-0 rounded-[10px] sm:rounded-xl transition-[background-color,box-shadow,transform] duration-150 ${FOCUS_RING} ${
+      className={`relative grid place-items-center ${LETTER_SIZE} shrink-0 rounded-[8px] transition-[box-shadow,transform] duration-150 ${FOCUS_RING} ${
         on || open ? '' : 'hover:-translate-y-0.5 motion-reduce:hover:translate-y-0'
       }`}
-      style={
-        on
-          ? { background: PAPER, color: INK, boxShadow: '0 6px 18px -10px rgba(243,234,211,0.7)' }
-          : {
-              background: open ? 'rgba(243,234,211,0.1)' : VELVET,
-              color: PAPER,
-              boxShadow: `inset 0 0 0 1.5px rgba(243,234,211,${open ? 0.55 : 0.24})`,
-            }
-      }
+      style={on ? { color: INK, boxShadow: '0 6px 18px -10px rgba(243,234,211,0.7)' } : { color: PAPER }}
     >
-      <Icon className="w-5 h-5 sm:w-[22px] sm:h-[22px]" aria-hidden />
+      {/* a mesma pedra das runas, em papel (é a casa das ocasiões, não uma prateleira) */}
+      <Stone edge={on ? PAPER : mixHex(VELVET, PAPER, open ? 0.6 : 0.3)} face={on ? PAPER : open ? mixHex(VELVET, PAPER, 0.12) : VELVET} />
+      <Icon className="relative w-5 h-5 sm:w-[22px] sm:h-[22px]" aria-hidden />
       <ChevronDown
-        className={`absolute bottom-[3px] right-[3px] w-2.5 h-2.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+        className={`absolute bottom-[4px] right-[5px] w-2.5 h-2.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         style={{ color: on ? INK : MIST, opacity: 0.8 }}
         aria-hidden
       />

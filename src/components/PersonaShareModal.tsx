@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import OracleSheet from './OracleSheet';
 import { personaText, type UserPersona } from '../lib/persona';
+import { showCode } from '../lib/moods';
 import { levelText, worldState, type PersonaWorld } from '../lib/personaWorld';
 import { renderStudioStory } from '../lib/studioCard';
 import { NIGHT, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
@@ -91,7 +92,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, world, e
   if (!code || !entry) return null;
   const title = personaText(entry, i18n.language).title;
 
-  const fileName = `cineoracle-${code}.jpg`;
+  const fileName = `cineoracle-${showCode(code)}.jpg`;
 
   const handleShare = async () => {
     const blob = blobRef.current;
@@ -99,7 +100,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, world, e
     setGenerating(true);
     try {
       const route = await shareImageFile(blob, fileName, {
-        title: `${code} — ${title}`,
+        title: `${showCode(code)} — ${title}`,
         text: t('oracle.share.shareText', { code, name: title }),
         dialogTitle: t('oracle.share.title'),
       });
@@ -165,7 +166,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, world, e
       <div className="flex justify-center">
         <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/15 shadow-2xl shadow-black/60" style={{ width: 270, height: 480, background: NIGHT }}>
           {preview ? (
-            <img src={preview} alt={`${code} — ${title}`} width={270} height={480} className="block w-full h-full" />
+            <img src={preview} alt={`${showCode(code)} — ${title}`} width={270} height={480} className="block w-full h-full" />
           ) : (
             <span className="absolute inset-0 grid place-items-center" role="status">
               <Loader2 className="w-7 h-7 animate-spin" style={{ color: MIST }} aria-hidden />

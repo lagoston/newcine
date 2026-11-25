@@ -43,7 +43,7 @@ function origin(reason: Reason): React.ReactNode {
           className={`${BOX} rounded-[3px]`}
           style={{ ...PIXEL, fontSize: 10, color: m.color, background: withAlpha(m.color, 0.16), boxShadow: `inset 0 0 0 1px ${withAlpha(m.color, 0.45)}` }}
         >
-          {m.letter}
+          {m.glyph}
         </span>
       ) : null;
     }

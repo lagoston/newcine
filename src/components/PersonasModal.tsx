@@ -6,7 +6,7 @@ import OracleSheet, { SheetFade } from './OracleSheet';
 import { PersonaCode, PersonaCard, MoodChip } from './PersonaBits';
 import PersonaWorks from './PersonaWorks';
 import { getFrameClass } from '../lib/frames';
-import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
+import { MOODS, MOOD_BY_KEY, showCode, withMoodAlpha } from '../lib/moods';
 import { mapPersonaEntry, personaText, type PersonaEntry } from '../lib/persona';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
@@ -85,7 +85,7 @@ const PersonaGrid: React.FC<{
               mood.key,
               <>
                 <span style={{ ...PIXEL, color: mood.color }} className="leading-none" aria-hidden>
-                  {mood.letter}
+                  {mood.glyph}
                 </span>
                 {t(mood.labelKey)}
               </>,
@@ -105,7 +105,7 @@ const PersonaGrid: React.FC<{
                 id={`persona-tile-${p.code}`}
                 onClick={() => onSelect(p)}
                 className={`group w-full flex flex-col items-stretch justify-start text-left rounded-xl ${FOCUS_RING}`}
-                aria-label={`${p.code} — ${text.title} (${text.character}) · ${t('oracle.personas.peopleCount', { count: p.userCount })}${isMine ? ` · ${t('oracle.persona.yours')}` : ''}`}
+                aria-label={`${showCode(p.code)} — ${text.title} (${text.character}) · ${t('oracle.personas.peopleCount', { count: p.userCount })}${isMine ? ` · ${t('oracle.persona.yours')}` : ''}`}
               >
                 <span className="relative block transition-transform duration-200 group-hover:-translate-y-1">
                   <PersonaCard persona={p} compact className="shadow-xl" ring={isMine ? '#F0ABFC' : undefined} alt="" />
@@ -373,7 +373,7 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
       title={selected && selectedText ? selectedText.title : t('oracle.personas.title')}
       subtitle={
         selected && selectedText
-          ? `${selected.code} · ${selectedText.character}`
+          ? `${showCode(selected.code)} · ${selectedText.character}`
           : !loading
             ? t('oracle.personas.summary', { active: populated, count: totalUsers })
             : undefined

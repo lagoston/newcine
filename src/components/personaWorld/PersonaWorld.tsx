@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'framer-motion';
 import { Armchair } from 'lucide-react';
-import { MOOD_BY_LETTER } from '../../lib/moods';
+import { MOOD_BY_LETTER, showCode } from '../../lib/moods';
 import { FURNITURE, levelText, worldState, type PersonaWorld as World, type StudioArrangement, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import type { ThemeReading } from '../../lib/personaThemes';
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL, ratingTone } from '../../lib/oracleTheme';
@@ -250,7 +250,7 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, ownerName
           cabe em escala 2; com a margem, cairia para escala 1 e ficaria miúda. */}
       <div className="space-y-2.5">
         <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
-          <PersonaScene world={world} state={st} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} extras={extras} hotspots={hotspots} arrange={sceneArrange} />
+          <PersonaScene world={world} state={st} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: showCode(st.code) }) : t('personaWorld.sceneLabelEmpty')} extras={extras} hotspots={hotspots} arrange={sceneArrange} />
         </div>
         {/* Arrumar o estúdio: o convite e, arrumando, o passo de agora e os botões */}
         {arrange &&

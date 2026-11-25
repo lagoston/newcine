@@ -141,7 +141,9 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
   const facts: { label: string; value: React.ReactNode }[] = profile
     ? [
         { label: t('oracle.profile.curation'), value: t(`oracle.libraries.${oracle.id}FunctionDesc`) },
-        { label: t('oracle.profile.collection'), value: t('oracle.profile.collectionValue', { movies: formatInt(profile.movies), series: formatInt(profile.series) }) },
+        // 25/11/2026 (pedido do Bruno: as prateleiras "mais 'infinitas' e
+        // secretas"): saiu a linha "Acervo: N filmes e M séries". Na seção dos
+        // números saíram as horas de filme e o "com N títulos" da década.
         ...(profile.years.min && profile.years.max
           ? [{ label: t('oracle.profile.era'), value: t('oracle.profile.eraValue', { from: profile.years.min, to: profile.years.max }) }]
           : []),
@@ -513,11 +515,10 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
             {/* O acervo em números */}
             <section className="mt-7 pb-1">
               {sectionTitle(t('oracle.profile.numbersTitle'))}
-              <ul className="mt-3 grid grid-cols-3 gap-2">
+              <ul className="mt-3 grid grid-cols-2 gap-2">
                 {[
-                  profile.hours ? { key: 'hours', value: formatInt(profile.hours), label: t('oracle.profile.hours') } : null,
                   profile.countries ? { key: 'countries', value: formatInt(profile.countries), label: countryName ? t('oracle.profile.countriesMost', { country: countryName }) : t('oracle.profile.countries') } : null,
-                  goldenDecade ? { key: 'decade', value: String(goldenDecade.decade), label: t('oracle.profile.goldenDecade', { count: goldenDecade.count, decade: t('oracle.profile.decadeLabel', { decade: goldenDecade.decade }) }) } : null,
+                  goldenDecade ? { key: 'decade', value: String(goldenDecade.decade), label: t('oracle.profile.goldenDecadeOnly') } : null,
                 ]
                   .filter((item): item is { key: string; value: string; label: string } => item !== null)
                   .map((item) => (

@@ -108,8 +108,9 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     name: 'Dreamwalker',
     emoji: '🍭',
     minMovies: 50,
-    description: '50 movies or series from the Psychedelic shelf',
-    descriptionPt: '50 filmes ou séries da prateleira Psicodélico',
+    // 25/11/2026: a prateleira Psicodélico passou a se chamar Sensorial
+    description: '50 movies or series from the Sensory shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Sensorial',
     condition: { type: 'mood', value: 'drug-trip' }
   },
   {

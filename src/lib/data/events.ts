@@ -32,6 +32,8 @@ const RULES: { [E in BusEvent]: (payload: BusEvents[E]) => Rule[] } = {
     [['seasonal'], 'later'],
     [['jackpot', 'state'], 'later'],
     [['persona', 'world'], 'later'],
+    // a cor de cada mentor do Acervo e a ordem das runas dele (25/11/2026)
+    [['oracle', 'affinity'], 'later'],
     [['forYou'], 'later'],
     [['tags'], 'later'],
   ],
@@ -56,6 +58,8 @@ const RULES: { [E in BusEvent]: (payload: BusEvents[E]) => Rule[] } = {
     [['seasonal'], 'later'],
     [['jackpot', 'state'], 'later'],
     [['persona', 'world'], 'later'],
+    // a cor de cada mentor do Acervo e a ordem das runas dele (25/11/2026)
+    [['oracle', 'affinity'], 'later'],
     [['forYou'], 'later'],
     [['tags'], 'later'],
   ],

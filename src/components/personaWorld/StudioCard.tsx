@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { RotateCw } from 'lucide-react';
 import { PersonaCode } from '../PersonaBits';
 import DoorArrow from '../home/DoorArrow';
-import { MOOD_BY_KEY, MOOD_BY_LETTER, type Mood } from '../../lib/moods';
+import { MOOD_BY_KEY, MOOD_BY_LETTER, showCode, type Mood } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD } from '../../lib/persona';
 import { levelText, worldState, type PersonaWorld } from '../../lib/personaWorld';
 import { FOCUS_RING, MIST, PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
@@ -108,7 +108,7 @@ const StudioCard: React.FC<StudioCardProps> = ({ world, failed, onRetry, doors, 
 
   const name = isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerName ?? '' });
   const emptyHint = isOwn ? t('home.persona.hintEmpty', { count: threshold }) : t('profile.essenceEmptyOther', { username: (ownerName ?? '').replace(/^@/, '') });
-  const openAria = hasPersona && persona?.code && text ? `${name}: ${persona.code}, ${text.title}` : isOwn ? t('home.persona.doorAriaEmpty') : name;
+  const openAria = hasPersona && persona?.code && text ? `${name}: ${showCode(persona.code)}, ${text.title}` : isOwn ? t('home.persona.doorAriaEmpty') : name;
 
   const cardStyle: React.CSSProperties = {
     background: [
@@ -159,7 +159,7 @@ const StudioCard: React.FC<StudioCardProps> = ({ world, failed, onRetry, doors, 
 
   const scene =
     world && st ? (
-      <PersonaScene world={world} state={st} scale={k} extras={doors.extras} hotspots={doors.hotspots} label={st.code ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} />
+      <PersonaScene world={world} state={st} scale={k} extras={doors.extras} hotspots={doors.hotspots} label={st.code ? t('personaWorld.sceneLabel', { code: showCode(st.code) }) : t('personaWorld.sceneLabelEmpty')} />
     ) : failed ? (
       <div className="grid place-items-center px-5 text-center" style={{ height: sceneHeight }}>
         <div>
@@ -201,7 +201,7 @@ const StudioCard: React.FC<StudioCardProps> = ({ world, failed, onRetry, doors, 
                   return (
                     <React.Fragment key={row.moodKey}>
                       <span className="grid h-[16px] w-[16px] place-items-center rounded-[4px] text-[10px] leading-none" style={{ ...PIXEL, color: mood.color, background: withAlpha(mood.color, 0.18), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.45)}` }} aria-hidden>
-                        {mood.letter}
+                        {mood.glyph}
                       </span>
                       <span className="max-w-[8.5rem] truncate text-[12px] font-semibold leading-none" style={{ color: mood.color }}>
                         {t(mood.labelKey)}

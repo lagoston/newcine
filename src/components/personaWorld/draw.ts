@@ -1,4 +1,4 @@
-import { MOOD_BY_LETTER } from '../../lib/moods';
+import { MOOD_BY_LETTER, showLetter } from '../../lib/moods';
 import { MIST, NIGHT, PAPER, VELVET } from '../../lib/oracleTheme';
 import { LETTERS, type PersonaWorld, type WorldState, type WorldTitle } from '../../lib/personaWorld';
 import { GLOW_SOFT, glowAlphas, glowOf, paintGlow, type Glow } from './glow';
@@ -192,6 +192,8 @@ const FONT5: Record<string, string[]> = {
   M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
   X: ['X...X', '.X.X.', '..X..', '.X.X.', 'X...X'],
   P: ['XXXX.', 'X...X', 'XXXX.', 'X....', 'X....'],
+  // 25/11/2026: o Sensorial aparece como "S" (a letra interna continua "P")
+  S: ['.XXXX', 'X....', '.XXX.', '....X', 'XXXX.'],
   A: ['.XXX.', 'X...X', 'XXXXX', 'X...X', 'X...X'],
   C: ['.XXXX', 'X....', 'X....', 'X....', '.XXXX'],
   Z: ['XXXXX', '...X.', '..X..', '.X...', 'XXXXX'],
@@ -454,7 +456,7 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     for (let sl = screen.v + 2; sl < screen.v + screen.h; sl += 3) wallRect(ctx, 'L', screen.u, sl, screen.w, 1, 'rgba(255,255,255,0.05)');
     // néon com o código
     for (let ci = 0; ci < 3; ci += 1) {
-      const glyph = FONT5[st.code[ci]];
+      const glyph = FONT5[showLetter(st.code[ci])];
       const cc = moodColor(st.code[ci]);
       const uL = 38 - ci * 8;
       if (!glyph) continue;

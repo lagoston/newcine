@@ -1,5 +1,5 @@
 import { VELVET, PAPER, MIST, PIXEL_FONT_STACK, PIXEL_FONT_SAMPLE, withAlpha } from './oracleTheme';
-import { MOOD_BY_LETTER } from './moods';
+import { MOOD_BY_LETTER, showLetter } from './moods';
 
 // Ajudantes para desenhar imagens de stories (1080×1920) direto num canvas
 // (13/10/2026). Usados pelo story da Conexão (lib/connectionCard.ts) e
@@ -411,13 +411,14 @@ export function drawPersonaCode(ctx: Ctx, code: string, cx: number, cy: number, 
   ctx.textBaseline = 'middle';
   const letters = code.split('');
   const gap = size * 0.08;
-  const widths = letters.map((l) => ctx.measureText(l).width);
+  // 25/11/2026: mede e escreve a letra que a pessoa vê (o Sensorial é "S" na tela)
+  const widths = letters.map((l) => ctx.measureText(showLetter(l)).width);
   const total = widths.reduce((a, b) => a + b, 0) + gap * (letters.length - 1);
   let x = cx - total / 2;
   letters.forEach((letter, i) => {
     const color = MOOD_BY_LETTER[letter]?.color ?? MIST;
     ctx.fillStyle = color;
-    ctx.fillText(letter, x, cy);
+    ctx.fillText(showLetter(letter), x, cy);
     if (shared?.has(letter)) {
       ctx.save();
       ctx.shadowColor = color;

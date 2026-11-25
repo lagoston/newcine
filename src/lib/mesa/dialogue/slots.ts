@@ -9,12 +9,12 @@ import type { Lang } from './types.ts';
 
 export const MOOD_NAME: Record<Lang, Record<string, string>> = {
   pt: {
-    'mind-blowing': 'Mind-Blowing', 'dark-and-scary': 'Sombrio e Assustador', 'drug-trip': 'Psicodélico',
+    'mind-blowing': 'Mind-Blowing', 'dark-and-scary': 'Sombrio e Assustador', 'drug-trip': 'Sensorial',
     adventures: 'Aventuras', catharsis: 'Catarse', adrenaline: 'Adrenalina', romantic: 'Romântico',
     'family-time': 'Família', 'laugh-out-loud': 'Muitas Risadas',
   },
   en: {
-    'mind-blowing': 'Mind-Blowing', 'dark-and-scary': 'Dark & Scary', 'drug-trip': 'Psychedelic',
+    'mind-blowing': 'Mind-Blowing', 'dark-and-scary': 'Dark & Scary', 'drug-trip': 'Sensory',
     adventures: 'Adventures', catharsis: 'Catharsis', adrenaline: 'Adrenaline', romantic: 'Romantic',
     'family-time': 'Family Time', 'laugh-out-loud': 'Laugh Out Loud',
   },

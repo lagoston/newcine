@@ -624,7 +624,7 @@
       "adrenaline": "Adrenaline",
       "mindBlowing": "Mind-Blowing",
       "laughOutLoud": "Laugh Out Loud",
-      "drugTrip": "Psychedelic",
+      "drugTrip": "Sensory",
       "romantic": "Romantic",
       "darkScary": "Dark & Scary",
       "familyTime": "Family Time",
@@ -874,8 +874,6 @@
       "view": "See profile",
       "error": "Couldn't open {{name}}'s profile right now.",
       "curation": "Curation",
-      "collection": "Collection",
-      "collectionValue": "{{movies}} films and {{series}} series",
       "era": "Era",
       "eraValue": "from {{from}} to {{to}}",
       "publicAvg": "Average audience rating",
@@ -905,12 +903,9 @@
       "directorFilms_one": "{{count}} film",
       "directorFilms_other": "{{count}} films",
       "numbersTitle": "The collection in numbers",
-      "hours": "hours of film",
       "countries": "countries",
       "countriesMost": "countries, mostly {{country}}",
-      "decadeLabel": "{{decade}}s",
-      "goldenDecade_one": "the golden decade ({{decade}}), with {{count}} title",
-      "goldenDecade_other": "the golden decade ({{decade}}), with {{count}} titles"
+      "goldenDecadeOnly": "the golden decade"
     },
     "libraryDoor": {
       "title": "The Oracles' Table",
@@ -2517,9 +2512,6 @@
     "series": "Series",
     "occasionsLabel": "Occasions",
     "occasionClear": "Clear the occasion",
-    "allMoods": "every mood",
-    "count_one": "{{count}} title",
-    "count_other": "{{count}} titles",
     "allDone": "You've rated everything here.",
     "noSeries": "This shelf has no series yet.",
     "noMovies": "This shelf has no films yet.",
@@ -2552,6 +2544,55 @@
       "time": "How much time",
       "feel": "To feel",
       "season": "This season"
+    },
+    "allMoodsOnly": "Every mood",
+    "hall": {
+      "epithet": "{{mood}} {{animal}}",
+      "animal": {
+        "bogart": "Frog",
+        "fincher": "Fox",
+        "cypher": "Cobra"
+      },
+      "mood": {
+        "mindBlowing": {
+          "m": "Mind-Blowing",
+          "f": "Mind-Blowing"
+        },
+        "darkScary": {
+          "m": "Dark",
+          "f": "Dark"
+        },
+        "drugTrip": {
+          "m": "Sensory",
+          "f": "Sensory"
+        },
+        "adventures": {
+          "m": "Adventurous",
+          "f": "Adventurous"
+        },
+        "catharsis": {
+          "m": "Cathartic",
+          "f": "Cathartic"
+        },
+        "adrenaline": {
+          "m": "Adrenaline",
+          "f": "Adrenaline"
+        },
+        "romantic": {
+          "m": "Romantic",
+          "f": "Romantic"
+        },
+        "familyTime": {
+          "m": "Family",
+          "f": "Family"
+        },
+        "laughOutLoud": {
+          "m": "Laughing",
+          "f": "Laughing"
+        }
+      },
+      "ours": "Noble traveler, this is our shelf.",
+      "startHere": "Noble traveler, start here."
     }
   },
   "jackpot": {

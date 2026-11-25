@@ -1,6 +1,6 @@
 import React from 'react';
 import { Film } from 'lucide-react';
-import { MOOD_BY_LETTER } from '../../lib/moods';
+import { MOOD_BY_LETTER, showLetter } from '../../lib/moods';
 import type { WorldTitle } from '../../lib/personaWorld';
 import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ratingTone } from '../../lib/oracleTheme';
 import { GOLD, fmtRating } from './draw';
@@ -30,7 +30,7 @@ export const Tile: React.FC<{ letter: string | null; small?: boolean }> = ({ let
       className={`grid place-items-center shrink-0 leading-none ${small ? 'w-[22px] h-[22px] rounded-[5px] text-[13px]' : 'w-7 h-7 rounded-[7px] text-[17px]'}`}
       style={{ ...PIXEL, color, background: '#130D24', boxShadow: `inset 0 0 0 1.5px ${color}` }}
     >
-      {letter ?? '+'}
+      {letter ? showLetter(letter) : '+'}
     </span>
   );
 };

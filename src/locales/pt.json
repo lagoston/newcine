@@ -627,7 +627,7 @@
       "adrenaline": "Adrenalina",
       "mindBlowing": "Mind-Blowing",
       "laughOutLoud": "Muitas Risadas",
-      "drugTrip": "Psicodélico",
+      "drugTrip": "Sensorial",
       "romantic": "Romântico",
       "darkScary": "Sombrio e Assustador",
       "familyTime": "Família",
@@ -877,8 +877,6 @@
       "view": "Ver perfil",
       "error": "Não deu para abrir o perfil de {{name}} agora.",
       "curation": "Curadoria",
-      "collection": "Acervo",
-      "collectionValue": "{{movies}} filmes e {{series}} séries",
       "era": "Época",
       "eraValue": "de {{from}} a {{to}}",
       "publicAvg": "Nota média do público",
@@ -908,12 +906,9 @@
       "directorFilms_one": "{{count}} filme",
       "directorFilms_other": "{{count}} filmes",
       "numbersTitle": "O acervo em números",
-      "hours": "horas de filme",
       "countries": "países",
       "countriesMost": "países, a maioria de {{country}}",
-      "decadeLabel": "anos {{decade}}",
-      "goldenDecade_one": "a década de ouro ({{decade}}), com {{count}} título",
-      "goldenDecade_other": "a década de ouro ({{decade}}), com {{count}} títulos"
+      "goldenDecadeOnly": "a década de ouro"
     },
     "libraryDoor": {
       "title": "A Mesa dos Oráculos",
@@ -2522,9 +2517,6 @@
     "series": "Séries",
     "occasionsLabel": "Ocasiões",
     "occasionClear": "Tirar a ocasião",
-    "allMoods": "todos os humores",
-    "count_one": "{{count}} título",
-    "count_other": "{{count}} títulos",
     "allDone": "Você já avaliou tudo daqui.",
     "noSeries": "Esta prateleira ainda não tem séries.",
     "noMovies": "Esta prateleira ainda não tem filmes.",
@@ -2557,6 +2549,55 @@
       "time": "Quanto tempo",
       "feel": "Pra sentir",
       "season": "Da época"
+    },
+    "allMoodsOnly": "Todos os humores",
+    "hall": {
+      "epithet": "{{animal}} {{mood}}",
+      "animal": {
+        "bogart": "Sapo",
+        "fincher": "Raposa",
+        "cypher": "Cobra"
+      },
+      "mood": {
+        "mindBlowing": {
+          "m": "Mind-Blowing",
+          "f": "Mind-Blowing"
+        },
+        "darkScary": {
+          "m": "Sombrio",
+          "f": "Sombria"
+        },
+        "drugTrip": {
+          "m": "Sensorial",
+          "f": "Sensorial"
+        },
+        "adventures": {
+          "m": "Aventureiro",
+          "f": "Aventureira"
+        },
+        "catharsis": {
+          "m": "Catártico",
+          "f": "Catártica"
+        },
+        "adrenaline": {
+          "m": "Adrenalina",
+          "f": "Adrenalina"
+        },
+        "romantic": {
+          "m": "Romântico",
+          "f": "Romântica"
+        },
+        "familyTime": {
+          "m": "de Família",
+          "f": "de Família"
+        },
+        "laughOutLoud": {
+          "m": "Risonho",
+          "f": "Risonha"
+        }
+      },
+      "ours": "Nobre viajante, esta é a nossa prateleira.",
+      "startHere": "Nobre viajante, comece por aqui."
     }
   },
   "jackpot": {

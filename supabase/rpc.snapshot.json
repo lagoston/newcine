@@ -44,6 +44,7 @@
   "get_my_poster_trades",
   "get_my_posters",
   "get_or_create_user_oracle_recommendations",
+  "get_oracle_affinity",
   "get_oracle_hub_picks_v2",
   "get_oracle_pool_movies",
   "get_oracle_profile",

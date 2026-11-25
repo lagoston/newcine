@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Film } from 'lucide-react';
-import { MOOD_BY_KEY, MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
+import { MOOD_BY_KEY, MOOD_BY_LETTER, showCode, showLetter, withMoodAlpha } from '../lib/moods';
 import { personaPortrait, posterUrl, type PersonaEntry } from '../lib/persona';
 import { VELVET, MIST, PIXEL, PAPER, INK } from '../lib/oracleTheme';
 
@@ -10,10 +10,10 @@ import { VELVET, MIST, PIXEL, PAPER, INK } from '../lib/oracleTheme';
 
 // O código de 3 letras, cada letra na cor do seu humor.
 export const PersonaCode: React.FC<{ code: string; className?: string; style?: React.CSSProperties }> = ({ code, className = '', style }) => (
-  <span className={className} style={{ ...PIXEL, ...style }} aria-label={code}>
+  <span className={className} style={{ ...PIXEL, ...style }} aria-label={showCode(code)}>
     {code.split('').map((letter, i) => (
       <span key={`${letter}-${i}`} style={{ color: MOOD_BY_LETTER[letter]?.color ?? MIST }} aria-hidden>
-        {letter}
+        {showLetter(letter)}
       </span>
     ))}
   </span>
@@ -131,7 +131,7 @@ export const MoodChip: React.FC<{ moodKey: string; rank?: number; size?: 'sm' | 
         )}
       </span>
       <span style={{ ...PIXEL, color: mood.color }} className="leading-none" aria-hidden>
-        {mood.letter}
+        {mood.glyph}
       </span>
       {t(mood.labelKey)}
     </span>

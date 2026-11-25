@@ -149,7 +149,7 @@ export const ShelfPoster: React.FC<{
       </span>
       {mood && (
         <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold leading-none" style={{ color: mood.color }}>
-          <span style={PIXEL} aria-hidden>{mood.letter}</span>
+          <span style={PIXEL} aria-hidden>{mood.glyph}</span>
           <span className="truncate">{t(mood.labelKey)}</span>
         </span>
       )}

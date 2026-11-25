@@ -2,7 +2,7 @@ import { pokeFrame, type Ctx } from '../pixel';
 import type { Kit } from '../studio';
 import type { MoodItemArt } from './types';
 
-// A luminária de lava, de chão (17/11/2026): o móvel do Psicodélico (🍭 Dreamwalker).
+// A luminária de lava, de chão (17/11/2026): o móvel do Sensorial, antes Psicodélico (🍭 Dreamwalker).
 //
 // Escolha do Bruno. Uma luminária de lava grande, de pé no chão: a base cônica
 // de cobre escuro com o friso dourado e os furinhos por onde escapa a luz da

@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import AcervoLayer from '../components/oracleAcervo/AcervoLayer';
 import { useLayerEntry, useLayerStack } from '../components/oracleAcervo/layerStack';
-import AcervoTabs from '../components/oracleAcervo/AcervoTabs';
+import MentorHall from '../components/oracleAcervo/MentorHall';
 import MoodPicker from '../components/oracleAcervo/MoodPicker';
 import AcervoGrid, { AcervoErrorBox, GRID, SkeletonTile } from '../components/oracleAcervo/AcervoGrid';
 import { BASE_OCCASIONS, OCCASION_ICON } from '../components/oracleAcervo/occasions';
@@ -23,6 +23,7 @@ import { getFullTitle } from '../lib/titleCards';
 import type { Movie } from '../lib/tmdb';
 import type { AcervoItem, AcervoMedia, OracleSlot } from '../lib/mesa/types';
 import { MOOD_BY_KEY } from '../lib/moods';
+import { useOracleAffinity } from '../lib/oracleAffinity';
 import { FOCUS_RING, MIST, NIGHT, ORACLE_BY_ID, PAPER, PIXEL, VELVET, withAlpha } from '../lib/oracleTheme';
 
 // O Acervo dos oráculos — desde 09/11/2026, a página única da Mesa dos
@@ -34,6 +35,23 @@ import { FOCUS_RING, MIST, NIGHT, ORACLE_BY_ID, PAPER, PIXEL, VELVET, withAlpha 
 // linha embaixo do pôster. Pouco texto: o nome, as escolhas e a grade.
 // 13/11/2026: as letras seguem a ordem da Persona da pessoa, e as ocasiões
 // moram no botão da décima casa (MoodPicker), não mais numa fileira à parte.
+//
+// 25/11/2026: o Acervo é "o jogo" (o resto do site é o menu dele). Pedido do
+// Bruno: remodelar "mantendo as estruturas", na pegada "mitológica, hotel
+// habboolística, da dungeons and dragons"; os mentores vestem a cor da
+// prateleira em que a pessoa mais os procura e "As ordens das prateleiras devem
+// se adaptar"; quem entra é "a mariposinha que vive no estúdio do cinéfilo". E:
+// "tem que ser tudo intuitivo e prático também, para que um usuário comum possa
+// se deleitar sem necessariamente 'jogar'". O que mudou, sem mexer no que cada
+// toque faz:
+//   • as três abas viraram o salão dos mentores (MentorHall): os mesmos três
+//     botões, com a cena em pixels por trás e a mariposa da pessoa;
+//   • as letras são runas na ordem do mentor escolhido (lib/oracleAffinity.ts):
+//     a primeira é a prateleira que ele veste, e é ela que abre sozinha quando
+//     o endereço chega sem humor. Trocar de mentor estando na prateleira dele
+//     abre a prateleira do outro; com outra runa escolhida, o humor continua,
+//     como antes. Sem a resposta do banco, vale a ordem da Persona (13/11);
+//   • na prateleira do mentor, a linha embaixo do nome é uma fala dele.
 //
 // A URL manda:
 //   ?oracle   bogart | fincher | cypher (padrão bogart)
@@ -74,16 +92,30 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
   const { user } = useAuth();
   const userId = user?.id;
   const { scrollRef } = useLayerStack();
-  const { shelf, occasions, loadMore, retry, removeItem, setWatchlist } = useAcervo(filter);
+  // A prateleira que cada mentor veste e a ordem das runas dele (25/11/2026).
+  const affinity = useOracleAffinity();
+  // O endereço chegou sem humor (e sem ocasião): abre a prateleira que o mentor
+  // veste para esta pessoa. Enquanto a resposta não chega (a primeira visita
+  // num aparelho), o pedido sai sem humor e o servidor escolhe, como antes.
+  const asked: Filter = useMemo(
+    () => (!filter.mood && !filter.occasion && affinity ? { ...filter, mood: affinity[filter.oracle].order[0] } : filter),
+    [filter, affinity]
+  );
+  const { shelf, occasions, loadMore, retry, removeItem, setWatchlist } = useAcervo(asked);
   const chipList = occasions ?? BASE_OCCASIONS;
-  // A ordem das 9 letras: a da Persona da pessoa (13/11/2026).
-  const moodOrder = useMoodOrder(userId);
+  // A ordem das 9 runas: a do mentor escolhido; sem ela (visitante, erro), a da
+  // Persona (13/11/2026). Enquanto a do mentor não chega, as casas esperam
+  // vazias em vez de aparecer numa ordem e pular para outra.
+  const personaOrder = useMoodOrder(userId);
+  const moodOrder = affinity ? affinity[filter.oracle].order : affinity === null ? personaOrder : null;
+  // Sobe 1 a cada título avaliado daqui: a mariposa do salão solta um clarão.
+  const [ratedPulse, setRatedPulse] = useState(0);
 
   // A URL sempre diz o filtro que está na tela: o humor padrão escolhido pelo
   // servidor, a mídia de uma ocasião de um tipo só e os valores corrigidos
   // entram nela (sem criar entrada nova no histórico). Só quando a grade na
   // tela é a do filtro pedido — nunca a de um toque anterior.
-  const filterKey = shelfKey(filter);
+  const filterKey = shelfKey(asked);
   useEffect(() => {
     if (shelf.key !== filterKey || shelf.status !== 'ready' || shelf.stale) return;
     onFilter({ oracle: shelf.oracle, media: shelf.media, occasion: shelf.occasion, mood: shelf.occasion ? null : shelf.mood });
@@ -149,6 +181,7 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
         const row = data as { rating: number | null } | null;
         if (row && row.rating !== null && row.rating !== undefined) {
           removeItem(closing.tmdb_id, closing.media_type);
+          setRatedPulse((n) => n + 1);
           // O pôster focado saiu da grade: o foco não pode cair no <body>.
           window.requestAnimationFrame(() => {
             if (!document.activeElement || document.activeElement === document.body) rootRef.current?.focus({ preventScroll: true });
@@ -189,6 +222,17 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
   const lastMood = useRef<string | null>(filter.mood);
   if (filter.mood) lastMood.current = filter.mood;
 
+  // Trocar de mentor (25/11/2026). Quem está na prateleira que o mentor veste
+  // está seguindo o mentor: o outro abre na prateleira DELE (a Raposa Catártica
+  // abre em Catarse). Quem escolheu outra runa está seguindo a prateleira: ela
+  // continua, como sempre foi. Uma ocasião ligada também continua.
+  const selectOracle = (oracle: OracleSlot) => {
+    if (oracle === filter.oracle) return;
+    const current = asked.mood ?? shelf.mood;
+    const following = Boolean(affinity) && !asked.occasion && current === affinity?.[filter.oracle].order[0];
+    onFilter({ ...asked, oracle, mood: following && affinity ? affinity[oracle].order[0] : asked.mood });
+  };
+
   const selectOccasion = (id: string | null) => {
     if (!id) {
       onFilter({ ...filter, occasion: null, mood: lastMood.current });
@@ -207,13 +251,18 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
 
   const current = ORACLE_BY_ID[filter.oracle];
   const occasionId = filter.occasion ?? null;
-  const moodKey = occasionId ? null : filter.mood ?? shelf.mood;
+  const moodKey = occasionId ? null : asked.mood ?? shelf.mood;
   const moodInfo = moodKey ? MOOD_BY_KEY[moodKey] : null;
   const OccIcon = occasionId ? OCCASION_ICON[occasionId] : null;
   const MoodIcon = moodInfo?.icon;
   const shelfName = occasionId ? t(`mesa.occasions.${occasionId}.name`) : moodInfo ? t(moodInfo.labelKey) : '';
   const panelId = 'acervo-shelf';
   const ready = shelf.status === 'ready' && !shelf.stale;
+  // A fala do mentor, só na prateleira que ele veste: é ela que explica a cor
+  // dele sem precisar de legenda. Com a ordem da própria pessoa, "a nossa
+  // prateleira"; com o gosto geral (poucas notas com ele), "comece por aqui".
+  const mentorShelf = affinity && !occasionId && moodKey === affinity[filter.oracle].order[0] ? affinity[filter.oracle] : null;
+  const shelfLine = occasionId ? (ready && shelf.unrated > 0 ? t('acervo.allMoodsOnly') : '') : mentorShelf ? t(mentorShelf.own ? 'acervo.hall.ours' : 'acervo.hall.startHere') : '';
 
   let body: React.ReactNode;
   if (shelf.status === 'error') {
@@ -285,18 +334,22 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
 
       {/* div, e não <main>: o <main> do site continua por baixo da camada. */}
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 flex-1">
+        {/* O salão dos mentores: as três abas de oráculo (25/11/2026). */}
         <div className="mt-2">
-          <AcervoTabs
+          <MentorHall
             active={filter.oracle}
             panelId={panelId}
-            onSelect={(oracle) => onFilter({ ...filter, oracle })}
+            affinity={affinity}
+            userId={userId}
+            onSelect={selectOracle}
             onOpenProfile={setProfileOracle}
+            pulse={ratedPulse}
           />
         </div>
 
-        {/* As letras (na ordem da Persona) e, na décima casa, o botão das
-            ocasiões, que abre as fichas logo abaixo (13/11/2026). */}
-        <div className="mt-5">
+        {/* As runas (na ordem do mentor escolhido) e, na décima casa, o botão
+            das ocasiões, que abre as fichas logo abaixo (13/11/2026). */}
+        <div className="mt-3 sm:mt-4">
           <MoodPicker
             order={moodOrder}
             active={moodKey}
@@ -310,7 +363,7 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
           />
         </div>
 
-        <section ref={sectionRef} id={panelId} role="tabpanel" aria-labelledby={`acervo-tab-${filter.oracle}`} className="mt-6 sm:mt-8">
+        <section ref={sectionRef} id={panelId} role="tabpanel" aria-labelledby={`acervo-tab-${filter.oracle}`} className="mt-5 sm:mt-8">
           {/* O nome da prateleira e quantos títulos faltam (altura reservada:
               nada pula quando o número chega). */}
           <div className="mb-4 sm:mb-5 min-h-[50px]">
@@ -334,12 +387,14 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
                 MoodIcon && <MoodIcon className="w-5 h-5 shrink-0" style={{ color: moodInfo?.color }} aria-hidden />
               )}
             </h2>
-            <p className="mt-1 text-sm h-5" style={{ color: MIST }} aria-live="polite">
-              {ready && shelf.unrated > 0
-                ? occasionId
-                  ? `${t('acervo.count', { count: shelf.unrated })} · ${t('acervo.allMoods')}`
-                  : t('acervo.count', { count: shelf.unrated })
-                : ' '}
+            {/* 25/11/2026 (pedido do Bruno: "Remova também o indicador de quantas
+                obras temos dentro de cada oráculo e prateleira, vamos deixar as
+                coisas mais 'infinitas' e secretas"): saiu a contagem ("180
+                títulos"). Numa ocasião fica só o aviso de que ela junta todos os
+                humores; na prateleira que o mentor veste, a fala dele. A linha
+                continua reservada para a grade não pular. */}
+            <p className="mt-1 text-sm h-5 truncate" style={{ color: MIST }} aria-live="polite">
+              {shelfLine || ' '}
             </p>
           </div>
           {body}
