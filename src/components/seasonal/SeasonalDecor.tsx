@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useSeasonalEvent } from '../../contexts/SeasonalEventContext';
 import { PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
 import { daysUntilEventDay, type SeasonalEventId } from '../../lib/seasonalEvents';
-import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarland, MoonGlow, PennantBunting, SantaCap, Snowfall } from './SeasonalArt';
+import { BatFlights, Cobweb, HangingSpider, JackOLantern, MoonGlow, PennantBunting, Snowfall } from './SeasonalArt';
+import { PixelLights, PixelSantaCap, SantaCapIcon } from './PixelChristmas';
 
 // Decoração dos eventos espalhada pelo site — de propósito, mínima:
 //   • SeasonalBackdrop: atmosfera no fundo de todas as páginas (lua e três
@@ -16,6 +17,12 @@ import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarlan
 //     (o ano inteiro, com a contagem para o próximo 31/10 ou 25/12);
 //   • CardSeasonalScene + SeasonalCountdownMini: a versão do mini perfil
 //     (cartões da Comunidade).
+//
+// 28/11/2026: o Natal inteiro passou para o traço de pixel da sala de Natal
+// (pedido do Bruno: "adaptar habooisticamente [...] ver se o site vai pegar o
+// espírito natalino também"): o pisca-pisca é o varal de pixel (PixelLights),
+// a neve cai em flocos quadrados, o gorro do avatar e a placa da contagem são
+// pixel art. O Halloween segue como era.
 
 const HALLOWEEN_ORANGE = '#FF8A1F';
 
@@ -50,7 +57,7 @@ export const SeasonalBackdrop: React.FC = () => {
         className="absolute inset-0"
         style={{ background: 'radial-gradient(ellipse 90% 35% at 50% 108%, rgba(245,196,81,0.08), transparent 70%)' }}
       />
-      <Snowfall count={26} seed={3} maxSize={3.5} opacity={[0.15, 0.4]} speed={[18, 34]} />
+      <Snowfall pixel count={26} seed={3} maxSize={4} opacity={[0.2, 0.5]} speed={[18, 34]} />
     </div>
   );
 };
@@ -76,7 +83,7 @@ export const NavbarSeasonalAccent: React.FC = () => {
 
   return (
     <span aria-hidden className="pointer-events-none absolute inset-x-0 top-full block">
-      <LightsGarland count={22} className="w-full -mt-px" sag={7} bulb={5} />
+      <PixelLights pixel={2} className="w-full -mt-px" />
     </span>
   );
 };
@@ -107,9 +114,8 @@ export const PanelSeasonalScene: React.FC<{ eventId: SeasonalEventId }> = ({ eve
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <LightsGarland count={16} className="absolute inset-x-0 top-0" sag={12} bulb={8} />
-      <GoldStar size={26} className="absolute hidden lg:block" style={{ top: 112, right: 64 }} />
-      <Snowfall count={30} seed={5} maxSize={3.5} opacity={[0.25, 0.65]} speed={[10, 20]} />
+      <PixelLights pixel={3} overlay />
+      <Snowfall pixel count={30} seed={5} maxSize={4} opacity={[0.3, 0.7]} speed={[10, 20]} />
       <div
         className="absolute inset-x-0 bottom-0 h-16"
         style={{ background: 'linear-gradient(to top, rgba(248,244,236,0.07), transparent)' }}
@@ -145,9 +151,11 @@ export const ProfileSeasonalScene: React.FC<{ eventId: SeasonalEventId }> = ({ e
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
-      <LightsGarland count={14} className="absolute inset-x-0 top-0" sag={12} bulb={8} />
-      <Snowfall count={22} seed={9} maxSize={4} opacity={[0.3, 0.75]} speed={[9, 18]} />
-      <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: 'linear-gradient(to top, rgba(248,244,236,0.1), transparent)' }} />
+      <PixelLights pixel={3} overlay />
+      <Snowfall pixel count={22} seed={9} maxSize={4} opacity={[0.35, 0.8]} speed={[9, 18]} />
+      {/* a neve acumulada no pé do cartão: duas faixas chapadas, sem degradê */}
+      <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'rgba(248,244,236,0.16)' }} />
+      <div className="absolute inset-x-0 bottom-1.5 h-1" style={{ background: 'rgba(248,244,236,0.07)' }} />
     </div>
   );
 };
@@ -163,10 +171,10 @@ export const AvatarSeasonalAccessory: React.FC<{ eventId: SeasonalEventId; size?
       </span>
     );
   }
-  // O gorro senta no topo, levemente inclinado, com a barra encostada na
-  // borda do avatar (o desenho já vem na escala do avatar).
-  // Ele sobe ~46% do tamanho acima do avatar: quem usa reserva esse espaço.
-  return <SantaCap size={size} className="z-20" style={{ filter: 'drop-shadow(0 5px 6px rgba(0,0,0,0.45))' }} />;
+  // O gorro (em pixel desde 28/11/2026) senta no topo, com a barra de pelúcia
+  // sobre a borda do avatar. Ele sobe ~40% do tamanho acima do avatar: quem usa
+  // reserva esse espaço (o desenho liso de antes pedia 46%).
+  return <PixelSantaCap size={size} className="z-20" style={{ filter: 'drop-shadow(0 3px 0 rgba(0,0,0,0.35))' }} />;
 };
 
 // Contagem regressiva no perfil decorado: dias para o próximo 31/10
@@ -177,6 +185,34 @@ export const SeasonalCountdown: React.FC<{ eventId: SeasonalEventId }> = ({ even
   const halloween = eventId === 'halloween';
   const accent = halloween ? HALLOWEEN_ORANGE : '#F5C451';
   const ring = halloween ? withAlpha(HALLOWEEN_ORANGE, 0.55) : 'rgba(229,72,77,0.6)';
+  if (!halloween) {
+    // A placa de Natal em pixel (28/11/2026): cantos retos, contorno de 2 px e
+    // sombra dura, como os móveis do estúdio; o gorro no lugar do emoji.
+    return (
+      <p
+        className="relative inline-flex items-center gap-3 rounded-lg pl-2 pr-4 py-2"
+        style={{ background: '#0D1A16', border: '2px solid #27402F', boxShadow: '0 4px 0 rgba(0,0,0,0.4)' }}
+      >
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-md" style={{ background: 'rgba(229,72,77,0.2)', boxShadow: 'inset 0 0 0 2px rgba(229,72,77,0.6)' }} aria-hidden>
+          <SantaCapIcon pixel={2} />
+        </span>
+        {days === 0 ? (
+          <span style={{ ...PIXEL, color: accent }} className="text-xl leading-none">
+            {t(`events.${eventId}.countdownToday`)}
+          </span>
+        ) : (
+          <>
+            <span style={{ ...PIXEL, color: accent }} className="text-[2rem] leading-none tabular-nums">
+              {days}
+            </span>
+            <span style={{ ...PIXEL, color: PAPER }} className="max-w-[8.5rem] text-sm leading-tight text-left">
+              {t(`events.${eventId}.countdown`, { count: days })}
+            </span>
+          </>
+        )}
+      </p>
+    );
+  }
   return (
     <p
       className="relative inline-flex items-center gap-3 rounded-2xl pl-2 pr-4 py-2"
@@ -229,8 +265,8 @@ export const CardSeasonalScene: React.FC<{ eventId: SeasonalEventId }> = ({ even
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-2xl">
       <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 120% at 60% 130%, rgba(245,196,81,0.18), transparent 70%)' }} />
-      <LightsGarland count={10} className="absolute inset-x-0 top-0" sag={8} bulb={6} />
-      <Snowfall count={14} seed={13} maxSize={3} opacity={[0.35, 0.8]} speed={[6, 11]} />
+      <PixelLights pixel={2} overlay />
+      <Snowfall pixel count={14} seed={13} maxSize={4} opacity={[0.4, 0.85]} speed={[6, 11]} />
     </div>
   );
 };
@@ -251,9 +287,13 @@ export const SeasonalCountdownMini: React.FC<{ eventId: SeasonalEventId; classNa
       className={`pointer-events-none inline-flex items-center gap-1.5 h-7 pl-1.5 pr-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${className}`}
       style={{ background: 'rgba(0,0,0,0.58)', boxShadow: `inset 0 0 0 1px ${ring}`, color: PAPER, ...style }}
     >
-      <span className="text-sm leading-none normal-case" aria-hidden>
-        {halloween ? '🎃' : '🎅'}
-      </span>
+      {halloween ? (
+        <span className="text-sm leading-none normal-case" aria-hidden>
+          🎃
+        </span>
+      ) : (
+        <SantaCapIcon pixel={1} />
+      )}
       {days === 0 ? (
         <span style={{ color: accent }}>{t(`events.${eventId}.countdownToday`)}</span>
       ) : (

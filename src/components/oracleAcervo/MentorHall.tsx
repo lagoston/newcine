@@ -7,6 +7,7 @@ import { ambientInterval, useCalm } from '../../lib/motion';
 import { mentorTint, type OracleAffinity } from '../../lib/oracleAffinity';
 import type { OracleSlot } from '../../lib/mesa/types';
 import { usePatronus } from '../patronus/patronus';
+import { useSeasonalEvent } from '../../contexts/SeasonalEventContext';
 import { drawBurst, PATRONUS_SKY, wispSprite, type Sprite } from '../patronus/sprite';
 import { drawMoth, mothScale, type MothSpec } from '../personaWorld/draw';
 import { HALL_H, MENTOR_HEAD_Y, drawHall, mentorCenters, type HallState } from './mentorArt';
@@ -118,8 +119,10 @@ const MentorHall: React.FC<MentorHallProps> = ({ active, panelId, affinity, user
   const scene = useRef<Scene>({ tick: 0, mothX: null, hop: null, burst: null });
   const wisps = useRef<{ on?: Sprite; off?: Sprite }>({});
   // o que o desenho lê a cada quadro (sem recriar o laço quando algo muda)
-  const latest = useRef({ active, mentors, box, calm, spec: patronus.spec as MothSpec | null, settled: patronus.settled });
-  latest.current = { active, mentors, box, calm, spec: patronus.spec, settled: patronus.settled };
+  // 28/11/2026: com o Natal no ar o salão ganha o varal de luzes e os três, o gorro
+  const festive = useSeasonalEvent().event?.id === 'christmas';
+  const latest = useRef({ active, mentors, box, calm, festive, spec: patronus.spec as MothSpec | null, settled: patronus.settled });
+  latest.current = { active, mentors, box, calm, festive, spec: patronus.spec, settled: patronus.settled };
 
   // onde a mariposa quer estar: ao lado da cabeça do mentor escolhido
   const mothTarget = () => {
@@ -141,7 +144,7 @@ const MentorHall: React.FC<MentorHallProps> = ({ active, panelId, affinity, user
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, HALL_H);
     const hop = !still && state.hop !== null ? (HOP[state.hop] ?? 0) : 0;
-    drawHall(ctx, width, { active: now.active, mentors: now.mentors, tick: still ? 0 : state.tick, hop });
+    drawHall(ctx, width, { active: now.active, mentors: now.mentors, tick: still ? 0 : state.tick, hop, festive: now.festive });
 
     // A mariposa: paira ao lado do mentor escolhido; ao trocar de mentor, voa
     // até o outro; na primeira vez, entra pela esquerda do salão.
@@ -194,7 +197,7 @@ const MentorHall: React.FC<MentorHallProps> = ({ active, panelId, affinity, user
   const specKey = patronus.spec ? JSON.stringify(patronus.spec) : patronus.settled ? 'wisp' : '';
   useEffect(() => {
     paint.current();
-  }, [mentors, specKey]);
+  }, [mentors, specKey, festive]);
 
   // trocou de mentor: ele dá um pulinho
   const firstActive = useRef(true);

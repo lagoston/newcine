@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BarChart3 } from 'lucide-react';
@@ -6,12 +6,18 @@ import { supabase } from '../lib/supabase';
 import { useMyProfile } from '../lib/data';
 import { Movie } from '../lib/tmdb';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
-import SeasonalEventPanel from './seasonal/SeasonalEventPanel';
 import FriendsFeed from './feed/FriendsFeed';
 import OracleLibraryDoor from './oracleHub/OracleLibraryDoor';
 import StudioDoor from './home/StudioDoor';
 import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
 import { NIGHT, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+
+// Os painéis dos eventos só baixam com o evento no ar (ou no ensaio do
+// diretor): o de Natal em dezembro, o do Halloween em outubro. 28/11/2026: o do
+// Halloween vinha junto com a home o ano inteiro; saiu para o Natal caber no
+// limite de tamanho da abertura (npm run check:size).
+const ChristmasPanel = lazy(() => import('./seasonal/ChristmasPanel'));
+const SeasonalEventPanel = lazy(() => import('./seasonal/SeasonalEventPanel'));
 
 // Topo da home de quem está logado.
 //   1. Os stories dos amigos.
@@ -172,9 +178,18 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       </section>
 
       {/* ---------- O evento sazonal ---------- */}
+      {/* 28/11/2026: o Natal tem o seu painel em pixel (a sala de Natal, as
+          missões e a raspadinha); a lista de filmes dele virou a primeira
+          prateleira da home. O Halloween segue no painel de sempre. */}
       {seasonal && seasonalTheme && (
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-8">
-          <SeasonalEventPanel event={seasonal} theme={seasonalTheme} onMovieClick={onMovieClick} />
+          <Suspense fallback={<div className="rounded-2xl bg-white/5 min-h-[420px]" aria-hidden />}>
+            {seasonal.id === 'christmas' ? (
+              <ChristmasPanel event={seasonal} theme={seasonalTheme} userId={userId} />
+            ) : (
+              <SeasonalEventPanel event={seasonal} theme={seasonalTheme} onMovieClick={onMovieClick} />
+            )}
+          </Suspense>
         </section>
       )}
 

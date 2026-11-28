@@ -215,62 +215,32 @@ export const PennantBunting: React.FC<{ count?: number; scale?: number; classNam
 // Natal
 // ---------------------------------------------------------------------------
 
-const BULB_COLORS = ['#E5484D', '#F5C451', '#2FB36B', '#5EB1EF'];
-
-// Varal de luzes: fio em arcos, uma lâmpada no fundo de cada arco.
-export const LightsGarland: React.FC<{ count?: number; className?: string; style?: React.CSSProperties; sag?: number; bulb?: number }> = ({
-  count = 14,
-  className = '',
-  style,
-  sag = 10,
-  bulb = 7,
-}) => (
-  <div aria-hidden className={`pointer-events-none flex ${className}`} style={style}>
-    {Array.from({ length: count }).map((_, i) => {
-      const color = BULB_COLORS[i % BULB_COLORS.length];
-      return (
-        <span key={i} className="relative flex-1 block" style={{ height: sag + bulb * 1.6 }}>
-          <svg className="absolute inset-x-0 top-0 w-full" height={sag + 2} viewBox={`0 0 100 ${sag + 2}`} preserveAspectRatio="none">
-            <path d={`M0 1Q50 ${sag * 2 - 1} 100 1`} fill="none" stroke="rgba(30,45,38,0.95)" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
-          </svg>
-          <span
-            className="co-bulb absolute left-1/2 -translate-x-1/2 block"
-            style={{
-              top: sag - 1,
-              width: bulb,
-              height: bulb * 1.45,
-              borderRadius: `${bulb}px ${bulb}px ${bulb}px ${bulb}px / ${bulb * 0.7}px ${bulb * 0.7}px ${bulb * 1.1}px ${bulb * 1.1}px`,
-              background: `radial-gradient(circle at 35% 30%, #fff8, transparent 45%), ${color}`,
-              boxShadow: `0 0 ${bulb * 1.4}px ${bulb * 0.3}px ${color}99`,
-              ['--dur' as string]: `${2 + ((i * 7) % 5) * 0.35}s`,
-              ['--delay' as string]: `${-((i * 13) % 9) * 0.3}s`,
-            } as React.CSSProperties}
-          />
-        </span>
-      );
-    })}
-  </div>
-);
+// O varal de luzes e o gorro lisos saíram em 28/11/2026: o Natal passou para o
+// traço de pixel (PixelChristmas.tsx). Aqui ficou só a neve.
 
 // Neve caindo dentro do elemento pai (que precisa de position + overflow).
-export const Snowfall: React.FC<{ count?: number; seed?: number; maxSize?: number; opacity?: [number, number]; speed?: [number, number] }> = ({
+// `pixel` (28/11/2026, o Natal em pixel): flocos quadrados de 2 ou 4 px que
+// descem em degraus, como a neve da janela da sala de Natal.
+export const Snowfall: React.FC<{ count?: number; seed?: number; maxSize?: number; opacity?: [number, number]; speed?: [number, number]; pixel?: boolean }> = ({
   count = 24,
   seed = 7,
   maxSize = 4,
   opacity = [0.25, 0.6],
   speed = [12, 26],
+  pixel = false,
 }) => {
   const rand = seeded(seed);
   return (
     <>
       {Array.from({ length: count }).map((_, i) => {
-        const size = 1.5 + rand() * (maxSize - 1.5);
+        const roll = rand();
+        const size = pixel ? (roll > 0.7 && maxSize >= 4 ? 4 : 2) : 1.5 + roll * (maxSize - 1.5);
         const dur = speed[0] + rand() * (speed[1] - speed[0]);
         return (
           <span
             key={i}
             aria-hidden
-            className="co-flake pointer-events-none"
+            className={`co-flake pointer-events-none ${pixel ? 'co-flake--pixel' : ''}`}
             style={{
               left: `${(rand() * 100).toFixed(2)}%`,
               ['--dur' as string]: `${dur.toFixed(1)}s`,
@@ -292,48 +262,3 @@ export const Snowfall: React.FC<{ count?: number; seed?: number; maxSize?: numbe
     </>
   );
 };
-
-// Gorro de Papai Noel (inclinado, pra pôr no canto do avatar).
-// Desenhado no sistema do próprio avatar (círculo de centro 50,50 e raio 50,
-// o avatar ocupa 0–100): a barra branca é um arco que abraça a borda, então
-// o gorro "senta" no topo da cabeça em qualquer tamanho. `tilt` gira o gorro
-// em torno do centro do avatar — a barra continua encostada na borda.
-// Já vem posicionado (absolute) em relação ao canto do avatar: o pai precisa
-// ser `relative` e ter o tamanho do avatar.
-const SANTA_CAP_BOX = { left: -8, top: -50, width: 120, height: 80 };
-
-export const SantaCap: React.FC<{ size: number; tilt?: number; className?: string; style?: React.CSSProperties }> = ({ size, tilt = -8, className = '', style }) => {
-  const box = SANTA_CAP_BOX;
-  return (
-    <svg
-      viewBox={`${box.left} ${box.top} ${box.width} ${box.height}`}
-      width={(size * box.width) / 100}
-      height={(size * box.height) / 100}
-      aria-hidden
-      overflow="visible"
-      className={`pointer-events-none absolute ${className}`}
-      style={{ left: (size * box.left) / 100, top: (size * box.top) / 100, ...style }}
-    >
-      <g transform={`rotate(${tilt} 50 50)`}>
-        {/* corpo: sobe do topo da cabeça e a ponta tomba para a direita */}
-        <path d="M16 12C16 -16 32 -42 56 -45C76 -47 93 -33 99 -11C91 -20 82 -23 76 -18C80 -8 83 2 84 12A52 52 0 0 0 16 12Z" fill="#D93A45" />
-        <path d="M56 -45C76 -47 93 -33 99 -11C94 -17 87 -20 81 -20C78 -32 69 -42 56 -45Z" fill="#B42A35" />
-        {/* barra de pelúcia em arco, sobre a borda do avatar */}
-        <path d="M11.7 15.5A51.5 51.5 0 0 1 88.3 15.5" fill="none" stroke="#F8F4EC" strokeWidth={12.5} strokeLinecap="round" />
-        <path d="M14.5 19.5A47 47 0 0 1 85.5 19.5" fill="none" stroke="#E3DCCD" strokeWidth={1.2} strokeLinecap="round" opacity={0.8} />
-        <circle cx={99.5} cy={-8} r={8} fill="#F8F4EC" />
-      </g>
-    </svg>
-  );
-};
-
-// Estrela dourada pequena (topo da árvore, brilho do painel).
-export const GoldStar: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 18, className = '', style }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden className={`pointer-events-none ${className}`} style={style}>
-    <path
-      d="M12 2.5L14.6 8.6L21.2 9.2L16.2 13.6L17.7 20.1L12 16.7L6.3 20.1L7.8 13.6L2.8 9.2L9.4 8.6Z"
-      fill="#F5C451"
-      style={{ filter: 'drop-shadow(0 0 6px rgba(245,196,81,0.7))' }}
-    />
-  </svg>
-);

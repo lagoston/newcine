@@ -1,6 +1,6 @@
 {
  "_": "Funções do banco que a tela chama e que já foram conferidas (existem e podem ser chamadas). Ver scripts/check-rpc.mjs.",
- "conferido_em": "2026-11-25",
+ "conferido_em": "2026-11-28",
  "confirmed": [
   "ack_cobra_kit_drops",
   "add_feed_comment",
@@ -63,6 +63,7 @@
   "get_profile_by_username",
   "get_profile_stats_v2",
   "get_seasonal_event_state",
+  "get_secret_friend",
   "get_secret_room",
   "get_secret_room_access",
   "get_secret_room_portal",
@@ -102,6 +103,8 @@
   "respond_poster_trade_v2",
   "respond_to_friend_request",
   "search_visible_profiles",
+  "secret_friend_scratch",
+  "secret_friend_send",
   "send_friend_request",
   "set_persona_mood_pick",
   "set_persona_studio_layout",

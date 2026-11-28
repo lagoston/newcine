@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Bookmark, Check, Star } from 'lucide-react';
 import FateThread from '../components/FateThread';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -19,8 +19,10 @@ import { useFriendActivity } from '../hooks/useFriendActivity';
 import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
-import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
-import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/oracleTheme';
+import { requestSeasonalRefresh, useSeasonalEvent } from '../contexts/SeasonalEventContext';
+import { CHRISTMAS_LIST_ANCHOR } from '../lib/seasonalEvents';
+import { useSeasonalList } from '../lib/seasonalList';
+import { VELVET, PAPER, MIST, INK, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/oracleTheme';
 import { MOOD_BY_KEY } from '../lib/moods';
 import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
 import { markFirstScreen } from '../lib/firstScreen';
@@ -81,8 +83,16 @@ interface ShelfProps {
   onViewAll: () => void;
   emptyState?: React.ReactNode;
   // meta 'forYou': nota prevista, oráculo e prateleira de cada título
-  forYouInfo?: Record<string, ForYouInfo>;
+  forYouInfo?: Record<string, ShelfInfo>;
+  // 28/11/2026 (a Lista de Natal): a âncora da seção (para rolar até ela) e um
+  // selo por título no canto da capa (a nota da pessoa, o que já contou)
+  anchorId?: string;
+  badge?: (movie: Movie) => React.ReactNode;
 }
+
+// O que a prateleira sabe de cada título. A Lista de Natal tem filmes que não
+// vieram da prateleira de nenhum oráculo (oracle: null).
+type ShelfInfo = Omit<ForYouInfo, 'oracle' | 'chance9'> & { oracle: ForYouInfo['oracle'] | null; chance9?: number | null };
 
 const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
 const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
@@ -95,7 +105,7 @@ const ShelfSkeletonTile: React.FC = () => (
   </li>
 );
 
-const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta, friendActivity, onMovieClick, onViewAll, emptyState, forYouInfo }) => {
+const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta, friendActivity, onMovieClick, onViewAll, emptyState, forYouInfo, anchorId, badge }) => {
   const { t, i18n } = useTranslation();
   // Sob demanda (10/10/2026): a lista só é buscada quando a prateleira chega
   // perto da tela; os pôsteres entram em lotes e acendem ao aparecer.
@@ -140,7 +150,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
   const forYouOracle = (movie: Movie) => {
     if (meta !== 'forYou') return undefined;
     const info = forYouInfo?.[movieKey(movie)];
-    return info ? ORACLE_BY_ID[info.oracle] : undefined;
+    return info?.oracle ? ORACLE_BY_ID[info.oracle] : undefined;
   };
 
   const metaLine = (movie: Movie) => {
@@ -160,7 +170,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
   };
 
   return (
-    <section ref={sectionRef} className="border-t border-white/[0.07] pt-6 pb-4 sm:pt-8 sm:pb-6">
+    <section ref={sectionRef} id={anchorId} className="border-t border-white/[0.07] pt-6 pb-4 sm:pt-8 sm:pb-6 scroll-mt-16">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">{title}</h2>
@@ -240,7 +250,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                       const oracle = forYouOracle(movie);
                       if (!oracle) return null;
                       const info = forYouInfo?.[movieKey(movie)];
-                      const mood = info ? MOOD_BY_KEY[info.moodKey] : undefined;
+                      const mood = info?.moodKey ? MOOD_BY_KEY[info.moodKey] : undefined;
                       const curated = `${t('events.curatedBy', { name: oracle.name })}${mood ? ` · ${t(mood.labelKey)}` : ''}`;
                       return (
                         <>
@@ -259,6 +269,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                         </>
                       );
                     })()}
+                    {badge?.(movie)}
                     <FloatingFriendBubbles
                       movieId={movie.id}
                       mediaType={movie.media_type || 'movie'}
@@ -321,6 +332,63 @@ const Home = () => {
   // guarda o resultado; o primeiro cálculo do dia pode levar ~1s).
   const [forYouMovies, setForYouMovies] = useState<ForYouShelf | undefined>(undefined);
   const [forYouSeries, setForYouSeries] = useState<ForYouShelf | undefined>(undefined);
+
+  // 28/11/2026: a Lista de Natal. Pedido do Bruno: a lista de filmes do painel
+  // de Natal "vai ser transportada como uma lista extra e por primeiro, acima
+  // de popular agora". Só existe com o Natal no ar (ou no ensaio do diretor).
+  const { event: seasonal, theme: seasonalTheme } = useSeasonalEvent();
+  // (só para quem tem conta: o visitante vê outra home e não busca a lista)
+  const christmas = session && seasonal?.id === 'christmas' ? seasonal : null;
+  const christmasList = useSeasonalList(christmas);
+  const christmasInfo = useMemo(() => {
+    const info: Record<string, ShelfInfo> = {};
+    (christmas?.items ?? []).forEach((item) => {
+      // quem já avaliou ou guardou o filme vê o selo no lugar da nota prevista
+      const predicted = christmasList.own.has(item.id) ? null : (christmasList.predictions[item.id] ?? null);
+      info[`movie:${item.id}`] = { predicted: typeof predicted === 'number' ? predicted : null, oracle: item.oracle, moodKey: '' };
+    });
+    return info;
+  }, [christmas, christmasList.own, christmasList.predictions]);
+  // filmes da lista que já contaram para alguma missão deste Natal
+  const christmasCounted = useMemo(() => {
+    const kinds = new Set((christmas?.steps ?? []).map((step) => step.kind));
+    return new Set<number>([...kinds].flatMap((kind) => christmas?.actions[kind] ?? []));
+  }, [christmas]);
+  const christmasBadge = useCallback(
+    (movie: Movie) => {
+      const mine = christmasList.own.get(movie.id);
+      const accent = seasonalTheme?.accent ?? '#E5484D';
+      return (
+        <>
+          {typeof mine === 'number' ? (
+            <span
+              className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"
+              style={{ background: PAPER, color: INK }}
+              title={t('home.desk.yourRating')}
+            >
+              <Star className="w-3 h-3 fill-current" aria-hidden />
+              <span className="sr-only">{t('home.desk.yourRating')}:</span>
+              {mine}
+            </span>
+          ) : (
+            mine === null && (
+              <span className="absolute top-1.5 left-1.5 grid place-items-center w-6 h-6 rounded-full bg-sky-500/95 text-white shadow-lg" title={t('home.desk.inWatchlist')}>
+                <Bookmark className="w-3.5 h-3.5 fill-current" aria-hidden />
+                <span className="sr-only">{t('home.desk.inWatchlist')}</span>
+              </span>
+            )
+          )}
+          {christmasCounted.has(movie.id) && (
+            <span className="absolute top-1.5 right-1.5 grid place-items-center w-6 h-6 rounded-full shadow-lg" style={{ background: accent, color: '#fff' }} title={t('events.counted')}>
+              <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
+              <span className="sr-only">{t('events.counted')}</span>
+            </span>
+          )}
+        </>
+      );
+    },
+    [christmasList.own, christmasCounted, seasonalTheme, t],
+  );
 
   // Rede de segurança: se o topo demorar demais, a página abre mesmo assim
   // (cada bloco tem o próprio esqueleto de carregamento).
@@ -407,13 +475,14 @@ const Home = () => {
 
   const allShelfMovies = useMemo(
     () => [
+      ...(christmasList.movies ?? []),
       ...(forYouMovies?.movies ?? []),
       ...(forYouSeries?.movies ?? []),
       ...(shelves.trending ?? []),
       ...(shelves.comingSoon ?? []),
       ...(shelves.bestOfYear ?? []),
     ],
-    [shelves, forYouMovies, forYouSeries]
+    [shelves, forYouMovies, forYouSeries, christmasList.movies]
   );
   const friendActivity = useFriendActivity(userId, allShelfMovies);
 
@@ -495,6 +564,20 @@ const Home = () => {
           />
         )}
 
+        {christmas && (
+          <Shelf
+            anchorId={CHRISTMAS_LIST_ANCHOR}
+            title={t('home.christmasList')}
+            subtitle={t('home.christmasListSubtitle')}
+            movies={christmasList.movies ?? undefined}
+            meta="forYou"
+            forYouInfo={christmasInfo}
+            badge={christmasBadge}
+            friendActivity={friendActivity}
+            onMovieClick={handleMovieClick}
+            onViewAll={() => openAll(t('home.christmasList'), christmasList.movies ?? [])}
+          />
+        )}
         <Shelf
           title={t('home.popularNow')}
           movies={shelves.trending}

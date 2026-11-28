@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { PAPER, MIST, PIXEL, FOCUS_RING, withAlpha } from '../../lib/oracleTheme';
 import { stepTextKey, type SeasonalEventState, type SeasonalStep, type SeasonalTheme } from '../../lib/seasonalEvents';
-import { BatFlights, LightsGarland, MoonGlow, Snowfall } from './SeasonalArt';
+import { BatFlights, MoonGlow, Snowfall } from './SeasonalArt';
+import { PixelLights } from './PixelChristmas';
 
 // Comemoração de uma tag especial do evento: aparece por cima de qualquer
 // página assim que o servidor concede a tag. A última etapa também avisa
@@ -89,8 +90,9 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
             </>
           ) : (
             <>
-              <LightsGarland count={10} className="absolute inset-x-0 top-0" sag={9} bulb={7} />
-              <Snowfall count={18} seed={11} speed={[7, 14]} opacity={[0.35, 0.8]} />
+              {/* 28/11/2026: o Natal em pixel (o varal e a neve da sala de Natal) */}
+              <PixelLights pixel={3} overlay />
+              <Snowfall pixel count={18} seed={11} speed={[7, 14]} opacity={[0.4, 0.85]} />
             </>
           )}
 
@@ -136,7 +138,11 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
             )}
 
             <p className="mt-4 text-xs leading-relaxed" style={{ color: MIST }}>
-              {t('events.celebration.forever', { count: ordered.length })}
+              {/* 28/11/2026: a missão do presente (a raspadinha do Natal) não tem
+                  filme por trás: a tag fica, sem a condição da biblioteca */}
+              {ordered.every((step) => step.kind === 'whisper')
+                ? t('events.celebration.foreverPlain', { count: ordered.length })
+                : t('events.celebration.forever', { count: ordered.length })}
             </p>
 
             <div className="mt-6 flex flex-col gap-2.5">

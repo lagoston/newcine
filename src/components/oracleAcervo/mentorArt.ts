@@ -162,7 +162,13 @@ export const SPRITE_W = 21;
 export const SPRITE_H = 23;
 
 // As cores fixas de cada mentor (o traje do retrato dele) e as que vêm da prateleira.
-const paletteOf = (id: MentorId, tint: string, blink: boolean): Record<string, string> => {
+// festive (28/11/2026, o Natal no salão): o capuz do sapo e a boina da cobra
+// ficam vermelhos de Papai Noel; a raposa ganha o gorro por cima (FESTIVE_HATS).
+const SANTA_RED = '#C8323E';
+const SANTA_FOLD = '#9E2530';
+const SANTA_WHITE = '#F8F4EC';
+
+const paletteOf = (id: MentorId, tint: string, blink: boolean, festive = false): Record<string, string> => {
   const base: Record<string, string> = {
     K: INK,
     B: tint,
@@ -174,15 +180,43 @@ const paletteOf = (id: MentorId, tint: string, blink: boolean): Record<string, s
   };
   if (id === 'bogart') {
     // o sapo de capuz preto, de olhos cor de âmbar
-    return { ...base, H: '#231B33', h: '#3A2E55', E: blink ? tint : '#F6C777', P: blink ? dark(tint, 0.34) : INK };
+    return { ...base, H: festive ? SANTA_RED : '#231B33', h: festive ? SANTA_FOLD : '#3A2E55', E: blink ? tint : '#F6C777', P: blink ? dark(tint, 0.34) : INK };
   }
   if (id === 'fincher') {
     // a raposa de terno escuro e gravata vinho
     return { ...base, H: '#231B33', h: '#3A2E55', C: '#FFFFFF', T: '#9B2C3F', E: blink ? tint : '#F6C777', P: blink ? dark(tint, 0.34) : INK, M: INK };
   }
   // a cobra de boina cor de pêssego, de olho amarelo
-  return { ...base, R: '#F0A27A', E: blink ? tint : '#F2D34B', P: blink ? dark(tint, 0.34) : INK, M: dark(tint, 0.62) };
+  return { ...base, R: festive ? SANTA_RED : '#F0A27A', E: blink ? tint : '#F2D34B', P: blink ? dark(tint, 0.34) : INK, M: dark(tint, 0.62) };
 };
+
+// O que o Natal põe por cima de cada mentor: [coluna, linha] do canto em
+// relação ao desenho dele, e os pixels (R vermelho, W pelúcia).
+//   sapo: o pompom no alto do capuz · raposa: o gorro entre as orelhas ·
+//   cobra: a barra de pelúcia e o pompom na boina
+const FESTIVE_HATS: Record<MentorId, { at: [number, number]; rows: string[] }> = {
+  bogart: { at: [9, -2], rows: ['WWW', 'WWW'] },
+  fincher: { at: [7, -1], rows: ['...RRR..', '..RRRRWW', '.RRRRRWW', '.RRRRR..', 'WWWWWWW.'] },
+  cypher: { at: [5, -1], rows: ['.........WW', '.........WW', '...........', '...........', '.WWWWWWWWW.'] },
+};
+const HAT_PALETTE: Record<string, string> = { R: SANTA_RED, W: SANTA_WHITE };
+const HAT_SHADE: Record<string, string> = { R: '#0A0616', W: '#0A0616' };
+
+// O varal de pisca-pisca no alto do salão (o mesmo da sala de Natal da home).
+const GARLAND = ['#E5484D', '#F5C451', '#2FB36B', '#7CC4F8'];
+function drawGarland(ctx: PixelCtx, width: number, tick: number) {
+  for (let x = 0; x < width; x += 1) {
+    const sag = [0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 0][x % 12];
+    px(ctx, x, 3 + sag, '#1E2D26');
+  }
+  for (let x = 5, i = 0; x < width - 1; x += 6, i += 1) {
+    const sag = [0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 0][x % 12];
+    const color = GARLAND[i % GARLAND.length];
+    // parada, todas acesas; andando, metade pisca de cada vez
+    const lit = !tick || (Math.floor(tick / 6) + i) % 2 === 0;
+    px(ctx, x, 4 + sag, lit ? color : mixHex(color, '#0A0616', 0.55), 2, 2);
+  }
+}
 
 function drawSprite(ctx: PixelCtx, x: number, y: number, rows: string[], palette: Record<string, string>) {
   const x0 = Math.round(x);
@@ -227,6 +261,8 @@ export interface HallState {
   tick: number;
   // quantos pixels o mentor ativo está acima do chão (o pulinho de quando é chamado)
   hop?: number;
+  // o Natal no ar: varal de luzes no alto e os três de gorro
+  festive?: boolean;
 }
 
 // o centro de cada nicho, para a largura dada
@@ -330,6 +366,7 @@ function drawTorch(ctx: PixelCtx, x: number, tick: number) {
 export function drawHall(ctx: PixelCtx, width: number, state: HallState) {
   const centers = mentorCenters(width);
   drawWall(ctx, width);
+  if (state.festive) drawGarland(ctx, width, state.tick);
   MENTORS.forEach((id) => drawNiche(ctx, centers[id], id, state.mentors[id], id === state.active));
   // uma tocha entre os nichos (só onde há folga entre eles)
   if (centers.fincher - centers.bogart >= NICHE_W + 9) {
@@ -362,10 +399,13 @@ export function drawHall(ctx: PixelCtx, width: number, state: HallState) {
     const blink = phase < 2;
     const x = cx - Math.floor(SPRITE_W / 2);
     const y = MENTOR_HEAD_Y - (isActive ? Math.round(state.hop ?? 0) : 0);
-    drawSprite(ctx, x, y, SPRITES[id], paletteOf(id, mentor.tint, blink));
+    drawSprite(ctx, x, y, SPRITES[id], paletteOf(id, mentor.tint, blink, state.festive));
+    const hat = state.festive ? FESTIVE_HATS[id] : null;
+    if (hat) drawSprite(ctx, x + hat.at[0], y + hat.at[1], hat.rows, HAT_PALETTE);
     // quem não está falando fica na penumbra
     if (!isActive) {
       ctx.globalAlpha = 0.2;
+      if (hat) drawSprite(ctx, x + hat.at[0], y + hat.at[1], hat.rows, HAT_SHADE);
       SPRITES[id].forEach((row, ry) => {
         const first = row.search(/[^.]/);
         if (first < 0) return;

@@ -170,6 +170,8 @@
     "consultOracle": "Oracle",
     "getPersonalized": "Get personalized predictions and recommendations",
     "popularNow": "Popular Now",
+    "christmasList": "Christmas List",
+    "christmasListSubtitle": "The three oracles' film feast for December.",
     "comingSoon": "Coming Soon",
     "topRatedGems": "Top-Rated Gems",
     "topRated": "Top-Rated Gems",
@@ -2111,6 +2113,8 @@
       "eyebrow_other": "{{count}} special tags unlocked",
       "forever_one": "It stays on your profile forever if the films that counted remain in your library until the event ends.",
       "forever_other": "They stay on your profile forever if the films that counted remain in your library until the event ends.",
+      "foreverPlain_one": "It stays on your profile forever.",
+      "foreverPlain_other": "They stay on your profile forever.",
       "useTag": "Show {{name}} on my profile",
       "using": "On your profile",
       "continue": "Continue"
@@ -2160,22 +2164,89 @@
       "steps": {
         "secret-friend": {
           "label": "Secret friend",
-          "task": "Whisper a film from the list to a friend",
-          "hint": "Open a film below and tap Whisper.",
-          "reward": "Your gift has arrived. Now watch and rate a film from the list."
+          "task": "Give the Christmas scratch card to a friend",
+          "hint": "They only find out who gave it after scratching.",
+          "gives": "Your friend gets at least 2 Jackpot chips, and may get up to 3 special chips.",
+          "reward": "Your scratch card was delivered. Now rate a film from the Christmas List."
         },
         "spark-of-grace": {
           "label": "Rate a film",
-          "task": "Rate 1 film from the list",
+          "task": "Rate 1 film from the Christmas List",
           "hint": "Watch a film from the list and give it your rating.",
-          "reward": "The tree is lit. Only the review is left."
+          "gives": "You get the soda can tree for your studio.",
+          "done": "The soda can tree is in your studio",
+          "reward": "The soda can tree has arrived in your studio. Only the review is left."
         },
         "ho-ho-ho": {
           "label": "Review · decorates your profile",
           "task": "Write a review of the film you rated",
           "hint": "Open the film from the list you rated and post your review.",
+          "gives": "Your profile dresses up for Christmas, with a countdown to Dec 25.",
+          "done": "Your profile can dress up for Christmas",
           "reward": "Santa stopped by: Christmas is complete."
         }
+      },
+      "panel": {
+        "giftAction": "Choose a friend",
+        "listAction": "See the Christmas List",
+        "sentTo": "You gave it to {{name}}",
+        "sentScratched": "{{name}} has scratched your gift",
+        "sentOracle": "The Oracle delivered your scratch card",
+        "sentTrial": "Rehearsal delivery done"
+      },
+      "received": {
+        "title": "A secret friend left a scratch card for you",
+        "action": "Scratch",
+        "done": "Your scratch card gave you {{prize}}",
+        "from": "From {{name}}",
+        "view": "See ticket"
+      },
+      "gift": {
+        "title": "Secret friend",
+        "subtitle": "Choose a friend to get your Christmas scratch card. They only find out who gave it after scratching.",
+        "listLabel": "Your friends",
+        "taken": "Already got one",
+        "pick": "Choose a friend",
+        "confirm": "Give the scratch card to {{name}}",
+        "once": "Each person gives one scratch card per Christmas, and each friend gets only one.",
+        "noFriends": "You don't have friends here yet.",
+        "allTaken": "All your friends already got this Christmas's scratch card.",
+        "oracleHint": "The Oracle can deliver yours to someone who has not got one yet.",
+        "oracle": "Let the Oracle deliver it",
+        "trialNote": "Director's rehearsal: the delivery is make-believe and no scratch card leaves this account.",
+        "trialAction": "Do the rehearsal delivery",
+        "sent": "Scratch card delivered to {{name}}",
+        "sentOracle": "The Oracle delivered your scratch card",
+        "sentTrial": "Rehearsal delivery done",
+        "errors": {
+          "taken": "That friend just got one from someone else. Choose another.",
+          "already_sent": "You already gave this Christmas's scratch card.",
+          "not_friend": "You can only give it to someone who is your friend here.",
+          "pick_friend": "There is still a friend without a scratch card. Choose one of them.",
+          "not_open": "Christmas is not live yet.",
+          "bot": "This account does not take part in the secret friend.",
+          "failed": "Couldn't deliver it right now. Try again."
+        }
+      },
+      "scratch": {
+        "title": "Christmas scratch card",
+        "ticketTitle": "Merry Christmas",
+        "instruction": "Scratch the three windows with your finger",
+        "guaranteed": "2 chips guaranteed",
+        "all": "Scratch all",
+        "failed": "Couldn't scratch right now. Try again.",
+        "won": "You won {{prize}}",
+        "from": "Your secret friend was {{name}}",
+        "trial": "Director's rehearsal: no chips are credited.",
+        "toJackpot": "Open the Jackpot",
+        "tickets_one": "{{count}} chip",
+        "tickets_other": "{{count}} chips",
+        "special_one": "{{count}} special chip",
+        "special_other": "{{count}} special chips",
+        "and": "{{a}} and {{b}}",
+        "windowCovered": "Window {{n}}, covered",
+        "windowSpecial": "Window {{n}}: special chip",
+        "windowEmpty": "Window {{n}}: snowflake"
       },
       "decorationHint": "Wear {{tag}} on your profile and it dresses up for Christmas all year, with a countdown to the next Dec 25.",
       "countdown_one": "Day for next Christmas",
@@ -4204,7 +4275,8 @@
       "shelves": "Library",
       "mood": "{{item}}",
       "turntable": "Record player",
-      "rifle": "Wall rifle"
+      "rifle": "Wall rifle",
+      "tree": "Soda can tree"
     },
     "items": {
       "slot": "the Jackpot machine",
@@ -4225,7 +4297,8 @@
       "loveseat": "the courting sofa",
       "fort": "the blanket fort",
       "fridge": "the mini fridge",
-      "turntable": "the record player"
+      "turntable": "the record player",
+      "tree": "the soda can tree"
     },
     "arrange": {
       "start": "Arrange the studio",
@@ -4286,7 +4359,8 @@
         "bigScreen": "big screen",
         "marquee": "light-bulb marquee",
         "frog": "the frog (roams free)",
-        "rifle": "wall rifle"
+        "rifle": "wall rifle",
+        "tree": "Soda can tree"
       }
     },
     "moodCard": {

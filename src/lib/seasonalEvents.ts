@@ -144,6 +144,10 @@ export const countedIds = (state: SeasonalEventState, kind: SeasonalStepKind): S
 // mesma em todas as edições.
 export const stepTextKey = (step: Pick<SeasonalStep, 'tag' | 'base_tag'>): string => step.base_tag || step.tag;
 
+// A âncora da prateleira "Lista de Natal" da home (28/11/2026): o painel de
+// Natal rola até ela quando a missão pede um filme da lista.
+export const CHRISTMAS_LIST_ANCHOR = 'lista-de-natal';
+
 // Etapa em andamento: a primeira ainda não conquistada (null = tudo feito).
 export const currentStep = (state: SeasonalEventState): SeasonalStep | null => state.steps.find((step) => !step.unlocked) ?? null;
 

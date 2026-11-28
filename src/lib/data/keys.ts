@@ -77,6 +77,11 @@ export const Q = {
     typeof uid === 'string'
       ? spec(uid, ['seasonal', uid, preview], 5 * MIN, preview === null, 'seasonal')
       : spec(uid === null ? 'pub' : undefined, ['seasonal', 'visitante'], 5 * MIN),
+  // 28/11/2026: o amigo secreto do Natal (get_secret_friend): a raspadinha que a
+  // pessoa deu, a que ganhou e os amigos que ainda podem ganhar. Fica embaixo de
+  // 'seasonal' de propósito: tudo o que refaz o evento ('seasonal:stale') refaz
+  // isto também. Não vai para o aparelho (muda quando OUTRA pessoa age).
+  secretFriend: (uid: Owner, preview: string | null) => spec(uid, ['seasonal', 'secretFriend', uid, preview], 2 * MIN, false),
 
   // ---- listas públicas ------------------------------------------------------
   // Popular agora, Em breve, Melhores do ano (o servidor guarda por 6 a 12 h)

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PersonalityCompletionModal from '../PersonalityCompletionModal';
 import { markRevealSeen, revealModeFor, type RevealMode } from '../../lib/personaReveal';
@@ -6,6 +6,7 @@ import { fetchPersonaWorld, type PersonaWorld } from '../../lib/personaWorld';
 import StudioCard from '../personaWorld/StudioCard';
 import { useStudioDoors, type StudioJackpot } from '../personaWorld/useStudioDoors';
 import { rememberPatronus } from '../patronus/patronus';
+import { useSeasonalEvent } from '../../contexts/SeasonalEventContext';
 import { useJackpotDoor } from '../posterJackpot/useJackpotDoor';
 import { DailyChipBalloon } from '../posterJackpot/DailyChip';
 
@@ -87,6 +88,18 @@ const StudioDoor: React.FC<{ userId: string; username: string | null }> = ({ use
   useEffect(() => {
     load();
   }, [load]);
+
+  // 28/11/2026: uma tag de evento conquistada com a home aberta pode trazer um
+  // objeto novo (a árvore de latinha do Natal): a cena é lida de novo. Só
+  // quando a lista de tags muda depois de já conhecida, não na chegada dela.
+  const { event: seasonal } = useSeasonalEvent();
+  const seasonalTags = seasonal ? seasonal.steps.filter((step) => step.unlocked).map((step) => step.tag).join(',') : null;
+  const knownTags = useRef<string | null>(null);
+  useEffect(() => {
+    if (seasonalTags === null) return;
+    if (knownTags.current !== null && knownTags.current !== seasonalTags) load();
+    knownTags.current = seasonalTags;
+  }, [seasonalTags, load]);
 
   useEffect(() => {
     if (open) setSheetMounted(true);

@@ -5,7 +5,8 @@ import { MIST, NIGHT, PAPER, PIXEL, tagCategoryStyle, withAlpha } from '../../li
 import { SEASONAL_THEMES, isSeasonalEventId, toRoman } from '../../lib/seasonalEvents';
 import { tagRequirementText } from '../../lib/tags';
 import { eventAchievementOf, tagAchievementOf, type FeedStory } from '../../lib/friendsFeed';
-import { BatFlights, LightsGarland, MoonGlow, Snowfall } from '../seasonal/SeasonalArt';
+import { BatFlights, MoonGlow, Snowfall } from '../seasonal/SeasonalArt';
+import { PixelLights } from '../seasonal/PixelChristmas';
 
 // Stories de conquista no visualizador do Feed dos Amigos:
 //   • tag desbloqueada: medalhão com o emoji na cor da categoria, o nome, a
@@ -37,8 +38,9 @@ export const AchievementBackdrop: React.FC<{ story: FeedStory }> = ({ story }) =
           </>
         ) : (
           <>
-            <LightsGarland count={11} className="absolute inset-x-0 top-[88px]" sag={10} bulb={8} />
-            <Snowfall count={26} seed={17} speed={[8, 16]} opacity={[0.3, 0.8]} />
+            {/* 28/11/2026: o Natal em pixel (o varal e a neve da sala de Natal) */}
+            <PixelLights pixel={3} overlay style={{ top: 88 }} />
+            <Snowfall pixel count={26} seed={17} speed={[8, 16]} opacity={[0.35, 0.85]} />
           </>
         )}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent 24%, transparent 62%, rgba(0,0,0,0.75))' }} />

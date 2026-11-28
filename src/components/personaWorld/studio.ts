@@ -3,6 +3,7 @@ import { GLOW_GOLD, GLOW_SOFT, glowAlphas, glowOf, paintGlow, silhouette } from 
 import { disc, faceX, faceY, sprite, type Ctx, type Pt } from './pixel';
 import { MOOD_ITEMS, hasMoodItem, isMoodItem, type MoodItemId } from './moodItems';
 import { TERROR_PORTAL, drawTerrorPortal, paintTerrorPortal } from './terrorPortal';
+import { CHRISTMAS_TREE, drawStudioTree, paintStudioTree } from './christmasTree';
 import { COBRA_TURNTABLE, TURNTABLE, drawTurntable, hasCobraItem, paintTurntable } from './cobraItems';
 
 // O estúdio (14/11/2026): os objetos da sala, os lugares do chão e os bichinhos.
@@ -94,7 +95,7 @@ export const NO_EXTRAS: StudioExtras = { jackpot: 'on', poker: false };
 // as outras são do cinema (draw.ts).
 // 17/11/2026: cada móvel de humor é tocável com o próprio nome (abre o cartão dele).
 // e (17/11/2026) os móveis da Cobra: o toca-discos e o rifle de parede (este em draw.ts).
-export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves' | 'turntable' | 'rifle' | MoodItemId;
+export type SpotKind = 'jackpot' | 'poker' | 'book' | 'terror' | 'posters' | 'screen' | 'moth' | 'shelves' | 'turntable' | 'rifle' | 'tree' | MoodItemId;
 export interface Rect {
   x: number;
   y: number;
@@ -152,7 +153,7 @@ const WALL_GAP = 0.12;
 
 // Os objetos que têm lugar (a pessoa pode mudar) e os dois fixos do cinema.
 // 17/11/2026: e os sete móveis dos humores (moodItems/).
-export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank' | 'turntable' | MoodItemId;
+export type ItemId = 'slot' | 'book' | 'table' | 'terror' | 'archive' | 'armchair' | 'popcorn' | 'plant' | 'chair' | 'fox' | 'tank' | 'turntable' | 'tree' | MoodItemId;
 type SolidId = ItemId | 'projector' | 'lamp';
 
 // O que os desenhos precisam saber de quem é o estúdio.
@@ -188,6 +189,9 @@ interface ItemDef {
 
 // O portal do Clube do Terror (até 17/11/2026, a caixa) aparece para quem tem a Deadly Sleeping (qualquer edição).
 export const hasTerrorBox = (world: PersonaWorld): boolean => world.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id));
+// A árvore de latinha (28/11/2026): chega com a 2ª tag do Natal, 🎄 Spark of
+// Grace, de qualquer edição, e fica para sempre (christmasTree.ts).
+export const hasChristmasTree = (world: PersonaWorld): boolean => world.tags.some((tag) => /^spark-of-grace(-[0-9]+)?$/.test(tag.id));
 export const hasPet = (world: PersonaWorld, pet: PetId): boolean => world.pets[pet] !== null;
 
 // ---------------------------------------------------------------------------
@@ -595,6 +599,8 @@ const ITEMS: ItemDef[] = [
   { id: 'book', w: BOOKCASE.w, d: BOOKCASE.d, h: BOOKCASE.h + 9, home: 2, owned: () => true, draw: drawBookcase, paint: paintBookcase, spot: 'book' },
   { id: 'table', w: TABLE.r * 2, d: TABLE.r * 2, h: TABLE.h + 2, home: 8, owned: (env) => env.extras.poker, draw: drawTable, spot: 'poker', pad: 0 },
   { id: 'terror', ...TERROR_PORTAL, home: 11, owned: (env) => hasTerrorBox(env.world), draw: drawTerrorPortal, paint: paintTerrorPortal, spot: 'terror', pad: 3 },
+  // a árvore de latinha do Natal (28/11/2026; christmasTree.ts)
+  { id: 'tree', ...CHRISTMAS_TREE, home: 8, owned: (env) => hasChristmasTree(env.world), draw: drawStudioTree, paint: paintStudioTree, spot: 'tree', pad: 2 },
   { id: 'archive', w: 0.8, d: 0.8, h: 10, home: 0, owned: (env) => env.st.out > 0 || Boolean(env.world.preview), draw: drawArchive },
   { id: 'armchair', w: 1.2, d: 1.3, h: 16, home: 6, owned: (env) => levelOf(env) >= 2, draw: drawArmchair },
   { id: 'popcorn', w: 0.8, d: 0.8, h: 18, home: 10, owned: (env) => levelOf(env) >= 5, draw: drawPopcorn },
@@ -703,7 +709,7 @@ export function resolvePlaces(all: ItemId[], saved: Record<string, number>, stor
     if (at[id] !== undefined) return;
     const home = PLACES[HOME[id]];
     const order = PLACES.map((place, index) => ({ index, far: Math.hypot(place.x - home.x, place.y - home.y) })).sort((a, b) => a.far - b.far || a.index - b.index);
-    const free = order.find((option) => !taken.has(option.index) && !((isMoodItem(id) || id === 'turntable') && KEEP_CLEAR.includes(option.index)));
+    const free = order.find((option) => !taken.has(option.index) && !((isMoodItem(id) || id === 'turntable' || id === 'tree') && KEEP_CLEAR.includes(option.index)));
     if (!free) return;
     at[id] = free.index;
     taken.add(free.index);

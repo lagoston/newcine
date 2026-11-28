@@ -351,11 +351,14 @@ export async function saveMoodPick(moodKey: string, title: WorldTitle): Promise<
 // 18/11/2026 (otimização): de quem é a prévia fica em lib/studioPreviewOwner.ts
 // (o DirectorContext grava lá sem trazer este arquivo para a abertura do app).
 
+// 28/11/2026: e a árvore de latinha do Natal (a tag 🎄 Spark of Grace).
 function withStudioPreview(world: PersonaWorld): PersonaWorld {
   const first = Math.max(1, world.rated);
-  const tags = world.tags.some((tag) => /^deadly-sleeping(-[0-9]+)?$/.test(tag.id))
-    ? world.tags
-    : [...world.tags, { id: 'deadly-sleeping', at: new Date().toISOString() }];
+  const tags = [...world.tags];
+  ['deadly-sleeping', 'spark-of-grace'].forEach((id) => {
+    const has = tags.some((tag) => tag.id === id || tag.id.startsWith(`${id}-`));
+    if (!has) tags.push({ id, at: new Date().toISOString() });
+  });
   return {
     ...world,
     tags,

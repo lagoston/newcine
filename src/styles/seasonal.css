@@ -66,10 +66,6 @@
 .co-spider {
   animation: co-spider-bob 5s ease-in-out infinite;
 }
-.co-bulb {
-  animation: co-twinkle var(--dur, 2.4s) ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
-}
 /* Floco: o invólucro tem a altura toda e cai; o ponto fica no topo dele. */
 .co-flake {
   position: absolute;
@@ -83,6 +79,24 @@
   border-radius: 9999px;
   background: #fff;
   animation: co-sway var(--sway, 3s) ease-in-out infinite alternate;
+}
+/* 28/11/2026 (o Natal em pixel): o floco quadrado desce em degraus e balança
+   em três posições, como a neve da janela da sala de Natal. */
+.co-flake--pixel {
+  animation-timing-function: steps(96);
+}
+.co-flake--pixel > span {
+  border-radius: 0;
+  animation-timing-function: steps(3);
+}
+/* O varal de pixel: a segunda imagem (as outras lâmpadas acesas) aparece e
+   some em degraus. Só opacidade: o celular alterna sem repintar. */
+.co-pixel-blink {
+  animation: co-pixel-blink 1.6s steps(1) infinite;
+}
+@keyframes co-pixel-blink {
+  0%, 49.9% { opacity: 0; }
+  50%, 100% { opacity: 1; }
 }
 .co-flicker {
   animation: co-flicker 3.2s ease-in-out infinite;
@@ -101,14 +115,16 @@
   .co-bat,
   .co-bat svg,
   .co-spider,
-  .co-bulb,
   .co-flake,
   .co-flake > span,
   .co-flicker,
   .co-node-pulse,
+  .co-pixel-blink,
   .co-pennant {
     animation: none !important;
   }
+  /* parado, o varal mostra só a primeira imagem */
+  .co-pixel-blink { opacity: 0; }
   /* parados, mas espalhados pela cena em vez de todos no canto */
   .co-fly { transform: translateX(var(--rest-x, 40%)); }
   .co-flake { transform: translateY(var(--rest-y, 40%)); }

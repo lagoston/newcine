@@ -64,6 +64,9 @@ function open(uid: string) {
       if (ping.kind === 'whisper') {
         emit('whispers:new', { type: typeof ping.type === 'string' ? ping.type : undefined });
       }
+      // 28/11/2026: o amigo secreto do Natal. Alguém me deu uma raspadinha, ou
+      // quem ganhou a minha acabou de raspar: o painel de Natal relê o estado.
+      if (ping.kind === 'gift') emit('seasonal:stale', {});
     });
   channel = next;
   // 19/11/2026 (achado em produção, no mesmo dia em que o canal estreou): o

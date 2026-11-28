@@ -161,6 +161,15 @@ export function useStudioDoors(options: {
     // pessoa tiver (studioSpots).
     hotspots.turntable = { label: t('studio.spots.turntable'), onClick: () => pokeItem('turntable') };
     hotspots.rifle = { label: t('studio.spots.rifle'), onClick: () => pokeItem('rifle') };
+    // a árvore de latinha do Natal (28/11/2026): tocar faz as latas piscarem e,
+    // se o painel de Natal está na página (a home, em dezembro), leva até ele
+    hotspots.tree = {
+      label: t('studio.spots.tree'),
+      onClick: () => {
+        pokeItem('tree');
+        document.getElementById('natal')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+    };
     // os móveis dos humores: só os que estão na sala viram botão (studioSpots)
     MOOD_ITEMS.forEach((item) => {
       hotspots[item.id] = {

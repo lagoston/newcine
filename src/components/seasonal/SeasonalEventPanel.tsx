@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Bookmark, Check, Film, Lock, Sparkles, Star, Sun } from 'lucide-react';
 import FateThread from '../FateThread';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
-import { getMovieDetails, getMoviesFromCacheByType, type Movie } from '../../lib/tmdb';
+import type { Movie } from '../../lib/tmdb';
+import { useSeasonalList } from '../../lib/seasonalList';
 import OptimizedPoster from '../OptimizedPoster';
 import { INK, MIST, ORACLE_BY_ID, PAPER, PIXEL, POSTER_TITLE, FOCUS_RING, VELVET, withAlpha } from '../../lib/oracleTheme';
 import {
@@ -118,61 +117,12 @@ interface Props {
 
 const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switcher }) => {
   const { t, i18n } = useTranslation();
-  const { session } = useAuth();
-  const userId = session?.user?.id;
-  const [movies, setMovies] = useState<Movie[] | null>(null);
-  const [own, setOwn] = useState<Map<number, number | null>>(new Map());
-  const [predictions, setPredictions] = useState<Record<number, number>>({});
-  const predicted = useRef(false);
+  // 28/11/2026: as leituras da lista (filmes, notas da pessoa, nota prevista)
+  // moram em lib/seasonalList.ts, divididas com a prateleira de Natal da home.
+  const { movies, own, predictions } = useSeasonalList(event);
   const drag = useDragScroll();
 
-  const idsKey = event.items.map((item) => item.id).join(',');
   const oracleOf = new Map(event.items.map((item) => [item.id, item.oracle]));
-
-  // Filmes da seleção, na ordem do evento (cache do banco; o TMDB só se faltar).
-  useEffect(() => {
-    let cancelled = false;
-    const ids = idsKey ? idsKey.split(',').map(Number) : [];
-    (async () => {
-      const cached = await getMoviesFromCacheByType(ids.map((id) => ({ movie_id: id, media_type: 'movie' })));
-      const list = await Promise.all(
-        ids.map(async (id) => cached.get(`${id}_movie`) ?? (await getMovieDetails(id, 'movie').catch(() => null))),
-      );
-      if (!cancelled) setMovies(list.filter((movie): movie is Movie => Boolean(movie?.poster_path)));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [idsKey, i18n.language]);
-
-  // Notas e watchlist da pessoa nesses filmes (de novo a cada atualização do evento).
-  useEffect(() => {
-    if (!userId || !idsKey) return;
-    let cancelled = false;
-    supabase
-      .from('user_movies')
-      .select('movie_id, rating, media_type')
-      .eq('user_id', userId)
-      .in('movie_id', idsKey.split(',').map(Number))
-      .then(({ data }) => {
-        if (cancelled) return;
-        const rows = (data ?? []) as { movie_id: number; rating: number | null; media_type: string | null }[];
-        setOwn(new Map(rows.filter((row) => (row.media_type ?? 'movie') === 'movie').map((row) => [row.movie_id, row.rating])));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, idsKey, event]);
-
-  // Nota prevista (uma vez): o mesmo modelo das prateleiras dos oráculos.
-  useEffect(() => {
-    if (!userId || !idsKey || predicted.current) return;
-    predicted.current = true;
-    supabase.functions
-      .invoke('predict-watchlist-ratings', { body: { movieIds: idsKey.split(',').map(Number) } })
-      .then(({ data }) => setPredictions((data?.ratings as Record<number, number>) ?? {}))
-      .catch(() => {});
-  }, [userId, idsKey]);
 
   // ---------------------------------------------------------------------
   // Derivados

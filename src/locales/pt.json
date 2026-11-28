@@ -170,6 +170,8 @@
     "consultOracle": "Oráculo",
     "getPersonalized": "Obtenha previsões e recomendações personalizadas",
     "popularNow": "Popular Agora",
+    "christmasList": "Lista de Natal",
+    "christmasListSubtitle": "A ceia de filmes dos três oráculos para dezembro.",
     "comingSoon": "Em Breve",
     "topRatedGems": "Joias Bem Avaliadas",
     "topRated": "Joias Bem Avaliadas",
@@ -2116,6 +2118,8 @@
       "eyebrow_other": "{{count}} tags especiais desbloqueadas",
       "forever_one": "Fica no seu perfil para sempre se os filmes que contaram continuarem na sua biblioteca até o fim do evento.",
       "forever_other": "Ficam no seu perfil para sempre se os filmes que contaram continuarem na sua biblioteca até o fim do evento.",
+      "foreverPlain_one": "Fica no seu perfil para sempre.",
+      "foreverPlain_other": "Ficam no seu perfil para sempre.",
       "useTag": "Usar {{name}} no perfil",
       "using": "No seu perfil",
       "continue": "Continuar"
@@ -2165,22 +2169,89 @@
       "steps": {
         "secret-friend": {
           "label": "Amigo secreto",
-          "task": "Sussurre um filme da lista para um amigo",
-          "hint": "Abra um filme abaixo e toque em Sussurrar.",
-          "reward": "Seu presente chegou ao amigo. Agora, assista e avalie um filme da lista."
+          "task": "Dê a raspadinha de Natal a um amigo",
+          "hint": "Ele só descobre quem deu depois de raspar.",
+          "gives": "Seu amigo ganha no mínimo 2 fichas do Jackpot, e pode ganhar até 3 fichas especiais.",
+          "reward": "Sua raspadinha foi entregue. Agora, avalie um filme da Lista de Natal."
         },
         "spark-of-grace": {
           "label": "Avalie um filme",
-          "task": "Avalie 1 filme da lista",
+          "task": "Avalie 1 filme da Lista de Natal",
           "hint": "Assista a um filme da lista e dê a sua nota.",
-          "reward": "A árvore acendeu. Falta só a resenha."
+          "gives": "Você ganha a árvore de latinha para o seu estúdio.",
+          "done": "A árvore de latinha está no seu estúdio",
+          "reward": "A árvore de latinha chegou ao seu estúdio. Falta só a resenha."
         },
         "ho-ho-ho": {
           "label": "Resenha · decora o perfil",
           "task": "Escreva uma resenha do filme que você avaliou",
           "hint": "Abra o filme da lista que você avaliou e publique a sua resenha.",
+          "gives": "Seu perfil se veste de Natal, com a contagem para o 25/12.",
+          "done": "Seu perfil pode se vestir de Natal",
           "reward": "O Papai Noel passou por aqui: o Natal está completo."
         }
+      },
+      "panel": {
+        "giftAction": "Escolher o amigo",
+        "listAction": "Ver a Lista de Natal",
+        "sentTo": "Você presenteou {{name}}",
+        "sentScratched": "{{name}} já raspou o seu presente",
+        "sentOracle": "O Oráculo entregou a sua raspadinha",
+        "sentTrial": "Entrega de ensaio feita"
+      },
+      "received": {
+        "title": "Um amigo secreto deixou uma raspadinha para você",
+        "action": "Raspar",
+        "done": "Sua raspadinha deu {{prize}}",
+        "from": "De {{name}}",
+        "view": "Ver bilhete"
+      },
+      "gift": {
+        "title": "Amigo secreto",
+        "subtitle": "Escolha um amigo para ganhar a sua raspadinha de Natal. Ele só descobre quem deu depois de raspar.",
+        "listLabel": "Seus amigos",
+        "taken": "Já ganhou",
+        "pick": "Escolha um amigo",
+        "confirm": "Dar a raspadinha a {{name}}",
+        "once": "Cada pessoa dá uma só raspadinha por Natal, e cada amigo ganha uma só.",
+        "noFriends": "Você ainda não tem amigos por aqui.",
+        "allTaken": "Todos os seus amigos já ganharam a raspadinha deste Natal.",
+        "oracleHint": "O Oráculo pode entregar a sua a alguém que ainda não ganhou.",
+        "oracle": "Deixar o Oráculo entregar",
+        "trialNote": "Ensaio do diretor: a entrega é de faz de conta e nenhuma raspadinha sai daqui.",
+        "trialAction": "Fazer a entrega de ensaio",
+        "sent": "Raspadinha entregue a {{name}}",
+        "sentOracle": "O Oráculo entregou a sua raspadinha",
+        "sentTrial": "Entrega de ensaio feita",
+        "errors": {
+          "taken": "Esse amigo acabou de ganhar de outra pessoa. Escolha outro.",
+          "already_sent": "Você já deu a sua raspadinha deste Natal.",
+          "not_friend": "Só dá para presentear quem é seu amigo aqui.",
+          "pick_friend": "Ainda há amigo sem raspadinha. Escolha um deles.",
+          "not_open": "O Natal ainda não está no ar.",
+          "bot": "Esta conta não participa do amigo secreto.",
+          "failed": "Não deu para entregar agora. Tente de novo."
+        }
+      },
+      "scratch": {
+        "title": "Raspadinha de Natal",
+        "ticketTitle": "Feliz Natal",
+        "instruction": "Raspe as três janelas com o dedo",
+        "guaranteed": "2 fichas garantidas",
+        "all": "Raspar tudo",
+        "failed": "Não deu para raspar agora. Tente de novo.",
+        "won": "Você ganhou {{prize}}",
+        "from": "Seu amigo secreto era {{name}}",
+        "trial": "Ensaio do diretor: nenhuma ficha é creditada.",
+        "toJackpot": "Abrir o Jackpot",
+        "tickets_one": "{{count}} ficha",
+        "tickets_other": "{{count}} fichas",
+        "special_one": "{{count}} ficha especial",
+        "special_other": "{{count}} fichas especiais",
+        "and": "{{a}} e {{b}}",
+        "windowCovered": "Janela {{n}}, coberta",
+        "windowSpecial": "Janela {{n}}: ficha especial",
+        "windowEmpty": "Janela {{n}}: floco de neve"
       },
       "decorationHint": "Use a {{tag}} no perfil e ele se veste de Natal o ano inteiro, com a contagem regressiva para o próximo 25/12.",
       "countdown_one": "Day for next Christmas",
@@ -4203,7 +4274,8 @@
       "shelves": "Biblioteca",
       "mood": "{{item}}",
       "turntable": "Toca-discos",
-      "rifle": "Rifle de parede"
+      "rifle": "Rifle de parede",
+      "tree": "Árvore de latinha"
     },
     "items": {
       "slot": "a máquina do Jackpot",
@@ -4224,7 +4296,8 @@
       "loveseat": "a namoradeira",
       "fort": "a cabana de cobertor",
       "fridge": "o frigobar",
-      "turntable": "o toca-discos"
+      "turntable": "o toca-discos",
+      "tree": "a árvore de latinha"
     },
     "arrange": {
       "start": "Arrumar o estúdio",
@@ -4285,7 +4358,8 @@
         "bigScreen": "tela grande",
         "marquee": "letreiro de lâmpadas",
         "frog": "o sapo (anda solto)",
-        "rifle": "rifle de parede"
+        "rifle": "rifle de parede",
+        "tree": "Árvore de latinha"
       }
     },
     "moodCard": {
